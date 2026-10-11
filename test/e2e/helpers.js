@@ -33,11 +33,11 @@ export async function until(what, fn, timeout = 15000) {
   }
 }
 
-/** The server with its room, on a free port of 127.0.0.1. */
-export async function startStack() {
+/** The server with a room of a match (default: the default match), on a free port of 127.0.0.1. @param {Parameters<typeof createMatchRoom>[0]} [match] */
+export async function startStack(match = DEFAULT_MATCH) {
   /** @type {string[]} */
   const lines = [];
-  const room = await createMatchRoom(DEFAULT_MATCH, { log: (l) => lines.push(l) });
+  const room = await createMatchRoom(match, { log: (l) => lines.push(l) });
   const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade: room.upgrade });
   await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
   const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;

@@ -110,7 +110,7 @@ async function main() {
       players = view.players.length;
       const stages = /** @type {any} */ (game?.content.level)?.stages ?? [];
       costAsker = costAskerAfter(costAsker, events);
-      game?.renderer?.update(view, Object.fromEntries(Object.entries(keys).map(([id, k]) => [id, k.split('#')[0]])));
+      game?.renderer?.update(view, Object.fromEntries(Object.entries(keys).map(([id, k]) => [id, k.split('#')[0]])), events);
       drawHud(view, net, matchText(status, stages, view.frame));
       if (game) skills.update(skillRows(view, unitKeys, seat, game.content.operators));
       bar();

@@ -44,8 +44,16 @@ importers:
       '@aue/sim':
         specifier: workspace:*
         version: link:../sim
+    devDependencies:
+      '@aue/testkit':
+        specifier: workspace:*
+        version: link:../testkit
 
-  engine/packages/data: {}
+  engine/packages/data:
+    dependencies:
+      '@aue/spine':
+        specifier: workspace:*
+        version: link:../spine
 
   engine/packages/lint:
     dependencies:
@@ -129,7 +137,11 @@ importers:
 
   engine/packages/spine: {}
 
-  engine/packages/testkit: {}
+  engine/packages/testkit:
+    dependencies:
+      espree:
+        specifier: 11.2.0
+        version: 11.2.0
 
   engine/packages/ui: {}
 

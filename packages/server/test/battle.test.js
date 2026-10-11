@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WebSocket } from 'ws';
+import { PROTOCOL_VERSION } from '@aue/schema';
 import { createHttpServer, createBattleRoom } from '../src/index.js';
 
 /** A server with a battle room on a free port. */
@@ -30,7 +31,7 @@ test('hello → welcome with a snapshot, then sealed frames; a command reaches t
   try {
     const a = open(s.url(0));
     await a.ready;
-    a.ws.send(JSON.stringify({ t: 'hello', v: 1, seat: 0, key: 'ka', since: -1 }));
+    a.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 0, key: 'ka', since: -1 }));
     await wait(400);
     assert.equal(a.got[0].t, 'welcome');
     assert.ok(a.got.some((m) => m.t === 'frames'));
@@ -46,7 +47,7 @@ test('malformed and binary messages close the connection; a taken seat refuses a
   try {
     const bad = open(s.url(1));
     await bad.ready;
-    bad.ws.send(JSON.stringify({ t: 'hello', v: 1, seat: 1, key: 'k', since: -1, admin: true }));
+    bad.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 1, key: 'k', since: -1, admin: true }));
     assert.deepEqual(await bad.closed, { code: 1008, reason: 'unknown field admin' });
     const bin = open(s.url(1));
     await bin.ready;
@@ -54,11 +55,11 @@ test('malformed and binary messages close the connection; a taken seat refuses a
     assert.equal((await bin.closed).code, 1003);
     const first = open(s.url(0));
     await first.ready;
-    first.ws.send(JSON.stringify({ t: 'hello', v: 1, seat: 0, key: 'owner', since: -1 }));
+    first.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 0, key: 'owner', since: -1 }));
     await wait(100);
     const thief = open(s.url(0));
     await thief.ready;
-    thief.ws.send(JSON.stringify({ t: 'hello', v: 1, seat: 0, key: 'other', since: -1 }));
+    thief.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 0, key: 'other', since: -1 }));
     assert.deepEqual(await thief.closed, { code: 1008, reason: 'seat taken' });
     const early = open(s.url(1));
     await early.ready;

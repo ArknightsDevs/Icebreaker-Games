@@ -5,6 +5,7 @@ import { startBattle } from '@aue/worker';
 import { createBattleRenderer, loadTextures } from '@aue/render';
 import { skeletonContent } from '@aue/content';
 import { createDeck } from './deck.js';
+import { createSkillBar, skillRows } from './skills.js';
 
 /** The act1multi_01 camera view vector (ArknightsGameResource map.json); the data pipeline will provide it (M5). */
 const VIEW = [0, -6.1, -9.76];
@@ -64,11 +65,19 @@ async function main() {
   const ops = Object.entries(skeletonContent.operators).filter(([id]) => avatars[id]).map(([id, o]) => ({ id, name: o.name, avatar: avatars[id] }));
   const deck = createDeck($('deck'), ops);
   let net = '连接中';
+  /** The content key of each unit id seen so far: a frame only names the ids that are new. @type {Map<number, string>} */
+  const unitKeys = new Map();
+  const skills = createSkillBar($('skills'), (id) => battle.command({ type: 'skill', unit: id }));
   const battle = startBattle({
     workerUrl: new URL('/m/@aue/worker/src/worker.js', location.href),
     wsUrl: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/battle?seat=${seat}`,
     seat, key,
-    onFrame: (view, _events, keys) => { renderer?.update(view, keys); drawHud(view, net); },
+    onFrame: (view, _events, keys) => {
+      for (const [id, k] of Object.entries(keys)) unitKeys.set(Number(id), k);
+      renderer?.update(view, keys);
+      drawHud(view, net);
+      skills.update(skillRows(view, unitKeys, seat, skeletonContent.operators));
+    },
     onNet: (s) => { net = s.state === 'open' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`; },
   });
   if (renderer) {

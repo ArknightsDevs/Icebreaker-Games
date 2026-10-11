@@ -12,6 +12,14 @@
     "node": true
   },
   "dependencies": {
-    "@aue/math": "workspace:*"
+    "@aue/content": "workspace:*",
+    "@aue/math": "workspace:*",
+    "@aue/net": "workspace:*",
+    "@aue/schema": "workspace:*",
+    "es-module-lexer": "3.0.2",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
   }
 }

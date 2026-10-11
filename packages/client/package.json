@@ -6,6 +6,12 @@
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/main.js"
+  },
+  "dependencies": {
+    "@aue/content": "workspace:*",
+    "@aue/render": "workspace:*",
+    "@aue/schema": "workspace:*",
+    "@aue/worker": "workspace:*"
   }
 }

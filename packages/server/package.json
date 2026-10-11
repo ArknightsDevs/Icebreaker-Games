@@ -1,0 +1,17 @@
+{
+  "name": "@icebreaker/server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "gateway, battle instances, the arbiter re-simulation, lobby and rooms, reports, asset hosting",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "aue": {
+    "node": true
+  },
+  "dependencies": {
+    "@aue/math": "workspace:*"
+  }
+}

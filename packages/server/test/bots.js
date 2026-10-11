@@ -57,8 +57,8 @@ export function botCommands(w, c, seat) {
   return [...(dep ? [dep] : []), ...skillsOf(w, c, seat)];
 }
 
-/** The elite-2 six-star decks for a stronger match on the same level. */
-const STRONG = { elite: 2, level: 90, potential: 1, trust: 100, skill: 0, skillLevel: 7 };
+/** The elite-2 six-star decks, each with its first module at level 3, for a stronger match on the same level. */
+const STRONG = { elite: 2, level: 90, potential: 1, trust: 100, skill: 0, skillLevel: 7, module: 0, moduleLevel: 3 };
 /** @param {string[]} ids */
 const deck = (ids) => ids.map((id) => ({ id, build: { ...STRONG } }));
 /** @type {import('@aue/schema').Match['decks']} */

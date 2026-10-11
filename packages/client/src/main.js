@@ -12,8 +12,6 @@ import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
 
-/** The act1multi_01 camera view vector (ArknightsGameResource map.json); the data pipeline will provide it (M5). */
-const VIEW = [0, -6.1, -9.76];
 const ASSETS = new URL('/assets/skeleton/', location.href);
 
 const seat = Math.max(0, Math.min(7, Number(new URLSearchParams(location.search).get('seat') ?? 0) || 0));
@@ -78,7 +76,7 @@ async function setUp(match, art) {
   const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: VIEW, models, leaders }) : null;
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));

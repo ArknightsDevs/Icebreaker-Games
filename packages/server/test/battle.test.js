@@ -80,7 +80,7 @@ test('upgrades to other paths or seats are refused', async () => {
   } finally { s.close(); }
 });
 
-test('[同步-9] a match room: its content made from the settings, the welcome carries them, decks keyed id#seat', async () => {
+test('a match room (engine spec 同步-9): its content made from the settings, the welcome carries them, decks keyed id#seat', async () => {
   const { createMatchRoom, DEFAULT_MATCH } = await import('../src/index.js');
   const room = await createMatchRoom(DEFAULT_MATCH), server = createHttpServer({ rootDir: process.cwd(), onUpgrade: room.upgrade });
   await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));

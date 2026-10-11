@@ -2,9 +2,10 @@
 // seat comes from ?seat=<n>; the session key stays in sessionStorage so a reload rejoins the same seat. The match
 // settings come with the server's welcome (engine spec 同步-9): the field and the decks are built once its content is
 // ready. Assets come from the host's /assets/skeleton/ (a local directory, AUE_ASSETS_DIR); without them the page says
-// so and draws nothing — the battle runs either way.
+// so and draws nothing — the battle runs either way. Units are Spine figures when the assets have their models
+// (spine/index.json), else cards.
 import { startBattle } from '@aue/worker';
-import { createBattleRenderer, loadTextures } from '@aue/render';
+import { createBattleRenderer, loadTextures, loadSpineModels } from '@aue/render';
 import { matchContent } from '@aue/content';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
@@ -58,13 +59,24 @@ async function assets() {
 }
 
 /**
+ * The Spine models of a match's operators and enemies the assets have; none without a model index.
+ * @param {{ operators: Record<string, { char?: string }>, enemies: Record<string, unknown> }} content
+ */
+async function spineModels(content) {
+  const res = await fetch(new URL('spine/index.json', ASSETS)).catch(() => null);
+  if (!res?.ok) return new Map();
+  const ids = [...Object.entries(content.operators).map(([k, o]) => o.char ?? k), ...Object.keys(content.enemies)];
+  return loadSpineModels(await res.json(), new URL('spine/', ASSETS).href, ids);
+}
+
+/**
  * The page's side of a match once its content is ready: the field, the deck (own operators with an avatar only — a
  * thing without a texture is not shown) and the content for the skill bar and the HUD.
  * @param {import('@aue/schema').Match} match @param {Awaited<ReturnType<typeof assets>>} art
  */
 async function setUp(match, art) {
-  const content = await matchContent(match);
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: VIEW }) : null;
+  const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: VIEW, models }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));

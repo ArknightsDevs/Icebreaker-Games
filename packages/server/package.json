@@ -20,6 +20,7 @@
     "ws": "8.22.0"
   },
   "devDependencies": {
+    "@aue/sim": "workspace:*",
     "@types/ws": "8.18.2"
   }
 }

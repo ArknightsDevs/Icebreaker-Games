@@ -94,7 +94,7 @@ async function main() {
   let control = null;
   /** The content key of each unit id seen so far: a frame only names the ids that are new. @type {Map<number, string>} */
   const unitKeys = new Map();
-  const skills = createSkillBar($('skills'), (id) => battle.command({ type: 'skill', unit: id }));
+  const skills = createSkillBar($('skills'), (id) => battle.command({ type: 'skill', unit: id }), (id) => battle.command({ type: 'retreat', unit: id }));
   /** @type {Record<string, () => void>} */
   const acts = {
     'speed-on': () => battle.speed(true), 'speed-off': () => battle.speed(false), pause: () => battle.pause(), resume: () => battle.resume(),

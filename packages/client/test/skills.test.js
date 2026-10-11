@@ -17,7 +17,7 @@ const view = (units) => ({ frame: 1, players: [], units });
 
 test('a charging manual skill shows its SP and cannot start', () => {
   assert.deepEqual(skillRows(view([unit({})]), keys, 0, operators), [
-    { id: 1, name: '手动', sp: 12, cost: 45, state: SKILL_STATE.CHARGING, left: -1, manual: true, canStart: false },
+    { id: 1, name: '手动', skill: true, sp: 12, cost: 45, state: SKILL_STATE.CHARGING, left: -1, manual: true, canStart: false },
   ]);
 });
 
@@ -35,12 +35,13 @@ test('an AUTO skill has no button, even when ready', () => {
   assert.equal(row?.canStart, false);
 });
 
-test('others are left out: no skill, enemies, the other seat; view order is kept', () => {
+test('every own operator has a row (one without a skill too); enemies and the other seat are left out; view order is kept', () => {
   const rows = skillRows(view([
     unit({ id: 5 }), unit({ id: 3, sp: -1, skill: SKILL_STATE.NONE }),
     unit({ id: 1, kind: KIND.ENEMY, owner: -1 }), unit({ id: 4, owner: 1 }), unit({ id: 2 }),
   ]), keys, 0, operators);
-  assert.deepEqual(rows.map((r) => r.id), [5, 2]);
+  assert.deepEqual(rows.map((r) => [r.id, r.skill, r.manual]), [[5, true, true], [3, false, false], [2, true, false]]);
+  assert.equal(rowText(/** @type {any} */ (rows[1])), '', 'no skill, no text');
   assert.deepEqual(skillRows(view([unit({ id: 4, owner: 1 })]), keys, 1, operators).map((r) => r.id), [4]);
 });
 

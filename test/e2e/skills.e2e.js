@@ -1,6 +1,6 @@
-// End to end in a real browser: a seat deploys 米格鲁 (a MANUAL skill); its skill row shows in the skill bar with a
-// disabled button and SP going up; at 45 SP the button is enabled, and clicking it starts the skill. Run with
-// `pnpm run e2e`.
+// End to end in a real browser: a seat deploys 米格鲁 (a MANUAL skill); its row shows in the operator bar with a
+// disabled skill button and SP going up; at 45 SP the button is enabled, and clicking it starts the skill; its retreat
+// button takes it off the field. Run with `pnpm run e2e`.
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { launch, openSeat, pastFrame, startStack, until } from './helpers.js';
@@ -63,6 +63,11 @@ describe('the skill bar in the browser', () => {
     await button.click();
     await until('the skill running', async () => (/运行中/.test(await row.locator('.text').innerText()) ? true : undefined), 10000);
     assert.equal(await button.isDisabled(), true, 'running: it cannot start again');
+
+    // the row's retreat button takes 米格鲁 off the field through the server
+    await row.getByRole('button', { name: '撤退' }).click();
+    await until('米格鲁 gone from the arbiter', () => (stack.room.host.world.units.some((u) => u.key === 'char_122_beagle#0') ? undefined : true), 10000);
+    await until('the row gone', async () => ((await page.locator('#skills .skill').count()) === 0 ? true : undefined), 10000);
     assert.deepEqual(seat.errors, []);
   });
 });

@@ -76,7 +76,9 @@ async function spineModels(content) {
  */
 async function setUp(match, art) {
   const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: VIEW, models }) : null;
+  const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
+  const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: VIEW, models, leaders }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
@@ -110,7 +112,8 @@ async function main() {
       players = view.players.length;
       const stages = /** @type {any} */ (game?.content.level)?.stages ?? [];
       costAsker = costAskerAfter(costAsker, events);
-      game?.renderer?.update(view, Object.fromEntries(Object.entries(keys).map(([id, k]) => [id, k.split('#')[0]])), events);
+      // every key seen so far: units that appeared before the renderer was ready get their figures too
+      game?.renderer?.update(view, Object.fromEntries([...unitKeys].map(([id, k]) => [id, k.split('#')[0]])), events);
       drawHud(view, net, matchText(status, stages, view.frame));
       if (game) skills.update(skillRows(view, unitKeys, seat, game.content.operators));
       bar();

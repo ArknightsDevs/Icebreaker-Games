@@ -16,7 +16,7 @@ export function createDeck(root, operators) {
   for (const o of operators) {
     const b = document.createElement('button');
     b.className = 'op';
-    b.id = `op-${o.id}`;
+    b.id = `op-${o.id.replace('#', '-')}`;
     b.title = o.name;
     b.dataset.op = o.id;
     b.setAttribute('aria-pressed', 'false');

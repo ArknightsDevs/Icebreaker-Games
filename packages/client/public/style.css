@@ -24,3 +24,9 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); f
 #skills button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--accent); padding: 2px 10px; cursor: pointer; }
 #skills button:disabled { color: var(--muted); border-color: transparent; cursor: default; }
 #skills button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#hud .match { padding: 6px 12px; background: rgb(0 0 0 / 0.55); }
+#controls { position: absolute; top: 12px; right: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 50%; }
+#controls button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--muted); padding: 4px 12px; cursor: pointer; }
+#controls button[aria-pressed="true"] { border-color: var(--accent); }
+#controls button:disabled { color: var(--muted); border-color: transparent; cursor: default; }
+#controls button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }

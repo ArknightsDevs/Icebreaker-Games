@@ -2,14 +2,14 @@
 // collect their errors, and polling.
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createBattleRoom, createHttpServer } from '@icebreaker/server';
+import { createMatchRoom, createHttpServer, DEFAULT_MATCH } from '@icebreaker/server';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
-/** The two skeleton deploys: a ranged tile for seat 0, a melee tile for seat 1. */
+/** Two deploys of the default match, each from its seat's deck: a ranged tile for seat 0, a melee tile for seat 1. */
 export const DEPLOY = [
-  { type: 'deploy', op: 'char_503_rang', row: 3, col: 2, dir: 0 },
-  { type: 'deploy', op: 'char_502_nblade', row: 4, col: 5, dir: 2 },
+  { type: 'deploy', op: 'char_503_rang#0', row: 3, col: 2, dir: 0 },
+  { type: 'deploy', op: 'char_123_fang#1', row: 4, col: 5, dir: 2 },
 ];
 
 /** @typedef {{ frame: number, hash: number, sealed: number, stats: { restamps: number, resyncs: number, errors: number } }} Debug */
@@ -37,7 +37,7 @@ export async function until(what, fn, timeout = 15000) {
 export async function startStack() {
   /** @type {string[]} */
   const lines = [];
-  const room = createBattleRoom({ seed: 1, log: (l) => lines.push(l) });
+  const room = await createMatchRoom(DEFAULT_MATCH, { log: (l) => lines.push(l) });
   const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade: room.upgrade });
   await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
   const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
@@ -66,16 +66,18 @@ function collectErrors(page, errors) {
 }
 
 /**
- * A seat page in its own context (a fresh session key); `errors` fills as the page misbehaves.
- * @param {import('playwright').Browser} browser @param {number} port @param {number} seat
+ * A seat page in its own context (a fresh session key); `errors` fills as the page misbehaves. It waits until the
+ * match's content is ready, or with `started` only until the page has started (a refused seat never gets a match).
+ * @param {import('playwright').Browser} browser @param {number} port @param {number} seat @param {{ started?: boolean }} [o]
  */
-export async function openSeat(browser, port, seat) {
+export async function openSeat(browser, port, seat, o = {}) {
   const context = await browser.newContext(), page = await context.newPage();
   /** @type {string[]} */
   const errors = [];
   collectErrors(page, errors);
   await page.goto(`http://127.0.0.1:${port}/?seat=${seat}`);
-  await page.waitForFunction(() => '__battle' in globalThis, null, { timeout: 15000 });
+  if (o.started) await page.waitForFunction(() => '__battle' in globalThis, null, { timeout: 15000 });
+  else await page.waitForFunction(() => /** @type {any} */ (globalThis).__battle?.ready(), null, { timeout: 20000 });
   return { context, page, errors };
 }
 
@@ -93,7 +95,7 @@ export const pastFrame = (page, frame) => until(`frame > ${frame}`, async () => 
 
 /**
  * Waits until the arbiter's history has the page's frame; returns both hashes.
- * @param {import('playwright').Page} page @param {ReturnType<typeof import('@icebreaker/server').createBattleRoom>} room
+ * @param {import('playwright').Page} page @param {Awaited<ReturnType<typeof import('@icebreaker/server').createMatchRoom>>} room
  */
 export function matchesArbiter(page, room) {
   return until('the arbiter to know the page frame', async () => {

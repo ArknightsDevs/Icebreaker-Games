@@ -11,8 +11,8 @@ describe('battle in the browser', () => {
   /** @type {import('playwright').Browser} */ let browser;
   /** @type {Seat[]} */ const seats = [];
 
-  /** @param {number} n */
-  const open = async (n) => { const s = await openSeat(browser, stack.port, n); seats.push(s); return s; };
+  /** @param {number} n @param {{ started?: boolean }} [o] */
+  const open = async (n, o) => { const s = await openSeat(browser, stack.port, n, o); seats.push(s); return s; };
   /** @param {number} owner */
   const hasOperator = (owner) => stack.room.host.world.units.some((u) => u.kind === 0 && u.owner === owner);
   /** @param {Seat} s */
@@ -57,7 +57,7 @@ describe('battle in the browser', () => {
     // seat 0 is already bound to the first test's key
     const owner = seats[0];
     assert.ok(owner, 'the first test opened seat 0');
-    const thief = await open(0);
+    const thief = await open(0, { started: true });
     const at = (await debugOf(owner.page)).frame;
     await sleep(2000);
     assert.equal((await debugOf(thief.page)).frame, -1, 'the thief never gets a world');

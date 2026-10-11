@@ -1,8 +1,10 @@
-// CLI: node packages/server/src/main.js [--port 8700]   (env AUE_ASSETS_DIR: the local assets directory)
+// CLI: node packages/server/src/main.js [--port 8700] [--match <file.json>]   (env AUE_ASSETS_DIR: the local assets directory)
+// Without --match the room plays the default match (IG-1 at 初级赛 with two default decks).
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startHttpServer } from './http.js';
-import { createBattleRoom } from './battle.js';
+import { readFileSync } from 'node:fs';
+import { createMatchRoom, DEFAULT_MATCH } from './battle.js';
 
 /** @param {string[]} argv @returns {number} */
 export function parsePort(argv) {
@@ -14,7 +16,8 @@ export function parsePort(argv) {
 }
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const room = createBattleRoom({ log: (line) => console.log(line) });
-const server = await startHttpServer({ rootDir, port: parsePort(process.argv.slice(2)), onUpgrade: room.upgrade });
+const args = process.argv.slice(2), file = args.includes('--match') ? args[args.indexOf('--match') + 1] : null;
+const room = await createMatchRoom(file ? JSON.parse(readFileSync(file, 'utf8')) : DEFAULT_MATCH, { log: (line) => console.log(line) });
+const server = await startHttpServer({ rootDir, port: parsePort(args), onUpgrade: room.upgrade });
 const addr = server.address();
 if (addr !== null && typeof addr === 'object') console.log(`http://${addr.address}:${addr.port}/`);

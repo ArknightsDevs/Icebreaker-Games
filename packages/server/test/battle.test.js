@@ -79,3 +79,25 @@ test('upgrades to other paths or seats are refused', async () => {
     }
   } finally { s.close(); }
 });
+
+test('[同步-9] a match room: its content made from the settings, the welcome carries them, decks keyed id#seat', async () => {
+  const { createMatchRoom, DEFAULT_MATCH } = await import('../src/index.js');
+  const room = await createMatchRoom(DEFAULT_MATCH), server = createHttpServer({ rootDir: process.cwd(), onUpgrade: room.upgrade });
+  await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
+  const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
+  try {
+    const a = open(`ws://127.0.0.1:${port}/battle?seat=1`);
+    await a.ready;
+    a.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 1, key: 'kb', since: -1 }));
+    await wait(300);
+    assert.deepEqual(a.got[0].match, DEFAULT_MATCH);
+    assert.deepEqual(room.host.o.content.decks?.[1], DEFAULT_MATCH.decks[1].map((d) => `${d.id}#1`));
+    a.ws.send(JSON.stringify({ t: 'speed', on: 1 }));
+    a.ws.send(JSON.stringify({ t: 'pause' }));
+    await wait(200);
+    assert.deepEqual([room.host.fast, room.host.asker], [[0, 1], 1], 'the controls reach the host');
+    assert.ok(a.got.some((m) => m.t === 'control' && m.asker === 1));
+    a.ws.close();
+  } finally { room.close(); server.close(); }
+  await assert.rejects(createMatchRoom({ ...DEFAULT_MATCH, difficulty: /** @type {any} */ ('EASY') }), /match settings: match.difficulty/);
+});

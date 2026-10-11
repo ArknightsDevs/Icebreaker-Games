@@ -41,7 +41,7 @@ describe('the skill bar in the browser', () => {
       const m = /费用 (\d+)/.exec(await page.locator('#hud .player.me').innerText());
       return m && Number(m[1]) >= 16 ? true : undefined;
     }, 20000);
-    await page.evaluate((t) => /** @type {any} */ (globalThis).__battle.command({ type: 'deploy', op: 'char_122_beagle', row: t.row, col: t.col, dir: 0 }), tile);
+    await page.evaluate((t) => /** @type {any} */ (globalThis).__battle.command({ type: 'deploy', op: 'char_122_beagle#0', row: t.row, col: t.col, dir: 0 }), tile);
 
     const row = page.locator('#skills .skill');
     await row.waitFor({ timeout: 15000 });

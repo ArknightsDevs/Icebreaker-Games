@@ -15,6 +15,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["packages/*/src/**/*.js", "packages/*/test/**/*.js", "eslint.config.js"],
+  "include": ["packages/*/src/**/*.js", "packages/*/test/**/*.js", "test/e2e/**/*.js", "eslint.config.js"],
   "exclude": ["**/node_modules", "engine"]
 }

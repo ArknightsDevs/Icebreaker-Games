@@ -31,3 +31,11 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); f
 #controls button[aria-pressed="true"] { border-color: var(--accent); }
 #controls button:disabled { color: var(--muted); border-color: transparent; cursor: default; }
 #controls button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* The original battle UI (the engine's @aue/ui) over the field when the assets have it: its faces, its layer; the
+   page's own bars give way to it (the requests stay until the UI has them). */
+@font-face { font-family: "Novecento Wide"; src: url(/assets/skeleton/fonts/novecento-wide-normal.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Bender"; src: url(/assets/skeleton/fonts/bender-regular.woff2) format("woff2"); font-display: swap; }
+:root { --aue-ui-latin: "Novecento Wide", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Bender", sans-serif; --aue-ui-arvo: "Arvo", serif; }
+#ui { position: absolute; inset: 0; pointer-events: none; }
+body.original-ui #deck, body.original-ui #skills, body.original-ui #hud .player, body.original-ui #ctl-speed, body.original-ui #ctl-pause, body.original-ui #ctl-resume { display: none; }
+body.original-ui #hud { top: auto; bottom: 200px; left: 16px; right: auto; }

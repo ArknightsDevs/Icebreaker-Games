@@ -11,10 +11,15 @@ import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
+import { createUi, createBattleHud, cardViews } from '@aue/ui';
+import { loadUiPack, deckCards, hudState } from './battlehud.js';
+import { Hand } from './gestures.js';
 
 const ASSETS = new URL('/assets/skeleton/', location.href);
 
 const seat = Math.max(0, Math.min(7, Number(new URLSearchParams(location.search).get('seat') ?? 0) || 0));
+/** ?bars: the page's own bars even when the assets have the original UI. */
+const BARS = new URLSearchParams(location.search).has('bars');
 const key = sessionKey(seat);
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
@@ -98,7 +103,25 @@ async function setUp(match, art, changed) {
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
-  return { content, renderer, deck: createDeck($('deck'), ops, changed) };
+  const ui = renderer && art && !BARS ? await originalUi(match, content, avatar) : null;
+  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match };
+}
+
+/**
+ * The original battle UI over the field (the engine's 界面-10…14) when the assets have its pack, else null (the page
+ * keeps its own bars).
+ * @param {import('@aue/schema').Match} match @param {any} content @param {(id: string) => string | null} avatar
+ */
+async function originalUi(match, content, avatar) {
+  const loaded = await loadUiPack(ASSETS);
+  if (!loaded) return null;
+  const host = $('ui'), base = new URL('ui/', ASSETS).href;
+  const ui = createUi({ pack: loaded.pack, host, base });
+  await ui.load();
+  const deck = deckCards(match, content, seat, avatar);
+  const hud = createBattleHud(ui, { deck, coop: (match.decks?.length ?? 1) === 2 });
+  document.body.classList.add('original-ui');
+  return { ui, hud, deck, icons: loaded.icons, iconBase: new URL('skills/', base).href };
 }
 
 let markSeq = 0;
@@ -111,7 +134,7 @@ let markSeq = 0;
  */
 function markField(game, pointer, marks) {
   const r = game?.renderer;
-  if (!game || !r) return;
+  if (!game || !r || !game.deck) return;
   const sel = game.deck.selected(), seq = ++markSeq;
   marks({ op: sel?.op ?? null, dir: sel?.dir ?? 0, tile: pointer }).then((m) => {
     if (seq !== markSeq) return;
@@ -120,66 +143,112 @@ function markField(game, pointer, marks) {
   });
 }
 
+/**
+ * The page's state: the match's side once ready, the connection, the speed and pause state, the last frame, the
+ * content keys of the units seen, the pointer's tile, the original UI's state and hand.
+ * @typedef {{ game: Awaited<ReturnType<typeof setUp>> | null, net: string, costAsker: number, players: number,
+ *   control: import('./controls.js').Control | null, lastView: import('@aue/schema').View | null, unitKeys: Map<number, string>,
+ *   pointer: { row: number, col: number } | null, hudNow: import('@aue/ui').HudState | null, hand: Hand | null,
+ *   battle: ReturnType<typeof startBattle>, mark: () => void, skills: ReturnType<typeof createSkillBar>, bar: () => void }} Page
+ */
+
 async function main() {
   const art = await assets();
-  /** @type {Awaited<ReturnType<typeof setUp>> | null} */
-  let game = null;
-  let net = '连接中', costAsker = -1, players = 1;
-  /** @type {import('./controls.js').Control | null} */
-  let control = null;
-  /** The content key of each unit id seen so far: a frame only names the ids that are new. @type {Map<number, string>} */
-  const unitKeys = new Map();
-  /** @type {{ row: number, col: number } | null} the tile under the pointer */
-  let pointer = null;
-  const mark = () => markField(game, pointer, (q) => battle.marks(q));
-  const skills = createSkillBar($('skills'), (id) => battle.command({ type: 'skill', unit: id }), (id) => battle.command({ type: 'retreat', unit: id }));
+  /** @type {Page} */
+  const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null });
+  P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
+  P.skills = createSkillBar($('skills'), (id) => P.battle.command({ type: 'skill', unit: id }), (id) => P.battle.command({ type: 'retreat', unit: id }));
   /** @type {Record<string, () => void>} */
   const acts = {
-    'speed-on': () => battle.speed(true), 'speed-off': () => battle.speed(false), pause: () => battle.pause(), resume: () => battle.resume(),
-    'pause-yes': () => battle.pauseReply(true), 'pause-no': () => battle.pauseReply(false), ask: () => battle.command({ type: 'ask' }),
-    'cost-yes': () => battle.command({ type: 'answer', accept: 1 }), 'cost-no': () => battle.command({ type: 'answer', accept: 0 }),
+    'speed-on': () => P.battle.speed(true), 'speed-off': () => P.battle.speed(false), pause: () => P.battle.pause(), resume: () => P.battle.resume(),
+    'pause-yes': () => P.battle.pauseReply(true), 'pause-no': () => P.battle.pauseReply(false), ask: () => P.battle.command({ type: 'ask' }),
+    'cost-yes': () => P.battle.command({ type: 'answer', accept: 1 }), 'cost-no': () => P.battle.command({ type: 'answer', accept: 0 }),
   };
   const controls = createControls($('controls'), (a) => acts[a]?.());
-  const bar = () => controls({ control, costAsker, seat, mate: players === 2 ? 1 - seat : -1 });
-  const battle = startBattle({
+  P.bar = () => controls({ control: P.control, costAsker: P.costAsker, seat, mate: P.players === 2 ? 1 - seat : -1 });
+  P.battle = startBattle({
     workerUrl: new URL('/m/@aue/worker/src/worker.js', location.href),
     wsUrl: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/battle?seat=${seat}`,
     seat, key,
-    onFrame: (view, events, keys, status) => {
-      for (const [id, k] of Object.entries(keys)) unitKeys.set(Number(id), k);
-      players = view.players.length;
-      const stages = /** @type {any} */ (game?.content.level)?.stages ?? [];
-      costAsker = costAskerAfter(costAsker, events);
-      // every key seen so far: units that appeared before the renderer was ready get their figures too
-      game?.renderer?.update(view, Object.fromEntries([...unitKeys].map(([id, k]) => [id, k.split('#')[0]])), events);
-      mark();
-      drawHud(view, net, matchText(status, stages, view.frame));
-      if (game) skills.update(skillRows(view, unitKeys, seat, game.content.operators));
-      bar();
-    },
+    onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
-      net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
-      if (s.state === 'match' && s.match && !game) setUp(s.match, art, () => mark()).then((g) => { game = g; start(g); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
+      P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
+      if (s.state === 'match' && s.match && !P.game) setUp(s.match, art, () => P.mark()).then((g) => { P.game = g; start(P, g); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
     },
-    onControl: (c) => { control = c; bar(); },
+    onControl: (c) => { P.control = c; P.bar(); },
   });
-
-  /** @param {Awaited<ReturnType<typeof setUp>>} g */
-  function start(g) {
-    if (!g.renderer) return;
-    const renderer = g.renderer;
-    $('field').addEventListener('click', (e) => {
-      const tile = renderer.pick(e.clientX, e.clientY), sel = g.deck.selected();
-      if (tile && sel) { battle.command({ type: 'deploy', op: sel.op, row: tile.row, col: tile.col, dir: sel.dir }); g.deck.clear(); }
-    });
-    $('field').addEventListener('pointermove', (e) => { pointer = renderer.pick(e.clientX, e.clientY); mark(); });
-    $('field').addEventListener('pointerleave', () => { pointer = null; mark(); });
-    addEventListener('resize', () => renderer.resize());
-    const loop = () => { renderer.render(); requestAnimationFrame(loop); };
-    requestAnimationFrame(loop);
-  }
   // for end-to-end tests and the console
-  Object.assign(globalThis, { __battle: { seat, debug: battle.debug, command: battle.command, ready: () => game !== null } });
+  const b = P.battle;
+  Object.assign(globalThis, { __battle: { seat, debug: b.debug, command: b.command, speed: b.speed, ready: () => P.game !== null, ui: () => (P.game?.ui ? 'original' : 'bars') } });
+}
+
+/**
+ * A frame: the field, the HUD line, and the original UI (or the page's bars).
+ * @param {Page} P @param {{ view: import('@aue/schema').View, events: Record<string, string | number>[], keys: Record<string, string>, status: import('@aue/worker').Status }} f
+ */
+function onFrame(P, f) {
+  const { view, events, status } = f, game = P.game;
+  for (const [id, k] of Object.entries(f.keys)) P.unitKeys.set(Number(id), k);
+  P.players = view.players.length;
+  P.costAsker = costAskerAfter(P.costAsker, events);
+  // every key seen so far: units that appeared before the renderer was ready get their figures too
+  game?.renderer?.update(view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, k.split('#')[0]])), events);
+  drawHud(view, P.net, matchText(status, /** @type {any} */ (game?.content.level)?.stages ?? [], view.frame));
+  if (game?.ui) {
+    P.hudNow = hudState({ view, status, control: P.control, seat, options: /** @type {any} */ (game.content.level).options, selected: P.hand?.selected() ?? null });
+    game.ui.hud.update(P.hudNow);
+    P.hand?.frame(view);
+  } else {
+    P.mark();
+    if (game) P.skills.update(skillRows(view, P.unitKeys, seat, game.content.operators));
+  }
+  P.bar();
+  P.lastView = view;
+}
+
+/** The match's side is ready: its input, its resize, its render loop. @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g */
+function start(P, g) {
+  if (!g.renderer) return;
+  const renderer = g.renderer, field = /** @type {HTMLCanvasElement} */ ($('field'));
+  if (g.ui) P.hand = startOriginal(P, g, renderer, field);
+  else startBars(P, g, renderer, field);
+  // for end-to-end tests: where a point of the field is on the page
+  Object.assign(/** @type {any} */ (globalThis).__battle, { pageOf: (/** @type {number} */ col, /** @type {number} */ row, /** @type {number} */ h) => {
+    const p = renderer.screenOf(col, row, h), r = field.getBoundingClientRect();
+    return [r.left + p[0], r.top + p[1]];
+  } });
+  const fit = () => { renderer.resize(); g.ui?.ui.resize(field.clientWidth, field.clientHeight); };
+  addEventListener('resize', fit);
+  fit();
+  let at = performance.now();
+  const loop = (/** @type {number} */ now) => { renderer.render(); g.ui?.ui.tick(Math.min(0.1, (now - at) / 1000)); at = now; requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+
+/**
+ * The original UI's taps: speed, pause or resume (同步-7, 同步-8), and the hand on the field (gestures.js).
+ * @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g @param {any} renderer @param {HTMLCanvasElement} canvas
+ */
+function startOriginal(P, g, renderer, canvas) {
+  const o = /** @type {NonNullable<typeof g.ui>} */ (g.ui), b = P.battle;
+  o.hud.on('speed', () => b.speed(P.control?.fast[seat] !== 1));
+  o.hud.on('pause', () => (P.control?.held ? b.resume() : b.pause()));
+  const usable = (/** @type {string} */ id) => !!P.hudNow && cardViews(o.deck, P.hudNow).some((v) => v.id === id && v.usable);
+  return new Hand({ canvas, renderer, hud: o.hud, battle: b, level: g.content.level, seat, content: g.content, icons: o.icons, iconBase: o.iconBase,
+    view: () => P.lastView, usable, unitKey: (id) => P.unitKeys.get(id) });
+}
+
+/**
+ * The page's own bars: a tile click deploys the deck's selection; the pointer's tile shows its marks.
+ * @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g @param {any} renderer @param {HTMLCanvasElement} field
+ */
+function startBars(P, g, renderer, field) {
+  field.addEventListener('click', (e) => {
+    const tile = renderer.pick(e.clientX, e.clientY), sel = g.deck?.selected();
+    if (tile && sel) { P.battle.command({ type: 'deploy', op: sel.op, row: tile.row, col: tile.col, dir: sel.dir }); g.deck?.clear(); }
+  });
+  field.addEventListener('pointermove', (e) => { P.pointer = renderer.pick(e.clientX, e.clientY); P.mark(); });
+  field.addEventListener('pointerleave', () => { P.pointer = null; P.mark(); });
 }
 
 main().catch((e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));

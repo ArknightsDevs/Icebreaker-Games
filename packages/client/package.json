@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@aue/content": "workspace:*",
+    "@aue/math": "workspace:*",
     "@aue/render": "workspace:*",
     "@aue/schema": "workspace:*",
+    "@aue/ui": "workspace:*",
     "@aue/worker": "workspace:*"
   }
 }

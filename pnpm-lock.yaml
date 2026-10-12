@@ -172,12 +172,18 @@ importers:
       '@aue/content':
         specifier: workspace:*
         version: link:../../engine/packages/content
+      '@aue/math':
+        specifier: workspace:*
+        version: link:../../engine/packages/math
       '@aue/render':
         specifier: workspace:*
         version: link:../../engine/packages/render
       '@aue/schema':
         specifier: workspace:*
         version: link:../../engine/packages/schema
+      '@aue/ui':
+        specifier: workspace:*
+        version: link:../../engine/packages/ui
       '@aue/worker':
         specifier: workspace:*
         version: link:../../engine/packages/worker

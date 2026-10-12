@@ -67,15 +67,16 @@ function collectErrors(page, errors) {
 
 /**
  * A seat page in its own context (a fresh session key); `errors` fills as the page misbehaves. It waits until the
- * match's content is ready, or with `started` only until the page has started (a refused seat never gets a match).
- * @param {import('playwright').Browser} browser @param {number} port @param {number} seat @param {{ started?: boolean }} [o]
+ * match's content is ready, or with `started` only until the page has started (a refused seat never gets a match);
+ * `query` adds to the page's query (`bars`: the page's own bars even with the original UI's assets).
+ * @param {import('playwright').Browser} browser @param {number} port @param {number} seat @param {{ started?: boolean, query?: string }} [o]
  */
 export async function openSeat(browser, port, seat, o = {}) {
   const context = await browser.newContext(), page = await context.newPage();
   /** @type {string[]} */
   const errors = [];
   collectErrors(page, errors);
-  await page.goto(`http://127.0.0.1:${port}/?seat=${seat}`);
+  await page.goto(`http://127.0.0.1:${port}/?seat=${seat}${o.query ? `&${o.query}` : ''}`);
   if (o.started) await page.waitForFunction(() => '__battle' in globalThis, null, { timeout: 15000 });
   else await page.waitForFunction(() => /** @type {any} */ (globalThis).__battle?.ready(), null, { timeout: 20000 });
   return { context, page, errors };

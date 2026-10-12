@@ -34,7 +34,7 @@ describe('a whole match in the browser', { skip: FULL ? false : 'E2E_FULL is not
 
   test('two seats play both stages to the end in step', { timeout: 900000 }, async () => {
     seats.push(await openSeat(browser, stack.port, 0), await openSeat(browser, stack.port, 1));
-    for (const s of seats) await s.page.getByRole('button', { name: '2倍速' }).click();
+    for (const s of seats) await s.page.evaluate(() => /** @type {any} */ (globalThis).__battle.speed(true));
     let stage = -1, last = -1;
     while (stack.room.host.world.result < 0) {
       const w = stack.room.host.world;

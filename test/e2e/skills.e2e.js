@@ -18,7 +18,7 @@ describe('the skill bar in the browser', () => {
   });
 
   test('a deployed 米格鲁 shows its SP and a disabled skill button; at full SP the button starts the skill', { timeout: 120000 }, async () => {
-    seat = await openSeat(browser, stack.port, 0);
+    seat = await openSeat(browser, stack.port, 0, { query: 'bars' });
     const { page } = seat;
     await pastFrame(page, 30);
     // a tile where melee operators can stand

@@ -11,7 +11,7 @@ const operators = {
 const keys = new Map([[1, 'char_manual'], [2, 'char_auto'], [3, 'char_plain'], [4, 'char_manual'], [5, 'char_manual']]);
 
 /** @param {Partial<import('@aue/schema').ViewUnit>} u @returns {import('@aue/schema').ViewUnit} */
-const unit = (u) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 0, y: 0, z: 0, dir: 0, hp: 1, maxHp: 1, anim: 0, sp: 12, spCost: 45, skill: SKILL_STATE.CHARGING, skillLeft: -1, ...u });
+const unit = (u) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 0, y: 0, z: 0, dir: 0, hp: 1, maxHp: 1, anim: 0, sp: 12, spCost: 45, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, ...u });
 /** @param {import('@aue/schema').ViewUnit[]} units @returns {import('@aue/schema').View} */
 const view = (units) => ({ frame: 1, players: [], units });
 

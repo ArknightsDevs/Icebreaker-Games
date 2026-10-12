@@ -74,6 +74,9 @@ async function tileKit(level) {
   return loadTileKit(await res.json(), new URL('kits/', ASSETS).href, level);
 }
 
+/** Each deck operator's skill (1-based) by its character, for its skill's own effects (the engine's 渲染-11). @param {import('@aue/schema').Match} match */
+const skillSlots = (match) => Object.fromEntries((match.decks ?? []).flat().filter((d) => d.build.skill >= 0).map((d) => [d.id.split('#')[0], d.build.skill + 1]));
+
 /** The units' attack effects (the engine's 渲染-10), or null when the assets have none. */
 async function effectPack() {
   const res = await fetch(new URL('fx/units.json', ASSETS)).catch(() => null);
@@ -91,7 +94,7 @@ async function setUp(match, art, changed) {
   const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, kit, effects }) : null;
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, kit, effects, skills: skillSlots(match) }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));

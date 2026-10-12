@@ -78,8 +78,9 @@ async function tileKit(level) {
  * The page's side of a match once its content is ready: the field, the deck (own operators with an avatar only — a
  * thing without a texture is not shown) and the content for the skill bar and the HUD.
  * @param {import('@aue/schema').Match} match @param {Awaited<ReturnType<typeof assets>>} art
+ * @param {() => void} changed called when the deck's selection or facing changes
  */
-async function setUp(match, art) {
+async function setUp(match, art, changed) {
   const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
   const kit = art ? await tileKit(match.level) : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
@@ -88,7 +89,26 @@ async function setUp(match, art) {
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
-  return { content, renderer, deck: createDeck($('deck'), ops) };
+  return { content, renderer, deck: createDeck($('deck'), ops, changed) };
+}
+
+let markSeq = 0;
+
+/**
+ * The deploy highlight and the range (engine 渲染-8, 渲染-9) for the deck's selection and the pointer's tile, as the
+ * worker works them out from its world; only the latest answer is shown.
+ * @param {Awaited<ReturnType<typeof setUp>> | null} game @param {{ row: number, col: number } | null} pointer
+ * @param {ReturnType<typeof startBattle>['marks']} marks
+ */
+function markField(game, pointer, marks) {
+  const r = game?.renderer;
+  if (!game || !r) return;
+  const sel = game.deck.selected(), seq = ++markSeq;
+  marks({ op: sel?.op ?? null, dir: sel?.dir ?? 0, tile: pointer }).then((m) => {
+    if (seq !== markSeq) return;
+    r.highlight(sel ? m.deployable : null);
+    r.range(m.range ? m.range.keys : null, m.range?.heal);
+  });
 }
 
 async function main() {
@@ -100,6 +120,9 @@ async function main() {
   let control = null;
   /** The content key of each unit id seen so far: a frame only names the ids that are new. @type {Map<number, string>} */
   const unitKeys = new Map();
+  /** @type {{ row: number, col: number } | null} the tile under the pointer */
+  let pointer = null;
+  const mark = () => markField(game, pointer, (q) => battle.marks(q));
   const skills = createSkillBar($('skills'), (id) => battle.command({ type: 'skill', unit: id }), (id) => battle.command({ type: 'retreat', unit: id }));
   /** @type {Record<string, () => void>} */
   const acts = {
@@ -120,13 +143,14 @@ async function main() {
       costAsker = costAskerAfter(costAsker, events);
       // every key seen so far: units that appeared before the renderer was ready get their figures too
       game?.renderer?.update(view, Object.fromEntries([...unitKeys].map(([id, k]) => [id, k.split('#')[0]])), events);
+      mark();
       drawHud(view, net, matchText(status, stages, view.frame));
       if (game) skills.update(skillRows(view, unitKeys, seat, game.content.operators));
       bar();
     },
     onNet: (s) => {
       net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
-      if (s.state === 'match' && s.match && !game) setUp(s.match, art).then((g) => { game = g; start(g); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
+      if (s.state === 'match' && s.match && !game) setUp(s.match, art, () => mark()).then((g) => { game = g; start(g); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
     },
     onControl: (c) => { control = c; bar(); },
   });
@@ -137,8 +161,10 @@ async function main() {
     const renderer = g.renderer;
     $('field').addEventListener('click', (e) => {
       const tile = renderer.pick(e.clientX, e.clientY), sel = g.deck.selected();
-      if (tile && sel) battle.command({ type: 'deploy', op: sel.op, row: tile.row, col: tile.col, dir: sel.dir });
+      if (tile && sel) { battle.command({ type: 'deploy', op: sel.op, row: tile.row, col: tile.col, dir: sel.dir }); g.deck.clear(); }
     });
+    $('field').addEventListener('pointermove', (e) => { pointer = renderer.pick(e.clientX, e.clientY); mark(); });
+    $('field').addEventListener('pointerleave', () => { pointer = null; mark(); });
     addEventListener('resize', () => renderer.resize());
     const loop = () => { renderer.render(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);

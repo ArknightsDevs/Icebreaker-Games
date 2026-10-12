@@ -5,7 +5,7 @@
 import { secondsToFrames } from '@aue/math';
 import { ROSTER } from '@aue/content';
 import { KIND, SKILL_STATE } from '@aue/schema';
-import { costAsk } from '@aue/ui';
+import { costAsk, placeSummons } from '@aue/ui';
 
 const FPS = 30;
 /** How long a cost or pause request stays open (合作-5, 同步-8), in seconds. */
@@ -28,16 +28,20 @@ export async function loadUiPack(assets) {
 }
 
 /**
- * The seat's deck as cards: avatar, profession, rarity, elite phase and 再部署时间 of each operator.
+ * The seat's deck as cards: avatar, profession, rarity, elite phase and 再部署时间 of each operator; then the summon cards
+ * of its operators (the engine's 界面-23), put in by cost and id.
  * @param {import('@aue/schema').Match} match @param {any} content @param {number} seat @param {(char: string) => string | null} avatar
  * @returns {import('@aue/ui').DeckCard[]}
  */
 export function deckCards(match, content, seat, avatar) {
-  const builds = new Map((match.decks?.[seat] ?? []).map((d) => [d.id, d.build]));
-  return (content.decks?.[seat] ?? []).map((/** @type {string} */ k) => {
+  const builds = new Map((match.decks?.[seat] ?? []).map((d) => [d.id, d.build])), keys = /** @type {string[]} */ (content.decks?.[seat] ?? []);
+  const ops = keys.map((k) => {
     const op = content.operators[k], char = op.char ?? k, r = ROSTER[char];
     return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: builds.get(k)?.elite ?? 0, respawn: op.respawnTime ?? 60 };
   });
+  const summons = Object.entries(content.operators).filter(([, o]) => (o.summon?.supply ?? 0) > 0 && keys.includes(o.summoner))
+    .map(([k, o]) => ({ id: k, avatar: avatar(o.char ?? k), profession: o.profession ?? '', rarity: 1, phase: 0, respawn: o.respawnTime ?? 0, summon: true }));
+  return placeSummons(ops, summons, (id) => content.operators[id].cost ?? 0);
 }
 
 /** The speed the battle runs at (同步-7): 2× only when every seat has its switch on. @param {Control | null} c */
@@ -73,7 +77,7 @@ export function requestsAfter(r, f) {
 export function hudState(o) {
   const { view, status, control, seat } = o, p = view.players[seat], ps = status.players[seat], speed = battleSpeed(control), paused = !!control?.held;
   return {
-    frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots,
+    frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots, summons: ps.summons,
     costTimer: ps.costTimer, costPeriod: secondsToFrames(o.options.costIncreaseTime), maxCost: o.options.maxCost, selected: o.selected,
     life: p.life, speed, paused, coop: view.players.length === 2 ? coopState(o, speed, paused) : undefined,
     states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline }, stageStart: stageStartOf(status, o.stages ?? [], view.frame),

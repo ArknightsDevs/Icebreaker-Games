@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, SKILL_STATE } from '@aue/schema';
-import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt } from '../src/battlehud.js';
+import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput } from '../src/battlehud.js';
 
 /** A view unit. @param {Record<string, number>} v @returns {import('@aue/schema').ViewUnit} */
 const unit = (v) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 2, y: 3, z: 0, dir: 0, hp: 10, maxHp: 10, anim: 0, sp: 5, spCost: 20, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, ...v });
@@ -30,7 +30,8 @@ test('the HUD\'s state of a frame: the deck, the cost and its next point, lives,
   const s = hudState({ view, status, control: { fast: [1, 0], held: 1, asker: -1, resuming: 0 }, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: 'b' });
   assert.deepEqual({ ...s, coop: undefined }, { frame: 90, fps: 30, cost: 12, cards: { a: { cost: 9, ready: 0 } }, deployed: ['a'], slots: 7, costTimer: 10, costPeriod: 30,
     maxCost: 99, selected: 'b', life: 3, speed: 1, paused: true, coop: undefined });
-  assert.deepEqual(s.coop, { me: { life: 3, fast: true, revive: -1 }, mate: { life: 2, fast: false, revive: 1.5 }, speed: 1, paused: true, asking: -1 });
+  assert.deepEqual(s.coop, { me: { life: 3, fast: true, revive: -1 }, mate: { life: 2, fast: false, revive: 1.5 }, speed: 1, paused: true, asking: -1, confirm: -1, task: null,
+    cost: { state: 'forbid', amount: 15, share: 0, wait: 0 } }, 'the mate down: no cost request');
   const alone = hudState({ view: { ...view, players: [view.players[0]] }, status, control: null, seat: 0, options: { costIncreaseTime: 2, maxCost: 10 }, selected: null });
   assert.equal(alone.coop, undefined);
   assert.equal(alone.costPeriod, 60);
@@ -55,4 +56,48 @@ test('this seat\'s operator on a tile', () => {
   assert.equal(ownUnitAt(view, 0, { row: 3, col: 2 })?.id, 4);
   assert.equal(ownUnitAt(view, 0, { row: 5, col: 5 }), null, 'the mate\'s');
   assert.equal(ownUnitAt(view, 0, { row: 1, col: 1 }), null, 'an enemy');
+});
+
+test('the requests remembered: the last answer to this seat, since when the pause request is open', () => {
+  const r0 = { answer: null, pauseSince: -1, now: 0 }, open = { fast: [0, 0], held: 0, asker: 1, resuming: 0 };
+  const r1 = requestsAfter(r0, { events: [{ type: 'answer', owner: 1, accept: 1, amount: 3 }], control: open, seat: 0, frame: 10, now: 500 });
+  assert.deepEqual(r1, { answer: null, pauseSince: 500, now: 500 }, 'an answer to the mate is not ours');
+  const r2 = requestsAfter(r1, { events: [{ type: 'answer', owner: 0, accept: 0, amount: 0 }], control: open, seat: 0, frame: 12, now: 900 });
+  assert.deepEqual(r2, { answer: { accept: 0, amount: 0, frame: 12 }, pauseSince: 500, now: 900 });
+  assert.equal(requestsAfter(r2, { events: [], control: { ...open, held: 1 }, seat: 0, frame: 13, now: 950 }).pauseSince, -1, 'paused: no request open');
+  assert.equal(requestsAfter(r2, { events: [], control: null, seat: 0, frame: 13, now: 950 }).pauseSince, -1);
+});
+
+test('the task of the stage: none before the first, the rest left, the time left, the advanced goal', () => {
+  const stages = [{ objective: 'protect', goal: 4, time: 150 }, { objective: 'kill', goal: 3, advanced: 5, time: 60 }];
+  assert.equal(taskOf(/** @type {any} */ ({ stage: -1, start: 0, count: 0 }), stages, 0), null);
+  assert.deepEqual(taskOf(/** @type {any} */ ({ stage: 0, start: 300, count: 1 }), stages, 150), { stage: 1, objective: 'protect', count: 1, goal: 4, left: 5 });
+  assert.deepEqual(taskOf(/** @type {any} */ ({ stage: 1, start: 300, count: 2 }), stages, 600), { stage: 2, objective: 'kill', count: 2, goal: 3, advanced: 5, left: 50 });
+  assert.equal(taskOf(/** @type {any} */ ({ stage: 1, start: 0, count: 0 }), stages, 99999)?.left, 0);
+});
+
+test('the inputs of the cost request (合作-5): open requests, the wait, whether this seat may ask, the cap, what the request of the mate takes', () => {
+  const view = { frame: 300, players: [{ life: 3, cost: 12 }, { life: 3, cost: 95 }], units: [] };
+  const p = (/** @type {Record<string, number>} */ v) => ({ costTimer: 0, deployed: [], slots: 8, cards: {}, revive: -1, ask: -1, askCd: 0, ...v });
+  const st = (/** @type {any} */ a, /** @type {any} */ b) => /** @type {any} */ ({ players: [p(a), p(b)] });
+  const base = { view, seat: 0, options: { maxCost: 99 } };
+  const c = costInput({ ...base, status: st({}, {}), requests: { answer: { accept: 1, amount: 4, frame: 240 }, pauseSince: -1, now: 0 } });
+  assert.deepEqual(c, { mine: -1, mates: -1, cooldown: 0, canAsk: true, cap: 15, give: 4, answer: { accept: 1, amount: 4, ago: 2 }, fps: 30, open: 450 });
+  assert.equal(costInput({ ...base, options: { maxCost: 99, costTransfer: 25 }, status: st({}, {}) }).cap, 25);
+  assert.equal(costInput({ ...base, status: st({ askCd: 10 }, {}) }).canAsk, false, 'cooling down');
+  assert.equal(costInput({ ...base, status: st({}, { revive: 30 }) }).canAsk, false, 'the mate down');
+  assert.equal(costInput({ ...base, status: st({}, { ask: 100 }) }).canAsk, false, 'a request open');
+  assert.equal(costInput({ ...base, view: { ...view, players: [{ life: 3, cost: 99 }, view.players[1]] }, status: st({}, {}) }).canAsk, false, 'cost full');
+});
+
+test('the co-op state: the time left of a pause request for the asker and the mate, the task, the cost request', () => {
+  const view = { frame: 90, players: [{ life: 3, cost: 12 }, { life: 2, cost: 4 }], units: [] };
+  const ps = { costTimer: 10, deployed: [], slots: 7, cards: {}, revive: -1, ask: -1, askCd: 0 };
+  const status = /** @type {any} */ ({ stage: 0, start: 0, count: 1, players: [ps, ps] });
+  const req = { answer: null, pauseSince: 1000, now: 4000 };
+  const mine = hudState({ view, status, control: { fast: [0, 0], held: 0, asker: 0, resuming: 0 }, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: null,
+    stages: [{ objective: 'kill', goal: 5, time: 100 }], requests: req }).coop;
+  assert.deepEqual([mine?.asking, mine?.confirm, mine?.task?.goal, mine?.cost?.state], [0.8, -1, 5, 'none']);
+  const theirs = hudState({ view, status, control: { fast: [0, 0], held: 0, asker: 1, resuming: 0 }, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: null, requests: req }).coop;
+  assert.deepEqual([theirs?.asking, theirs?.confirm, theirs?.task], [-1, 0.8, null]);
 });

@@ -12,7 +12,7 @@ import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
 import { createUi, createBattleHud, cardViews } from '@aue/ui';
-import { loadUiPack, deckCards, hudState } from './battlehud.js';
+import { loadUiPack, deckCards, hudState, requestsAfter } from './battlehud.js';
 import { Hand } from './gestures.js';
 
 const ASSETS = new URL('/assets/skeleton/', location.href);
@@ -149,13 +149,15 @@ function markField(game, pointer, marks) {
  * @typedef {{ game: Awaited<ReturnType<typeof setUp>> | null, net: string, costAsker: number, players: number,
  *   control: import('./controls.js').Control | null, lastView: import('@aue/schema').View | null, unitKeys: Map<number, string>,
  *   pointer: { row: number, col: number } | null, hudNow: import('@aue/ui').HudState | null, hand: Hand | null,
+ *   requests: import('./battlehud.js').Requests,
  *   battle: ReturnType<typeof startBattle>, mark: () => void, skills: ReturnType<typeof createSkillBar>, bar: () => void }} Page
  */
 
 async function main() {
   const art = await assets();
   /** @type {Page} */
-  const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null });
+  const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
+    requests: { answer: null, pauseSince: -1, now: 0 } });
   P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
   P.skills = createSkillBar($('skills'), (id) => P.battle.command({ type: 'skill', unit: id }), (id) => P.battle.command({ type: 'retreat', unit: id }));
   /** @type {Record<string, () => void>} */
@@ -195,7 +197,9 @@ function onFrame(P, f) {
   game?.renderer?.update(view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, k.split('#')[0]])), events);
   drawHud(view, P.net, matchText(status, /** @type {any} */ (game?.content.level)?.stages ?? [], view.frame));
   if (game?.ui) {
-    P.hudNow = hudState({ view, status, control: P.control, seat, options: /** @type {any} */ (game.content.level).options, selected: P.hand?.selected() ?? null });
+    P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
+    const level = /** @type {any} */ (game.content.level);
+    P.hudNow = hudState({ view, status, control: P.control, seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests });
     game.ui.hud.update(P.hudNow);
     P.hand?.frame(view);
   } else {
@@ -233,6 +237,9 @@ function startOriginal(P, g, renderer, canvas) {
   const o = /** @type {NonNullable<typeof g.ui>} */ (g.ui), b = P.battle;
   o.hud.on('speed', () => b.speed(P.control?.fast[seat] !== 1));
   o.hud.on('pause', () => (P.control?.held ? b.resume() : b.pause()));
+  o.hud.on('ask', () => b.command({ type: 'ask' }));
+  o.hud.on('answer', (/** @type {string | undefined} */ v) => b.command({ type: 'answer', accept: v === 'yes' ? 1 : 0 }));
+  o.hud.on('confirm', (/** @type {string | undefined} */ v) => b.pauseReply(v === 'yes'));
   const usable = (/** @type {string} */ id) => !!P.hudNow && cardViews(o.deck, P.hudNow).some((v) => v.id === id && v.usable);
   return new Hand({ canvas, renderer, hud: o.hud, battle: b, level: g.content.level, seat, content: g.content, icons: o.icons, iconBase: o.iconBase,
     view: () => P.lastView, usable, unitKey: (id) => P.unitKeys.get(id) });

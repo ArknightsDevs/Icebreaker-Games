@@ -5,8 +5,13 @@
 import { secondsToFrames } from '@aue/math';
 import { ROSTER } from '@aue/content';
 import { KIND, SKILL_STATE } from '@aue/schema';
+import { costAsk } from '@aue/ui';
 
 const FPS = 30;
+/** How long a cost or pause request stays open (合作-5, 同步-8), in seconds. */
+const OPEN = 15;
+/** The most cost an accepted request moves when the level gives no cap (合作-5). */
+const TRANSFER = 15;
 
 /** @typedef {{ fast: number[], held: number, asker: number, resuming: number }} Control */
 /** @typedef {import('@aue/worker').Status} Status */
@@ -39,8 +44,30 @@ export function deckCards(match, content, seat, avatar) {
 export const battleSpeed = (c) => (c && c.fast.length > 0 && c.fast.every((f) => f === 1) ? 2 : 1);
 
 /**
+ * What the page remembers between frames for the requests: the last answer to this seat's cost request (its frame),
+ * and since when (page milliseconds) the current pause request has been open.
+ * @typedef {{ answer: { accept: number, amount: number, frame: number } | null, pauseSince: number, now: number }} Requests
+ */
+
+/**
+ * The requests remembered after a frame's events and the control state: an `answer` to this seat's request is kept;
+ * a pause request's start is the first moment it was seen open.
+ * @param {Requests} r
+ * @param {{ events: Record<string, string | number>[], control: Control | null, seat: number, frame: number, now: number }} f
+ * @returns {Requests}
+ */
+export function requestsAfter(r, f) {
+  const { events, control, seat, frame, now } = f;
+  let answer = r.answer;
+  for (const e of events) if (e.type === 'answer' && Number(e.owner) === seat) answer = { accept: Number(e.accept), amount: Number(e.amount), frame };
+  const open = control !== null && control.asker >= 0 && !control.held;
+  return { answer, pauseSince: open ? (r.pauseSince >= 0 ? r.pauseSince : now) : -1, now };
+}
+
+/**
  * What the HUD shows of a frame.
- * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, selected: string | null }} o
+ * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, selected: string | null,
+ *   stages?: any[], requests?: Requests }} o
  * @returns {import('@aue/ui').HudState}
  */
 export function hudState(o) {
@@ -52,10 +79,43 @@ export function hudState(o) {
   };
 }
 
-/** @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number }} o @param {number} speed @param {boolean} paused */
+/**
+ * The co-op top bar's and the cost request's state (界面-12, 界面-15–17).
+ * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, stages?: any[], requests?: Requests }} o
+ * @param {number} speed @param {boolean} paused
+ */
 function coopState(o, speed, paused) {
   const side = (/** @type {number} */ i) => ({ life: o.view.players[i].life, fast: o.control?.fast[i] === 1, revive: o.status.players[i].revive >= 0 ? o.status.players[i].revive / FPS : -1 });
-  return { me: side(o.seat), mate: side(1 - o.seat), speed, paused, asking: -1 };
+  const r = o.requests, c = o.control, mate = 1 - o.seat;
+  const left = r && r.pauseSince >= 0 ? Math.max(0, 1 - (r.now - r.pauseSince) / (OPEN * 1000)) : 0;
+  return { me: side(o.seat), mate: side(mate), speed, paused, asking: c?.asker === o.seat && r ? left : -1, confirm: c?.asker === mate && r ? left : -1,
+    task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)) };
+}
+
+/**
+ * The stage's task (界面-16, 合作-6): its number, objective, count, goals and the seconds left of its time — of its rest
+ * while that runs; none before the first stage.
+ * @param {Status} s @param {any[]} stages @param {number} frame @returns {import('@aue/ui').Task | null}
+ */
+export function taskOf(s, stages, frame) {
+  const st = stages[s.stage];
+  if (!st) return null;
+  const left = frame < s.start ? (s.start - frame) / FPS : Math.max(0, (s.start + secondsToFrames(st.time) - frame) / FPS);
+  return { stage: s.stage + 1, objective: st.objective, count: s.count, goal: st.goal, ...(st.advanced !== undefined ? { advanced: st.advanced } : {}), left };
+}
+
+/**
+ * The cost request's inputs (合作-5): each side's open request, this seat's wait, whether it may ask (a mate, neither
+ * side down, its cost under the cap, no open request), the last answer, the cap and what the mate's request would take.
+ * @param {{ view: import('@aue/schema').View, status: Status, seat: number, options: any, requests?: Requests }} o
+ * @returns {import('@aue/ui').CostAskInput}
+ */
+export function costInput(o) {
+  const mate = 1 - o.seat, me = o.status.players[o.seat], them = o.status.players[mate], max = o.options.maxCost, cap = o.options.costTransfer ?? TRANSFER;
+  const mine = o.view.players[o.seat], theirs = o.view.players[mate], a = o.requests?.answer ?? null;
+  const canAsk = me.revive < 0 && them.revive < 0 && mine.cost < max && me.ask < 0 && them.ask < 0 && me.askCd <= 0;
+  return { mine: me.ask, mates: them.ask, cooldown: me.askCd, canAsk, cap, give: Math.max(0, Math.min(cap, mine.cost, max - theirs.cost)),
+    answer: a ? { accept: a.accept, amount: a.amount, ago: (o.view.frame - a.frame) / FPS } : null, fps: FPS, open: OPEN * FPS };
 }
 
 /**

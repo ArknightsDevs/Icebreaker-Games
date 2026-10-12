@@ -216,17 +216,29 @@ function start(P, g) {
   const renderer = g.renderer, field = /** @type {HTMLCanvasElement} */ ($('field'));
   if (g.ui) P.hand = startOriginal(P, g, renderer, field);
   else startBars(P, g, renderer, field);
-  // for end-to-end tests: where a point of the field is on the page
+  // for end-to-end tests and measuring: where a point of the field is on the page; what the renderer and the UI hold
   Object.assign(/** @type {any} */ (globalThis).__battle, { pageOf: (/** @type {number} */ col, /** @type {number} */ row, /** @type {number} */ h) => {
     const p = renderer.screenOf(col, row, h), r = field.getBoundingClientRect();
     return [r.left + p[0], r.top + p[1]];
-  } });
+  }, stats: () => ({ ...renderer.stats(), uiNodes: g.ui ? g.ui.ui.screens.reduce((n, s) => n + s.all.length, 0) : 0 }) });
   const fit = () => { renderer.resize(); g.ui?.ui.resize(field.clientWidth, field.clientHeight); };
   addEventListener('resize', fit);
   fit();
   let at = performance.now();
-  const loop = (/** @type {number} */ now) => { renderer.render(); g.ui?.ui.tick(Math.min(0.1, (now - at) / 1000)); at = now; requestAnimationFrame(loop); };
+  /** milliseconds a frame spends drawing the field and laying the UI out (averaged), for measuring */
+  const cost = { field: 0, ui: 0 };
+  const loop = (/** @type {number} */ now) => {
+    const t0 = performance.now();
+    renderer.render();
+    const t1 = performance.now();
+    g.ui?.ui.tick(Math.min(0.1, (now - at) / 1000));
+    const t2 = performance.now();
+    cost.field += (t1 - t0 - cost.field) * 0.05; cost.ui += (t2 - t1 - cost.ui) * 0.05;
+    at = now;
+    requestAnimationFrame(loop);
+  };
   requestAnimationFrame(loop);
+  /** @type {any} */ (globalThis).__battle.cost = () => ({ field: +cost.field.toFixed(2), ui: +cost.ui.toFixed(2) });
 }
 
 /**

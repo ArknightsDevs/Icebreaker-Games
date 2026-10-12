@@ -5,7 +5,7 @@
 // so and draws nothing — the battle runs either way. Units are Spine figures when the assets have their models
 // (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles.
 import { startBattle } from '@aue/worker';
-import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit } from '@aue/render';
+import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit, loadEffectPack } from '@aue/render';
 import { matchContent } from '@aue/content';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
@@ -74,6 +74,12 @@ async function tileKit(level) {
   return loadTileKit(await res.json(), new URL('kits/', ASSETS).href, level);
 }
 
+/** The units' attack effects (the engine's 渲染-10), or null when the assets have none. */
+async function effectPack() {
+  const res = await fetch(new URL('fx/units.json', ASSETS)).catch(() => null);
+  return res?.ok ? loadEffectPack(await res.json()) : null;
+}
+
 /**
  * The page's side of a match once its content is ready: the field, the deck (own operators with an avatar only — a
  * thing without a texture is not shown) and the content for the skill bar and the HUD.
@@ -82,10 +88,10 @@ async function tileKit(level) {
  */
 async function setUp(match, art, changed) {
   const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
-  const kit = art ? await tileKit(match.level) : null;
+  const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, kit }) : null;
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, kit, effects }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));

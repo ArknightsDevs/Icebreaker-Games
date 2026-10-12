@@ -1,7 +1,9 @@
 // The player's hand on the original battle UI (the engine's 界面-13, 界面-14): a usable card pressed and dragged onto a
 // tile it may be deployed on — or pressed, then the tile tapped — opens the direction selector there; a drag from
-// anywhere points a facing (its range shows) and letting go deploys; the cancel button takes it back. A tap on one of
-// this seat's operators opens its menu: start its skill, retreat it; a tap elsewhere closes it.
+// anywhere points a facing (its range shows) and letting go deploys; the cancel button takes it back. While it is
+// placed the operator stands on its tile, its direction indicator at its feet while the facing is chosen (渲染-14). A
+// tap on one of this seat's operators opens its menu: start its skill, retreat it; a tap elsewhere closes it.
+import { DIR } from '@aue/schema';
 import { dragFacing } from '@aue/ui';
 import { ownUnitAt, menuSkill } from './battlehud.js';
 
@@ -63,7 +65,18 @@ export class Hand {
     Object.assign(this, { mode: 'idle', op: null, tile: null, facing: -1, unit: -1, from: null });
     this.seq++;
     this.o.hud.direction.hide(); this.o.hud.menu.hide();
-    this.o.renderer.highlight(null); this.o.renderer.range(null);
+    this.o.renderer.highlight(null); this.o.renderer.range(null); this.o.renderer.placing(null);
+  }
+
+  /**
+   * The selected operator standing on a tile (渲染-14): facing its chosen facing (right until one is chosen), the
+   * direction indicator while it is aimed; none off the tiles it may go to.
+   * @param {Tile | null} t
+   */
+  place(t) {
+    const ok = t && this.op && (this.mode === 'aim' || this.deployable.has(t.row * this.o.level.width + t.col));
+    this.o.renderer.placing(ok && t && this.op ? { key: this.op.split('#')[0], col: t.col, row: t.row, h: this.height(t),
+      dir: this.facing < 0 ? DIR.RIGHT : this.facing, ring: this.mode === 'aim' } : null);
   }
 
   /** A card pressed: a usable one starts a drag. @param {string} id */
@@ -80,6 +93,7 @@ export class Hand {
     this.o.hud.direction.show(this.toPage(t, this.height(t)));
     this.o.hud.direction.point(-1);
     this.mark(t, 0);
+    this.place(t);
   }
 
   /** The facing a pointer points to from where the aiming drag started. @param {PointerEvent} e */
@@ -92,13 +106,14 @@ export class Hand {
 
   /** @param {PointerEvent} e */
   move(e) {
-    if (this.mode === 'drag') { this.mark(this.pick(e), 0); return; }
+    if (this.mode === 'drag') { const t = this.pick(e); this.mark(t, 0); this.place(t); return; }
     if (this.mode !== 'aim' || !this.from) return;
     const f = this.facingAt(e);
     if (f === this.facing) return;
     this.facing = f;
     this.o.hud.direction.point(f);
     this.mark(this.tile, Math.max(0, f));
+    this.place(this.tile);
   }
 
   /** @param {PointerEvent} e */

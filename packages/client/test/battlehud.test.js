@@ -2,10 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, SKILL_STATE } from '@aue/schema';
-import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput } from '../src/battlehud.js';
+import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars } from '../src/battlehud.js';
 
 /** A view unit. @param {Record<string, number>} v @returns {import('@aue/schema').ViewUnit} */
-const unit = (v) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 2, y: 3, z: 0, dir: 0, hp: 10, maxHp: 10, anim: 0, sp: 5, spCost: 20, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, ...v });
+const unit = (v) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 2, y: 3, z: 0, dir: 0, hp: 10, maxHp: 10, anim: 0, sp: 5, spCost: 20, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, element: 0, ep: 1, burst: 0, ...v });
 
 test('the deck as cards: avatar, profession, rarity from the roster, elite phase from the build, 再部署时间', () => {
   const match = /** @type {any} */ ({ decks: [[{ id: 'char_122_beagle#0', build: { elite: 2 } }, { id: 'x#0', build: { elite: 0 } }]] });
@@ -100,4 +100,19 @@ test('the co-op state: the time left of a pause request for the asker and the ma
   assert.deepEqual([mine?.asking, mine?.confirm, mine?.task?.goal, mine?.cost?.state], [0.8, -1, 5, 'none']);
   const theirs = hudState({ view, status, control: { fast: [0, 0], held: 0, asker: 1, resuming: 0 }, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: null, requests: req }).coop;
   assert.deepEqual([theirs?.asking, theirs?.confirm, theirs?.task], [-1, 0.8, null]);
+});
+
+test('the units\' bars: the drawn units at their feet, operator, enemy or leader, the HP share, the skill, the element', () => {
+  const view = /** @type {any} */ ({ frame: 0, players: [], units: [
+    unit({ id: 1, hp: 5, sp: 10, element: 3, ep: 0.25 }), unit({ id: 2, kind: KIND.ENEMY, hp: 30, maxHp: 20, element: 2, ep: 0.5, burst: 1 }),
+    unit({ id: 3, kind: KIND.ENEMY, hp: -1 }), unit({ id: 4, kind: KIND.ENEMY }), unit({ id: 5, skill: SKILL_STATE.NONE }),
+  ] });
+  const keys = new Map([[1, 'op#0'], [2, 'slug#1'], [3, 'boss#2'], [4, 'slug#3'], [5, 'op#0']]);
+  const bars = unitBars(view, { leaders: new Set(['boss']), keyOf: (id) => keys.get(id)?.split('#')[0], shows: (id) => id !== 4, at: (u) => [u.x * 10, u.y * 10],
+    operators: { 'op#0': { skill: { id: 's', duration: 10 } } }, unitKey: (id) => keys.get(id) });
+  assert.deepEqual(bars.map((b) => b.id), [1, 2, 3, 5], 'only the drawn ones');
+  assert.deepEqual(bars[0], { id: 1, at: [20, 30], kind: 'char', hp: 0.5, sp: { state: 'charging', share: 0.5 }, el: { element: 3, share: 0.25, burst: false } });
+  assert.deepEqual([bars[1].kind, bars[1].hp, bars[1].sp, bars[1].el], ['enemy', 1, null, { element: 2, share: 0.5, burst: true }]);
+  assert.deepEqual([bars[2].kind, bars[2].hp, bars[2].el], ['boss', 0, null]);
+  assert.equal(bars[3].sp, null, 'no skill, no SP bar');
 });

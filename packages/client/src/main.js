@@ -12,7 +12,7 @@ import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
 import { createUi, createBattleHud, cardViews } from '@aue/ui';
-import { loadUiPack, deckCards, hudState, requestsAfter } from './battlehud.js';
+import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './battlehud.js';
 import { Hand } from './gestures.js';
 
 const ASSETS = new URL('/assets/skeleton/', location.href);
@@ -99,22 +99,24 @@ async function setUp(match, art, changed) {
   const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, kit, effects, skills: skillSlots(match) }) : null;
+  // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
+  const pack = art && !BARS ? await loadUiPack(ASSETS) : null;
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders,
+    kit, effects, skills: skillSlots(match), bars: !pack }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
-  const ui = renderer && art && !BARS ? await originalUi(match, content, avatar) : null;
-  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match };
+  const ui = renderer && pack ? await originalUi(match, content, avatar, pack) : null;
+  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders };
 }
 
 /**
  * The original battle UI over the field (the engine's 界面-10…14) when the assets have its pack, else null (the page
  * keeps its own bars).
  * @param {import('@aue/schema').Match} match @param {any} content @param {(id: string) => string | null} avatar
+ * @param {NonNullable<Awaited<ReturnType<typeof loadUiPack>>>} loaded the battle UI pack
  */
-async function originalUi(match, content, avatar) {
-  const loaded = await loadUiPack(ASSETS);
-  if (!loaded) return null;
+async function originalUi(match, content, avatar, loaded) {
   const host = $('ui'), base = new URL('ui/', ASSETS).href;
   const ui = createUi({ pack: loaded.pack, host, base });
   await ui.load();
@@ -201,6 +203,9 @@ function onFrame(P, f) {
     const level = /** @type {any} */ (game.content.level);
     P.hudNow = hudState({ view, status, control: P.control, seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests,
       offline: P.net === '重连中' });
+    const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
+    P.hudNow.units = unitBars(view, { leaders: game.leaders, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
+      at: (u) => r.screenOf(u.x, u.y, u.z).map((v) => v / k), operators: game.content.operators, unitKey: (id) => P.unitKeys.get(id) });
     game.ui.hud.update(P.hudNow);
     P.hand?.frame(view);
   } else {

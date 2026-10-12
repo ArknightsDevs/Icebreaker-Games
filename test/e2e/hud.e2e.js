@@ -64,10 +64,13 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
     await until('deployed facing up', () => (stack.room.host.world.units.find((u) => u.key === op)?.dir === 'UP' ? true : undefined), 10000);
     await until('the selector gone', async () => ((await selector.isVisible()) ? undefined : true));
 
-    // its menu, then retreat
+    // its bars at its feet (the engine's 界面-19), then its menu, then retreat
     await sleep(1000);
     const u = /** @type {any} */ (stack.room.host.world.units.find((x) => x.key === op));
-    const feet = await pageOf(u.x, u.y);
+    const feet = await pageOf(u.x, u.y), hp = page.locator('.aue-n[data-name="char_hp_slider"]');
+    await until('its HP bar', async () => ((await hp.count()) === 1 && (await hp.isVisible()) ? true : undefined), 5000);
+    const bar = /** @type {{ x: number, width: number }} */ (await hp.boundingBox());
+    assert.ok(Math.abs(bar.x + bar.width / 2 - feet[0]) < 40, `the bar under its feet: ${bar.x + bar.width / 2} vs ${feet[0]}`);
     await page.mouse.click(feet[0], feet[1] - 10);
     const withdraw = page.locator('.aue-n[data-name="btn_withdraw"]').last();
     await until('the operator menu', async () => ((await withdraw.isVisible()) ? true : undefined));

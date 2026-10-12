@@ -1,6 +1,6 @@
-// End to end in a real browser with the original battle UI (the engine's 界面-10…21; runs only when AUE_ASSETS_DIR has
+// End to end in a real browser with the original battle UI (the engine's 界面-10…22; runs only when AUE_ASSETS_DIR has
 // the battle UI pack): the start panel shows the stage while the battle waits for the mate's page to load (同步-11)
-// and goes once it begins; a card dragged onto a tile opens the direction selector, a drag north deploys the operator
+// and goes once it begins, the first stage's banner shows its task; a card dragged onto a tile opens the direction selector, a drag north deploys the operator
 // facing up through the server; a tap on it opens its menu and the retreat button takes it off the field. The mate
 // asks for cost and to pause through its page; this page answers both. Run with `pnpm run e2e`.
 import { after, before, describe, test } from 'node:test';
@@ -41,6 +41,10 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
     mate = await openSeat(browser, stack.port, 1);
     await until('the battle begun', () => (stack.room.host.begun ? true : undefined), 20000);
     await until('the start panel gone', async () => ((await panel.isVisible()) ? undefined : true), 10000);
+    // the first stage's banner (the engine's 界面-22): its task from the level data
+    const banner = page.locator('.aue-n[data-name="container_conventional_mode"]');
+    await until('the stage banner', async () => ((await banner.isVisible()) ? true : undefined), 5000);
+    assert.ok((await banner.innerText()).includes(c.level.stages[0].task.basic), 'the first stage\'s basic task');
     const op = deck.slice().sort((a, b) => c.operators[a].cost - c.operators[b].cost)[0], d = c.operators[op];
     const want = d.position === 'MELEE' ? ['MELEE', 'ALL'] : ['RANGED', 'ALL'];
     /** @type {{ row: number, col: number, h: number } | null} */

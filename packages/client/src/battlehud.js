@@ -76,8 +76,19 @@ export function hudState(o) {
     frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots,
     costTimer: ps.costTimer, costPeriod: secondsToFrames(o.options.costIncreaseTime), maxCost: o.options.maxCost, selected: o.selected,
     life: p.life, speed, paused, coop: view.players.length === 2 ? coopState(o, speed, paused) : undefined,
-    states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline },
+    states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline }, stageStart: stageStartOf(status, o.stages ?? [], view.frame),
   };
+}
+
+/**
+ * A stage that has just begun (the engine's 界面-22): within a second of its start, its number and its task's texts
+ * (关卡-5); else, or without texts, null.
+ * @param {Status} s @param {any[]} stages @param {number} frame @returns {import('@aue/ui').StageStart | null}
+ */
+export function stageStartOf(s, stages, frame) {
+  const task = stages[s.stage]?.task;
+  if (!task || frame < s.start || frame - s.start >= FPS) return null;
+  return { stage: s.stage + 1, title: task.title, basic: task.basic, ...(task.advanced !== undefined ? { advanced: task.advanced } : {}) };
 }
 
 /**

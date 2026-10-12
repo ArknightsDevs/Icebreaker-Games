@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, SKILL_STATE } from '@aue/schema';
-import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars } from '../src/battlehud.js';
+import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars, stageStartOf } from '../src/battlehud.js';
 
 /** A view unit. @param {Record<string, number>} v @returns {import('@aue/schema').ViewUnit} */
 const unit = (v) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 2, y: 3, z: 0, dir: 0, hp: 10, maxHp: 10, anim: 0, sp: 5, spCost: 20, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, element: 0, ep: 1, burst: 0, ...v });
@@ -29,7 +29,7 @@ test('the HUD\'s state of a frame: the deck, the cost and its next point, lives,
   const status = /** @type {any} */ ({ players: [ps(-1), ps(45)] });
   const s = hudState({ view, status, control: { fast: [1, 0], held: 1, asker: -1, resuming: 0 }, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: 'b' });
   assert.deepEqual({ ...s, coop: undefined }, { frame: 90, fps: 30, cost: 12, cards: { a: { cost: 9, ready: 0 } }, deployed: ['a'], slots: 7, costTimer: 10, costPeriod: 30,
-    maxCost: 99, selected: 'b', life: 3, speed: 1, paused: true, coop: undefined, states: { result: undefined, down: false, offline: false } });
+    maxCost: 99, selected: 'b', life: 3, speed: 1, paused: true, coop: undefined, states: { result: undefined, down: false, offline: false }, stageStart: null });
   assert.deepEqual(s.coop, { me: { life: 3, fast: true, revive: -1 }, mate: { life: 2, fast: false, revive: 1.5 }, speed: 1, paused: true, asking: -1, confirm: -1, task: null,
     cost: { state: 'forbid', amount: 15, share: 0, wait: 0 } }, 'the mate down: no cost request');
   const alone = hudState({ view: { ...view, players: [view.players[0]] }, status, control: null, seat: 0, options: { costIncreaseTime: 2, maxCost: 10 }, selected: null });
@@ -116,3 +116,12 @@ test('the units\' bars: the drawn units at their feet, operator, enemy or leader
   assert.deepEqual([bars[2].kind, bars[2].hp, bars[2].el], ['boss', 0, null]);
   assert.equal(bars[3].sp, null, 'no skill, no SP bar');
 });
+
+test('a stage that has just begun, with its task texts: within a second of its start; none in its rest, later, or without texts', () => {
+  const stages = [{ task: { title: '营救', basic: '保护4位' } }, { task: { title: '营救', basic: '保护3位', advanced: '保护5位' } }, {}];
+  const st = (/** @type {number} */ stage, /** @type {number} */ start) => /** @type {any} */ ({ stage, start });
+  assert.deepEqual(stageStartOf(st(0, 0), stages, 0), { stage: 1, title: '营救', basic: '保护4位' });
+  assert.deepEqual(stageStartOf(st(1, 300), stages, 310), { stage: 2, title: '营救', basic: '保护3位', advanced: '保护5位' });
+  assert.deepEqual([stageStartOf(st(1, 300), stages, 290), stageStartOf(st(1, 300), stages, 330), stageStartOf(st(2, 0), stages, 0)], [null, null, null]);
+});
+

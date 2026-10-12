@@ -9,16 +9,20 @@ describe('the skill bar in the browser', () => {
   /** @type {Awaited<ReturnType<typeof startStack>>} */ let stack;
   /** @type {import('playwright').Browser} */ let browser;
   /** @type {Awaited<ReturnType<typeof openSeat>> | undefined} */ let seat;
+  /** @type {Awaited<ReturnType<typeof openSeat>> | undefined} */ let mate;
 
   before(async () => { stack = await startStack(); browser = await launch(); });
   after(async () => {
     await seat?.context.close().catch(() => {});
+    await mate?.context.close().catch(() => {});
     await browser?.close();
     await stack?.stop();
   });
 
   test('a deployed 米格鲁 shows its SP and a disabled skill button; at full SP the button starts the skill', { timeout: 120000 }, async () => {
     seat = await openSeat(browser, stack.port, 0, { query: 'bars' });
+    // the battle begins once both pages have loaded (the engine's 同步-11)
+    mate = await openSeat(browser, stack.port, 1, { query: 'bars' });
     const { page } = seat;
     await pastFrame(page, 30);
     // a tile where melee operators can stand

@@ -1,5 +1,6 @@
-// End to end in a real browser with the original battle UI (the engine's 界面-10…17; runs only when AUE_ASSETS_DIR has
-// the battle UI pack): a card dragged onto a tile opens the direction selector, a drag north deploys the operator
+// End to end in a real browser with the original battle UI (the engine's 界面-10…21; runs only when AUE_ASSETS_DIR has
+// the battle UI pack): the start panel shows the stage while the battle waits for the mate's page to load (同步-11)
+// and goes once it begins; a card dragged onto a tile opens the direction selector, a drag north deploys the operator
 // facing up through the server; a tap on it opens its menu and the retreat button takes it off the field. The mate
 // asks for cost and to pause through its page; this page answers both. Run with `pnpm run e2e`.
 import { after, before, describe, test } from 'node:test';
@@ -15,19 +16,31 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
   /** @type {Awaited<ReturnType<typeof startStack>>} */ let stack;
   /** @type {import('playwright').Browser} */ let browser;
   /** @type {Awaited<ReturnType<typeof openSeat>> | undefined} */ let seat;
+  /** @type {Awaited<ReturnType<typeof openSeat>> | undefined} */ let mate;
 
   before(async () => { stack = await startStack(); browser = await launch(); });
   after(async () => {
     await seat?.context.close().catch(() => {});
+    await mate?.context.close().catch(() => {});
     await browser?.close();
     await stack?.stop();
   });
 
-  test('drag a card, point north, deploy; tap the operator, retreat it', { timeout: 120000 }, async () => {
+  test('the start panel while the mate loads; then drag a card, point north, deploy; tap the operator, retreat it', { timeout: 120000 }, async () => {
     seat = await openSeat(browser, stack.port, 0);
     const { page } = seat;
     assert.equal(await page.evaluate(() => /** @type {any} */ (globalThis).__battle.ui()), 'original');
     const c = /** @type {any} */ (stack.room.host.o.content), deck = /** @type {string[]} */ (c.decks[0]);
+    const panel = page.locator('.aue-n[data-name="cooperate_battle_ui_battle_start_panel"]');
+    await until('the start panel', async () => ((await panel.isVisible()) ? true : undefined), 10000);
+    assert.ok((await panel.innerText()).includes(c.level.code), `the stage code ${c.level.code}`);
+    await sleep(1500);
+    assert.equal(stack.room.host.begun, false, 'no battle before the mate has loaded');
+    const waiting = await Promise.all([0, 1, 2, 3].map((i) => page.locator(`.aue-n[data-name="text_waiting_${i}"]`).isVisible()));
+    assert.ok(waiting.includes(true), 'waiting for the mate (its dots coming one by one)');
+    mate = await openSeat(browser, stack.port, 1);
+    await until('the battle begun', () => (stack.room.host.begun ? true : undefined), 20000);
+    await until('the start panel gone', async () => ((await panel.isVisible()) ? undefined : true), 10000);
     const op = deck.slice().sort((a, b) => c.operators[a].cost - c.operators[b].cost)[0], d = c.operators[op];
     const want = d.position === 'MELEE' ? ['MELEE', 'ALL'] : ['RANGED', 'ALL'];
     /** @type {{ row: number, col: number, h: number } | null} */
@@ -80,28 +93,24 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
   });
 
   test('the mate asks for cost and to pause through the UI; the answers go through the UI', { timeout: 120000 }, async () => {
-    const a = /** @type {NonNullable<typeof seat>} */ (seat), mate = await openSeat(browser, stack.port, 1);
+    const a = /** @type {NonNullable<typeof seat>} */ (seat), m = /** @type {NonNullable<typeof mate>} */ (mate);
     const host = /** @type {any} */ (stack.room.host);
-    try {
-      const ask = mate.page.locator('.aue-n[data-name="state_none_button"] .aue-n[data-name="collider"]');
-      await until('the request button', async () => ((await ask.isVisible()) ? true : undefined), 20000);
-      await ask.click();
-      const accept = a.page.locator('.aue-n[data-name="state_response_accept"] .aue-n[data-name="hotspot"]');
-      await until('the mate’s request on this page', async () => ((await accept.isVisible()) ? true : undefined), 10000);
-      await accept.click();
-      await until('the request answered', () => (host.world.players[1].ask < 0 && host.world.players[1].askCd > 0 ? true : undefined), 10000);
-      await until('the mate sees the cost come', async () => ((await mate.page.locator('.aue-n[data-name="state_accept"]').isVisible()) ? true : undefined), 5000);
+    const ask = m.page.locator('.aue-n[data-name="state_none_button"] .aue-n[data-name="collider"]');
+    await until('the request button', async () => ((await ask.isVisible()) ? true : undefined), 20000);
+    await ask.click();
+    const accept = a.page.locator('.aue-n[data-name="state_response_accept"] .aue-n[data-name="hotspot"]');
+    await until('the mate’s request on this page', async () => ((await accept.isVisible()) ? true : undefined), 10000);
+    await accept.click();
+    await until('the request answered', () => (host.world.players[1].ask < 0 && host.world.players[1].askCd > 0 ? true : undefined), 10000);
+    await until('the mate sees the cost come', async () => ((await m.page.locator('.aue-n[data-name="state_accept"]').isVisible()) ? true : undefined), 5000);
 
-      await mate.page.locator('.aue-n[data-name="btn_multiplayer_pause"] .aue-n[data-name="collider"]').click();
-      await until('the pause request open', () => (host.asker === 1 ? true : undefined), 10000);
-      const confirm = a.page.locator('.aue-n[data-name="btn_confirm"]');
-      await until('the request on this page', async () => ((await confirm.isVisible()) ? true : undefined), 10000);
-      await confirm.click();
-      await until('paused', () => (host.held ? true : undefined), 10000);
-      await until('the pause mask', async () => ((await a.page.locator('.aue-n[data-name="mask_pause"]').isVisible()) ? true : undefined), 5000);
-      assert.deepEqual([a.errors, mate.errors], [[], []]);
-    } finally {
-      await mate.context.close().catch(() => {});
-    }
+    await m.page.locator('.aue-n[data-name="btn_multiplayer_pause"] .aue-n[data-name="collider"]').click();
+    await until('the pause request open', () => (host.asker === 1 ? true : undefined), 10000);
+    const confirm = a.page.locator('.aue-n[data-name="btn_confirm"]');
+    await until('the request on this page', async () => ((await confirm.isVisible()) ? true : undefined), 10000);
+    await confirm.click();
+    await until('paused', () => (host.held ? true : undefined), 10000);
+    await until('the pause mask', async () => ((await a.page.locator('.aue-n[data-name="mask_pause"]').isVisible()) ? true : undefined), 5000);
+    assert.deepEqual([a.errors, m.errors], [[], []]);
   });
 });

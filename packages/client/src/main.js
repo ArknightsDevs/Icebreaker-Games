@@ -93,8 +93,9 @@ async function effectPack() {
  * thing without a texture is not shown) and the content for the skill bar and the HUD.
  * @param {import('@aue/schema').Match} match @param {Awaited<ReturnType<typeof assets>>} art
  * @param {() => void} changed called when the deck's selection or facing changes
+ * @param {number} joined the last frame sealed when the page joined (−1 before the battle began)
  */
-async function setUp(match, art, changed) {
+async function setUp(match, art, changed, joined) {
   const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
   const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
@@ -106,22 +107,24 @@ async function setUp(match, art, changed) {
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
-  const ui = renderer && pack ? await originalUi(match, content, avatar, pack) : null;
+  const ui = renderer && pack ? await originalUi(match, content, avatar, pack, joined < 0) : null;
   return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders };
 }
 
 /**
  * The original battle UI over the field (the engine's 界面-10…14) when the assets have its pack, else null (the page
- * keeps its own bars).
+ * keeps its own bars). A match of two joined before it began shows the start panel with the level's code and name
+ * (界面-21).
  * @param {import('@aue/schema').Match} match @param {any} content @param {(id: string) => string | null} avatar
- * @param {NonNullable<Awaited<ReturnType<typeof loadUiPack>>>} loaded the battle UI pack
+ * @param {NonNullable<Awaited<ReturnType<typeof loadUiPack>>>} loaded the battle UI pack @param {boolean} early joined before it began
  */
-async function originalUi(match, content, avatar, loaded) {
+async function originalUi(match, content, avatar, loaded, early) {
   const host = $('ui'), base = new URL('ui/', ASSETS).href;
   const ui = createUi({ pack: loaded.pack, host, base });
   await ui.load();
   const deck = deckCards(match, content, seat, avatar);
-  const hud = createBattleHud(ui, { deck, coop: (match.decks?.length ?? 1) === 2 });
+  const lv = content.level, stage = early && lv.code ? { code: lv.code, name: lv.name ?? '' } : null;
+  const hud = createBattleHud(ui, { deck, coop: (match.decks?.length ?? 1) === 2, stage });
   document.body.classList.add('original-ui');
   return { ui, hud, deck, icons: loaded.icons, iconBase: new URL('skills/', base).href };
 }
@@ -177,7 +180,8 @@ async function main() {
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
       P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
-      if (s.state === 'match' && s.match && !P.game) setUp(s.match, art, () => P.mark()).then((g) => { P.game = g; start(P, g); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
+      // loaded: the server may begin the battle (the engine's 同步-11)
+      if (s.state === 'match' && s.match && !P.game) setUp(s.match, art, () => P.mark(), s.frame ?? -1).then((g) => { P.game = g; start(P, g); P.battle.ready(); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
     },
     onControl: (c) => { P.control = c; P.bar(); },
   });

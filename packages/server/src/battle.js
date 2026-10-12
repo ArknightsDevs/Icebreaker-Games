@@ -66,6 +66,7 @@ export function createBattleRoom(o = {}) {
     pause: (seat) => host.pause(seat, now()),
     pauseReply: (seat, m) => host.pauseReply(seat, m.accept, now()),
     resume: (seat) => host.resume(seat, now()),
+    ready: (seat) => host.ready(seat, now()),
   };
 
   /** @param {import('ws').WebSocket} ws @param {number} seat @param {string} text */

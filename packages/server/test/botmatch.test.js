@@ -30,6 +30,8 @@ async function play(match) {
   let now = 0;
   host.hello(0, now);
   host.hello(1, now);
+  host.ready(0, now);
+  host.ready(1, now);
   for (const cl of clients) cl.speed(true);
   for (let w = clients[0].world; !w || (w.result < 0 && w.frame <= LIMIT); w = clients[0].world) {
     now += FRAME_MS;

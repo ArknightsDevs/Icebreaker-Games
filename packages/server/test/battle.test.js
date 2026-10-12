@@ -26,19 +26,25 @@ function open(url) {
 /** @param {number} ms */
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-test('hello → welcome with a snapshot, then sealed frames; a command reaches the arbiter', async () => {
+test('hello → welcome with a snapshot; sealed frames once both seats are ready (同步-11); a command reaches the arbiter', async () => {
   const s = await start();
   try {
-    const a = open(s.url(0));
-    await a.ready;
+    const a = open(s.url(0)), b = open(s.url(1));
+    await Promise.all([a.ready, b.ready]);
     a.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 0, key: 'ka', since: -1 }));
+    a.ws.send(JSON.stringify({ t: 'ready' }));
+    b.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 1, key: 'kb', since: -1 }));
     await wait(400);
     assert.equal(a.got[0].t, 'welcome');
+    assert.ok(!a.got.some((m) => m.t === 'frames'), 'the mate not ready: no frames');
+    b.ws.send(JSON.stringify({ t: 'ready' }));
+    await wait(400);
     assert.ok(a.got.some((m) => m.t === 'frames'));
     a.ws.send(JSON.stringify({ t: 'cmd', at: s.room.host.sealed + 9, cmd: { type: 'deploy', op: 'char_503_rang', row: 3, col: 2, dir: 0 } }));
     await wait(600);
     assert.equal(s.room.host.world.units.filter((u) => u.kind === 0).length, 1);
     a.ws.close();
+    b.ws.close();
   } finally { s.close(); }
 });
 

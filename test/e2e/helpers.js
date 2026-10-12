@@ -2,7 +2,7 @@
 // collect their errors, and polling.
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createMatchRoom, createHttpServer, DEFAULT_MATCH } from '@icebreaker/server';
+import { createMatchRoom, createHttpServer, DEFAULT_MATCH, kitDir, nodeKits } from '@icebreaker/server';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -33,12 +33,17 @@ export async function until(what, fn, timeout = 15000) {
   }
 }
 
-/** The server with a room of a match (default: the default match), on a free port of 127.0.0.1. @param {Parameters<typeof createMatchRoom>[0]} [match] */
+/**
+ * The server with a room of a match (default: the default match), on a free port of 127.0.0.1; with the pinned kits
+ * when they are installed (engine ADR 0058).
+ * @param {Parameters<typeof createMatchRoom>[0]} [match]
+ */
 export async function startStack(match = DEFAULT_MATCH) {
   /** @type {string[]} */
   const lines = [];
-  const room = await createMatchRoom(match, { log: (l) => lines.push(l) });
-  const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade: room.upgrade });
+  const kitsDir = kitDir(ROOT);
+  const room = await createMatchRoom(match, { log: (l) => lines.push(l), ...(kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {}) });
+  const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade: room.upgrade, kitsDir });
   await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
   const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
   const stop = async () => {

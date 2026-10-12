@@ -1,7 +1,8 @@
-// The HTTP server: the page, its static files, the modules, the asset directory and a health check.
+// The HTTP server: the page, its static files, the modules, the pinned kits, the asset directory and a health check.
 import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { createModuleHandler } from './modules.js';
+import { createKitHandler, kitDir } from './kits.js';
 import { rawPathname } from './paths.js';
 import { allowReadOnly, sendBody, sendText } from './respond.js';
 import { createStaticHandler, publicDir, serveFixedFile } from './static.js';
@@ -14,6 +15,7 @@ import { readWorkspace } from './workspace.js';
  * @property {number} [port] port for startHttpServer (0 picks a free one)
  * @property {string} [assetsDir] the asset directory; default env AUE_ASSETS_DIR, none means /assets/* is 404
  * @property {string[]} [browserPackages] workspace packages the browser runs; default the client
+ * @property {string | null} [kitsDir] the pinned kits' commit (engine ADR 0058); default kitDir(rootDir), null: /k/ is 404
  * @property {(req: import('node:http').IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => void} [onUpgrade]
  *   WEBSOCKET_UPGRADE_HOOK: the gateway attaches its WebSocket upgrade handler here later; nothing implements it yet
  */
@@ -36,7 +38,8 @@ export function createHttpServer(options) {
   const { rootDir } = options;
   const browserPackages = options.browserPackages ?? ['@icebreaker/client'];
   const modules = createModuleHandler({ workspace: readWorkspace(rootDir, browserPackages), browserPackages });
-  const handlers = [modules, ...staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR'])];
+  const kits = createKitHandler(options.kitsDir === undefined ? kitDir(rootDir) : options.kitsDir);
+  const handlers = [modules, kits, ...staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR'])];
   const index = join(publicDir(rootDir), 'index.html');
 
   const server = createServer((req, res) => {

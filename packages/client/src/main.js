@@ -176,7 +176,7 @@ async function main() {
   P.battle = startBattle({
     workerUrl: new URL('/m/@aue/worker/src/worker.js', location.href),
     wsUrl: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/battle?seat=${seat}`,
-    seat, key,
+    seat, key, kits: new URL('/k/', location.href),
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
       P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;

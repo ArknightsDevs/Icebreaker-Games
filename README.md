@@ -33,6 +33,14 @@ pnpm run ci
 
 升级引擎：在 `engine/` 里切换到新的发布标签，提交子模块的变化，然后跑 CI。不要直接修改 `engine/` 里的文件，引擎的改动提交到引擎仓库。
 
+干员 kit（可选，引擎 ADR 0058）：取得引擎固定的 Stronghold Protocol 提交，用 `AUE_KITS_DIR` 指给服务器；没有时，干员按引擎自己的实现作战。
+
+```sh
+git clone https://github.com/sganggs/Stronghold-Protocol.git <dir>
+git -C <dir> checkout <sha>   # 引擎 packages/content/data/kits.json 的 source.sha
+AUE_KITS_DIR=<dir> node packages/server/src/main.js
+```
+
 参与方式见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可

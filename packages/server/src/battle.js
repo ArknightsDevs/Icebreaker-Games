@@ -31,6 +31,8 @@ export const DEFAULT_MATCH = Object.freeze({
  * @property {import('@aue/schema').Match | null} [match] the match settings the content was made from
  * @property {() => number} [now] milliseconds
  * @property {(line: string) => void} [log]
+ * @property {(charIds: string[]) => Promise<{ kits: Record<string, any>, failed: string[] }>} [kits] loads the pinned kits of a match's
+ *   operators (kits.js nodeKits); none: the operators fight on the engine's own (engine ADR 0058)
  */
 
 /**
@@ -40,7 +42,9 @@ export const DEFAULT_MATCH = Object.freeze({
 export async function createMatchRoom(match, o = {}) {
   const why = matchProblem(match);
   if (why) throw new Error(`match settings: ${why}`);
-  return createBattleRoom({ ...o, content: await matchContent(match), match, seats: match.decks.length, seed: match.seed });
+  const loaded = o.kits ? await o.kits(match.decks.flat().map((e) => e.id)) : null;
+  if (loaded?.failed.length) o.log?.(`kits not loaded: ${loaded.failed.join(', ')}`);
+  return createBattleRoom({ ...o, content: await matchContent(match, undefined, loaded?.kits ?? {}), match, seats: match.decks.length, seed: match.seed });
 }
 
 /** @param {BattleRoomOptions} [o] */

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { startHttpServer } from './http.js';
 import { readFileSync } from 'node:fs';
 import { createMatchRoom, DEFAULT_MATCH } from './battle.js';
+import { kitDir, nodeKits } from './kits.js';
 
 /** @param {string[]} argv @returns {number} */
 export function parsePort(argv) {
@@ -17,7 +18,11 @@ export function parsePort(argv) {
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const args = process.argv.slice(2), file = args.includes('--match') ? args[args.indexOf('--match') + 1] : null;
-const room = await createMatchRoom(file ? JSON.parse(readFileSync(file, 'utf8')) : DEFAULT_MATCH, { log: (line) => console.log(line) });
-const server = await startHttpServer({ rootDir, port: parsePort(args), onUpgrade: room.upgrade });
+const kitsDir = kitDir(rootDir);
+console.log(kitsDir ? `kits: ${kitsDir}` : 'kits: none (operators fight on the engine’s own)');
+const room = await createMatchRoom(file ? JSON.parse(readFileSync(file, 'utf8')) : DEFAULT_MATCH, {
+  log: (line) => console.log(line), ...(kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {}),
+});
+const server = await startHttpServer({ rootDir, port: parsePort(args), onUpgrade: room.upgrade, kitsDir });
 const addr = server.address();
 if (addr !== null && typeof addr === 'object') console.log(`http://${addr.address}:${addr.port}/`);

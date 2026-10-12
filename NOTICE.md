@@ -11,6 +11,7 @@ Copyright (C) 2026 Icebreaker-Games contributors
 - **第 13 条（远程网络交互）**：如果你修改了本项目，并让用户通过网络与修改后的版本交互（例如架设联机服务器），就必须向这些用户提供修改后版本的对应源代码。
 - **引擎**：`engine/` 是明日方舟通用引擎（[Arknights-Universal-Engine](https://github.com/Cloudnyco/Arknights-Universal-Engine)）的 git 子模块，以 GPL-3.0-or-later 发布，见它自己的 LICENSE 和 NOTICE。
 - **第三方库**：通过 pnpm 安装的第三方库各自保留原许可证。
+- **干员 kit**：对局中运行的干员 kit 来自 [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol)（GPL-3.0-or-later，版权归其作者）的一个固定提交（见引擎的 `packages/content/data/kits.json`）。它们不在本仓库中：开服时由主机另行取得，原样使用，服务器只改写其中的导入路径（引擎 ADR 0058）。
 
 ## 2. 不属于本项目、不受 AGPL 约束的内容
 

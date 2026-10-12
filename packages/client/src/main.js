@@ -3,7 +3,8 @@
 // settings come with the server's welcome (engine spec 同步-9): the field and the decks are built once its content is
 // ready. Assets come from the host's /assets/skeleton/ (a local directory, AUE_ASSETS_DIR); without them the page says
 // so and draws nothing — the battle runs either way. Units are Spine figures when the assets have their models
-// (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles.
+// (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles. The
+// player's picture settings (settings.js, 页面-1) shape the drawing only.
 import { startBattle } from '@aue/worker';
 import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit, loadEffectPack } from '@aue/render';
 import { matchContent } from '@aue/content';
@@ -14,6 +15,7 @@ import { matchText } from './stage.js';
 import { createUi, createBattleHud, cardViews } from '@aue/ui';
 import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './battlehud.js';
 import { Hand } from './gestures.js';
+import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 
 const ASSETS = new URL('/assets/skeleton/', location.href);
 
@@ -22,6 +24,14 @@ const seat = Math.max(0, Math.min(7, Number(new URLSearchParams(location.search)
 const BARS = new URLSearchParams(location.search).has('bars');
 const key = sessionKey(seat);
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+
+/** This device's storage for the settings, or null where the page may not use it. @returns {Storage | null} */
+function localStore() {
+  try { return globalThis.localStorage ?? null; } catch { return null; }
+}
+const store = localStore();
+/** The player's picture settings (页面-1). */
+let settings = readSettings(store);
 
 /** @param {number} s */
 function sessionKey(s) {
@@ -103,7 +113,7 @@ async function setUp(match, art, changed, joined) {
   // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
   const pack = art && !BARS ? await loadUiPack(ASSETS) : null;
   const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders,
-    kit, effects, skills: skillSlots(match), bars: !pack }) : null;
+    kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
@@ -164,6 +174,14 @@ async function main() {
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
     requests: { answer: null, pauseSince: -1, now: 0 } });
   P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
+  $('fps').hidden = !settings.showFps;
+  createSettingsPanel($('settings'), settings, (s) => {
+    settings = s;
+    writeSettings(store, s);
+    P.game?.renderer?.setPixelScale(s.scale);
+    P.game?.renderer?.setAttackEffects(s.attackEffects);
+    $('fps').hidden = !s.showFps;
+  });
   P.skills = createSkillBar($('skills'), (id) => P.battle.command({ type: 'skill', unit: id }), (id) => P.battle.command({ type: 'retreat', unit: id }));
   /** @type {Record<string, () => void>} */
   const acts = {
@@ -237,7 +255,10 @@ function start(P, g) {
   let at = performance.now();
   /** milliseconds a frame spends drawing the field and laying the UI out (averaged), for measuring */
   const cost = { field: 0, ui: 0 };
+  const gate = frameGate(() => settings.fpsCap), meter = fpsMeter(), fps = $('fps');
   const loop = (/** @type {number} */ now) => {
+    if (!gate(now)) { requestAnimationFrame(loop); return; }
+    if (settings.showFps) fps.textContent = `${meter(now)} 帧/秒`;
     const t0 = performance.now();
     renderer.render();
     const t1 = performance.now();

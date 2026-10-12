@@ -39,3 +39,15 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); f
 #ui { position: absolute; inset: 0; pointer-events: none; }
 body.original-ui #deck, body.original-ui #skills, body.original-ui #hud .player, body.original-ui #controls { display: none; }
 body.original-ui #hud { top: auto; bottom: 200px; left: 16px; right: auto; }
+/* The picture settings (页面-1): a tab on the left edge, above the original UI too; and the FPS readout. */
+#settings { position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; }
+#settings > button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--muted); border-left: 0; padding: 8px 6px; writing-mode: vertical-rl; cursor: pointer; }
+#settings > button[aria-expanded="true"] { border-color: var(--accent); }
+#settings .panel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: rgb(0 0 0 / 0.8); }
+#settings .panel[hidden], #fps[hidden] { display: none; }
+#settings .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#settings .row > span { min-width: 5em; color: var(--muted); }
+#settings .row button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid transparent; padding: 2px 10px; cursor: pointer; }
+#settings .row button[aria-pressed="true"] { border-color: var(--accent); }
+#settings button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#fps { position: absolute; left: 8px; bottom: 4px; margin: 0; z-index: 3; color: var(--muted); font-size: 12px; pointer-events: none; }

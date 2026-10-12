@@ -19,9 +19,10 @@ test('the deck as cards: avatar, profession, rarity from the roster, elite phase
 test('the deck with its operators\' summon cards, put in by cost and id (the engine\'s 界面-23)', () => {
   const match = /** @type {any} */ ({ decks: [[{ id: 'a#0', build: { elite: 2 } }, { id: 'b#0', build: { elite: 1 } }]] });
   const summon = (/** @type {string} */ owner, /** @type {number} */ cost, /** @type {number} */ supply) => ({ char: 'token_x', profession: 'TOKEN', cost, respawnTime: 10, summoner: owner, summon: { supply } });
-  const content = { decks: [['a#0', 'b#0']], operators: { 'a#0': { cost: 10 }, 'b#0': { cost: 20 }, 't#0': summon('a#0', 12, 2), 'u#0': summon('a#0', 5, 0), 'v#1': summon('c#1', 1, 1) } };
+  const content = { decks: [['a#0', 'b#0']], operators: { 'a#0': { cost: 10 }, 'b#0': { cost: 20 }, 't#0': summon('a#0', 12, 2), 'u#0': summon('a#0', 5, 0), 'v#1': summon('c#1', 1, 1),
+    'g#0': { ...summon('b#0', 25, 0), summon: { supply: 0, grant: { n: 1, at: 'start' } } } } };
   const cards = deckCards(match, content, 0, (c) => `/avatar/${c}.png`);
-  assert.deepEqual(cards.map((c) => c.id), ['a#0', 't#0', 'b#0'], 'a summon with a card, by cost; none without a card or of another seat');
+  assert.deepEqual(cards.map((c) => c.id), ['a#0', 't#0', 'b#0', 'g#0'], 'a summon with a card (its talent\'s count or its skill\'s copies), by cost; none without a card or of another seat');
   assert.deepEqual(cards[1], { id: 't#0', avatar: '/avatar/token_x.png', profession: 'TOKEN', rarity: 1, phase: 0, respawn: 10, summon: true });
 });
 

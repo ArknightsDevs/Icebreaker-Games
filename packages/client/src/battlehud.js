@@ -39,7 +39,7 @@ export function deckCards(match, content, seat, avatar) {
     const op = content.operators[k], char = op.char ?? k, r = ROSTER[char];
     return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: builds.get(k)?.elite ?? 0, respawn: op.respawnTime ?? 60 };
   });
-  const summons = Object.entries(content.operators).filter(([, o]) => (o.summon?.supply ?? 0) > 0 && keys.includes(o.summoner))
+  const summons = Object.entries(content.operators).filter(([, o]) => ((o.summon?.supply ?? 0) > 0 || (o.summon?.grant?.n ?? 0) > 0) && keys.includes(o.summoner))
     .map(([k, o]) => ({ id: k, avatar: avatar(o.char ?? k), profession: o.profession ?? '', rarity: 1, phase: 0, respawn: o.respawnTime ?? 0, summon: true }));
   return placeSummons(ops, summons, (id) => content.operators[id].cost ?? 0);
 }

@@ -67,7 +67,7 @@ export function requestsAfter(r, f) {
 /**
  * What the HUD shows of a frame.
  * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, selected: string | null,
- *   stages?: any[], requests?: Requests }} o
+ *   stages?: any[], requests?: Requests, offline?: boolean }} o
  * @returns {import('@aue/ui').HudState}
  */
 export function hudState(o) {
@@ -76,6 +76,7 @@ export function hudState(o) {
     frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots,
     costTimer: ps.costTimer, costPeriod: secondsToFrames(o.options.costIncreaseTime), maxCost: o.options.maxCost, selected: o.selected,
     life: p.life, speed, paused, coop: view.players.length === 2 ? coopState(o, speed, paused) : undefined,
+    states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline },
   };
 }
 

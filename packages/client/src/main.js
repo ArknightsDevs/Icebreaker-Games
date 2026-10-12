@@ -199,7 +199,8 @@ function onFrame(P, f) {
   if (game?.ui) {
     P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
     const level = /** @type {any} */ (game.content.level);
-    P.hudNow = hudState({ view, status, control: P.control, seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests });
+    P.hudNow = hudState({ view, status, control: P.control, seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests,
+      offline: P.net === '重连中' });
     game.ui.hud.update(P.hudNow);
     P.hand?.frame(view);
   } else {

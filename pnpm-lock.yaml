@@ -41,6 +41,9 @@ importers:
 
   engine/packages/content:
     dependencies:
+      '@aue/math':
+        specifier: workspace:*
+        version: link:../math
       '@aue/sim':
         specifier: workspace:*
         version: link:../sim

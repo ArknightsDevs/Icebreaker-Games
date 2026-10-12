@@ -3,9 +3,9 @@
 // settings come with the server's welcome (engine spec 同步-9): the field and the decks are built once its content is
 // ready. Assets come from the host's /assets/skeleton/ (a local directory, AUE_ASSETS_DIR); without them the page says
 // so and draws nothing — the battle runs either way. Units are Spine figures when the assets have their models
-// (spine/index.json), else cards.
+// (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles.
 import { startBattle } from '@aue/worker';
-import { createBattleRenderer, loadTextures, loadSpineModels } from '@aue/render';
+import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit } from '@aue/render';
 import { matchContent } from '@aue/content';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
@@ -67,6 +67,13 @@ async function spineModels(content) {
   return loadSpineModels(await res.json(), new URL('spine/', ASSETS).href, ids);
 }
 
+/** The map theme's tile kit a level uses (the engine's 渲染-7), or null when the assets have no kit index. @param {string} level */
+async function tileKit(level) {
+  const res = await fetch(new URL('kits/index.json', ASSETS)).catch(() => null);
+  if (!res?.ok) return null;
+  return loadTileKit(await res.json(), new URL('kits/', ASSETS).href, level);
+}
+
 /**
  * The page's side of a match once its content is ready: the field, the deck (own operators with an avatar only — a
  * thing without a texture is not shown) and the content for the skill bar and the HUD.
@@ -74,9 +81,10 @@ async function spineModels(content) {
  */
 async function setUp(match, art) {
   const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
+  const kit = art ? await tileKit(match.level) : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders }) : null;
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, kit }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));

@@ -44,6 +44,8 @@ AUE_ASSETS_DIR=<素材目录> node packages/server/src/main.js --port 8700   # �
 # 浏览器打开 http://127.0.0.1:8700/?seat=0 和 ?seat=1
 ```
 
+不加 `--match` 时是 IG-1 和两套默认阵容。`packages/server/matches/` 里有可玩关卡的对局设定（`ig-1.json`、`ig-10.json`、`ig-s-2.json`，两边都是精英 2 的六星），例如 `--match packages/server/matches/ig-s-2.json`。种子决定关卡的随机变体：IG-S-2 第一阶段有山海众（八成）和越狱两种，山海密语仪有 3 个或 5 个；`ig-s-2.json` 的种子抽到的是山海众和 3 个密语仪。
+
 素材由维护者另行准备（引擎 ADR 0018）；没有素材时页面不画战场，对局照常进行。端到端测试：`pnpm run e2e`（`E2E_CHROME` 指定 Chrome，`E2E_FULL=1` 加跑整局）。
 
 升级引擎：在 `engine/` 里切换到要用的提交（发布时用标签），提交子模块的变化，然后跑 CI 和端到端测试。不要直接修改 `engine/` 里的文件，引擎的改动提交到引擎仓库。

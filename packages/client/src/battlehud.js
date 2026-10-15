@@ -151,17 +151,18 @@ export function menuSkill(u, op, icons, base) {
 
 /**
  * The units' bars (the engine's 界面-19, 界面-20): each drawn unit with where its feet are on the canvas, its kind (an
- * operator, an enemy, a leader), its HP share, an operator's skill (state and share) and its element.
+ * operator or a device on our side, an enemy or a device on theirs, a leader), its HP share, an operator's skill (state and share) and its element.
  * @param {import('@aue/schema').View} view
- * @param {{ leaders: Set<string>, keyOf: (id: number) => string | undefined, shows: (id: number) => boolean, at: (u: import('@aue/schema').ViewUnit) => number[],
+ * @param {{ leaders: Set<string>, foeDevices?: Set<string>, keyOf: (id: number) => string | undefined, shows: (id: number) => boolean, at: (u: import('@aue/schema').ViewUnit) => number[],
  *   operators: Record<string, any>, unitKey: (id: number) => string | undefined }} o
  * @returns {import('@aue/ui').UnitBar[]}
  */
 export function unitBars(view, o) {
   return view.units.filter((u) => o.shows(u.id)).map((u) => {
-    const op = u.kind === KIND.OPERATOR, s = op ? menuSkill(u, o.operators[o.unitKey(u.id) ?? ''], {}, 'http://x/') : null;
+    const op = u.kind === KIND.OPERATOR, s = op ? menuSkill(u, o.operators[o.unitKey(u.id) ?? ''], {}, 'http://x/') : null, key = o.keyOf(u.id) ?? '';
+    const ours = op || (u.kind === KIND.DEVICE && !o.foeDevices?.has(key));
     return {
-      id: u.id, at: o.at(u), kind: op ? 'char' : o.leaders.has(o.keyOf(u.id) ?? '') ? 'boss' : 'enemy',
+      id: u.id, at: o.at(u), kind: ours ? 'char' : o.leaders.has(key) ? 'boss' : 'enemy',
       hp: u.maxHp > 0 ? Math.max(0, Math.min(1, u.hp / u.maxHp)) : 0,
       sp: s ? { state: s.state, share: s.share } : null,
       el: u.element > 0 ? { element: u.element, share: u.ep, burst: u.burst === 1 } : null,

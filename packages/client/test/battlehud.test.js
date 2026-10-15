@@ -127,6 +127,14 @@ test('the units\' bars: the drawn units at their feet, operator, enemy or leader
   assert.equal(bars[3].sp, null, 'no skill, no SP bar');
 });
 
+test('the units\' bars of level devices (engine 装置-3): one on our side has an operator\'s bar with no SP, one on the enemies\' side an enemy\'s', () => {
+  const view = /** @type {any} */ ({ frame: 0, players: [], units: [unit({ id: 1, kind: KIND.DEVICE, owner: -1 }), unit({ id: 2, kind: KIND.DEVICE, owner: -1 })] });
+  const keys = new Map([[1, 'wall'], [2, 'flag']]);
+  const bars = unitBars(view, { leaders: new Set(), foeDevices: new Set(['flag']), keyOf: (id) => keys.get(id), shows: () => true, at: (u) => [u.x, u.y],
+    operators: {}, unitKey: (id) => keys.get(id) });
+  assert.deepEqual(bars.map((b) => [b.kind, b.sp]), [['char', null], ['enemy', null]]);
+});
+
 test('a stage that has just begun, with its task texts: within a second of its start; none in its rest, later, or without texts', () => {
   const stages = [{ task: { title: '营救', basic: '保护4位' } }, { task: { title: '营救', basic: '保护3位', advanced: '保护5位' } }, {}];
   const st = (/** @type {number} */ stage, /** @type {number} */ start) => /** @type {any} */ ({ stage, start });

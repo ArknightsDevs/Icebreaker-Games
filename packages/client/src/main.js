@@ -72,13 +72,13 @@ async function assets() {
 }
 
 /**
- * The Spine models of a match's operators and enemies the assets have; none without a model index.
- * @param {{ operators: Record<string, { char?: string }>, enemies: Record<string, unknown> }} content
+ * The Spine models of a match's operators, enemies and level devices the assets have; none without a model index.
+ * @param {{ operators: Record<string, { char?: string }>, enemies: Record<string, unknown>, devices?: Record<string, unknown> }} content
  */
 async function spineModels(content) {
   const res = await fetch(new URL('spine/index.json', ASSETS)).catch(() => null);
   if (!res?.ok) return new Map();
-  const ids = [...Object.entries(content.operators).map(([k, o]) => o.char ?? k), ...Object.keys(content.enemies)];
+  const ids = [...Object.entries(content.operators).map(([k, o]) => o.char ?? k), ...Object.keys(content.enemies), ...Object.keys(content.devices ?? {})];
   return loadSpineModels(await res.json(), new URL('spine/', ASSETS).href, ids);
 }
 
@@ -110,15 +110,18 @@ async function setUp(match, art, changed, joined) {
   const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
+  // the level devices on the enemies' side (the engine's 装置-3): their bars and stand-in blocks in the enemies' colour
+  const devices = /** @type {Record<string, { side?: string }>} */ (/** @type {any} */ (content).devices ?? {});
+  const foeDevices = new Set(Object.entries(devices).filter(([, d]) => d.side === 'ENEMY').map(([k]) => k));
   // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
   const pack = art && !BARS ? await loadUiPack(ASSETS) : null;
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders,
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, foeDevices,
     kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
   const ui = renderer && pack ? await originalUi(match, content, avatar, pack, joined < 0) : null;
-  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders };
+  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders, foeDevices };
 }
 
 /**
@@ -226,7 +229,7 @@ function onFrame(P, f) {
     P.hudNow = hudState({ view, status, control: P.control, seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests,
       offline: P.net === '重连中' });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
-    P.hudNow.units = unitBars(view, { leaders: game.leaders, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
+    P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
       at: (u) => r.screenOf(u.x, u.y, u.z).map((v) => v / k), operators: game.content.operators, unitKey: (id) => P.unitKeys.get(id) });
     game.ui.hud.update(P.hudNow);
     P.hand?.frame(view);

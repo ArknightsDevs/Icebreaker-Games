@@ -139,7 +139,20 @@ importers:
         specifier: ^4.10.2
         version: 4.10.2
 
-  engine/packages/simcheck: {}
+  engine/packages/simcheck:
+    dependencies:
+      '@aue/content':
+        specifier: workspace:*
+        version: link:../content
+      '@aue/schema':
+        specifier: workspace:*
+        version: link:../schema
+      '@aue/sim':
+        specifier: workspace:*
+        version: link:../sim
+      playwright:
+        specifier: 1.63.0
+        version: 1.63.0
 
   engine/packages/spine: {}
 

@@ -24,7 +24,7 @@ Copyright (C) 2026 Icebreaker-Games contributors
   - 头像、敌人图标：[yuanyan3060/ArknightsGameResource](https://github.com/yuanyan3060/ArknightsGameResource)（固定提交 9bf2396）；
   - 干员战斗语音、关卡的战斗曲：[ArknightsAssets/ArknightsAssets2](https://github.com/ArknightsAssets/ArknightsAssets2)（固定提交 33a5327）；
   - 音效库和语音的设定：由 [Kengxxiao/ArknightsGameData](https://github.com/Kengxxiao/ArknightsGameData)（提交 17759cc）的游戏数据生成；
-  - 两款显示字体 Bender（Jovanny Lemonad；Oleg Zhuravlev、Ivan Gladkikh）与 Novecento wide（Jan Tonellato / Synthview）不是游戏素材，取自 [TimWangZi/The-font-of-Arknights](https://github.com/TimWangZi/The-font-of-Arknights)，适用其作者的许可；
+  - 拉丁字体 Montserrat（The Montserrat Project Authors）与 Chakra Petch（The Chakra Petch Project Authors）不是游戏素材，用来代替界面原用的两款显示字体，取自 [google/fonts](https://github.com/google/fonts)（固定提交 1d0e46c，`ofl/montserrat`、`ofl/chakrapetch`），只保留拉丁字符，按 [SIL Open Font License 1.1](https://openfontlicense.org) 分发，许可全文见 `assets/skeleton/fonts/OFL-Montserrat.txt`、`OFL-ChakraPetch.txt`；
   - 中文字体 Noto Sans SC（Google、Adobe）不是游戏素材，取自 [google/fonts](https://github.com/google/fonts)（固定提交 a85815a，`ofl/notosanssc`，来自 notofonts/noto-cjk 的 Sans2.004），只保留页面用到的字，按 [SIL Open Font License 1.1](https://openfontlicense.org) 分发，许可全文见 `assets/skeleton/fonts/OFL-NotoSansSC.txt`；
   - 其余（战斗界面、特效、音效、地块套件、阴影等）由维护者另行准备。
 - 它们**不在 AGPL-3.0 授权范围内**，本项目也无权就它们向任何人授予任何权利。

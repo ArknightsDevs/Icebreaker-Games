@@ -4,7 +4,7 @@
 // takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5); with their
 // lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
 import { ROSTER, loadTraining } from '@aue/content';
-import { squadProblem, MODE } from '@icebreaker/mode-regular';
+import { squadProblem, MODE, EMOTES } from '@icebreaker/mode-regular';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf, profileOf, newTag } from './save.js';
 import { createBoxView } from './boxview.js';
@@ -29,7 +29,7 @@ const ASSETS = assetsUrl(), ART = new URL('ui/room/', ASSETS).href;
 let atlas = null;
 const music = createRoomMusic(new URL('audio/', ASSETS).href, readSettings(store).music);
 /** @type {import('./roomview.js').RoomState} */
-const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted(), ping: null };
+const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted(), ping: null, emotes: [null, null], chatAt: -Infinity };
 /** How often the page measures the lobby's latency (页面-6). */
 const PING_MS = 2000;
 /** @type {WebSocket | null} */
@@ -80,7 +80,17 @@ const A = {
   style: () => save.style,
   icon: (icon, variant) => styleIcon(atlas, ART, icon, variant),
   modeIcon: () => modeIcon(atlas, ART, MODE.type),
+  // 表情交流 (房间-7): the server sends it back to both seats; the page holds its buttons for the cooldown
+  emote: (id, theme) => { S.chatAt = performance.now(); send({ t: 'emote', id, theme }); draw(); setTimeout(draw, EMOTES.cd * 1000 + 50); },
 };
+
+/** An emote a seat sent (房间-7): shown by that seat for its time. @param {any} m */
+function onEmote(m) {
+  if (m.seat !== 0 && m.seat !== 1) return;
+  S.emotes[m.seat] = { id: String(m.id), theme: String(m.theme), until: performance.now() + EMOTES.time * 1000 };
+  lobby?.emote();
+  setTimeout(draw, EMOTES.time * 1000 + 50);
+}
 
 const box = createBoxView($('boxbody'), {
   roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, toast, icon: A.icon,
@@ -153,25 +163,29 @@ function onRoom(v) {
   S.at = performance.now();
 }
 
+/** The room's match started: to the battle page with the match and the seat (房间-6). @param {any} m */
+function onStart(m) {
+  S.started = { match: m.match, seat: m.seat };
+  writeStarted(S.started);
+  // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6)
+  const pr = S.view ? S.lobby?.projects[S.view.project] : null;
+  try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name })); } catch { /* the battle page waits for the match */ }
+  const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
+  // with the lobby screens the countdown and the start play first (页面-6)
+  void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));
+}
+
+/** The lobby's messages, each drawn after. @type {Record<string, (m: any) => void>} */
+const ON = {
+  lobby: (m) => { S.lobby = m; }, room: onRoom, emote: onEmote, start: onStart,
+  error: (m) => { lobby?.failed(); toast(m.msg); },
+  closed: (m) => { S.view = null; S.draft = null; toast(CLOSED[m.why] ?? '房间已关闭'); },
+};
+
 /** @param {any} m */
 function onMessage(m) {
   if (m.t === 'pong') { if (typeof m.at === 'number') S.ping = performance.now() - m.at; return; }
-  if (m.t === 'lobby') S.lobby = m;
-  else if (m.t === 'room') onRoom(m);
-  else if (m.t === 'error') { lobby?.failed(); toast(m.msg); }
-  else if (m.t === 'closed') { S.view = null; S.draft = null; toast(CLOSED[m.why] ?? '房间已关闭'); }
-  else if (m.t === 'start') {
-    S.started = { match: m.match, seat: m.seat };
-    writeStarted(S.started);
-    // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6)
-    const pr = S.view ? S.lobby?.projects[S.view.project] : null;
-    try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name })); } catch { /* the battle page waits for the match */ }
-    const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
-    // with the lobby screens the countdown and the start play first (页面-6)
-    void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));
-    draw();
-    return;
-  }
+  if (Object.hasOwn(ON, m.t)) ON[m.t](m);
   draw();
 }
 

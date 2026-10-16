@@ -133,6 +133,28 @@ export function place(p, at, prefab) {
   return new Part(p.ui, scr, scr.root, key);
 }
 
+/**
+ * A prefab opened inside a container node of a part beside what the page opened there already (bubbles that come and
+ * go together), closed with the part's screen or by closeInside. Null when the container or the prefab is not there.
+ * @param {Part} p @param {string} at @param {string} prefab
+ */
+export function openInside(p, at, prefab) {
+  const node = p.node(at), key = screenKey(prefab);
+  if (!node || !Object.hasOwn(p.scr.ctx.pack.screens, key)) return null;
+  const scr = p.ui.open(key, { into: node });
+  settle(scr.root);
+  const set = inside.get(p.scr) ?? new Set();
+  set.add(scr);
+  inside.set(p.scr, set);
+  return new Part(p.ui, scr, scr.root, key);
+}
+
+/** Closes a prefab openInside opened in a part. @param {Part} p @param {Part} child */
+export function closeInside(p, child) {
+  inside.get(p.scr)?.delete(child.scr);
+  closeScreen(p.ui, child.scr);
+}
+
 /** Closes what the page opened inside a container node of a part. @param {Part} p @param {string} at */
 export function unplace(p, at) {
   const node = p.node(at), old = node ? placed.get(node) : null;

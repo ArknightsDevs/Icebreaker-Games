@@ -2,7 +2,7 @@
 // squads, the coordination of shared operators, each seat's lineup, and the match they start. Pure state over the
 // lobby's sessions: messages come in already checked (lobby.js lobbyMessageProblem), what goes out goes through
 // `send`, time through `now`, chance through `random`, and a match is started through `startMatch`.
-import { STEP_MS, LINEUP, TOASTS, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
+import { STEP_MS, LINEUP, TOASTS, EMOTES, emoteSceneOf, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
 import { coordinate, pick, handOver, offer } from './allocation.js';
 
 /** How long a room lives without starting a match (房间-1), and each step's time (房间-2, 房间-4, 房间-5), in ms. */
@@ -41,7 +41,7 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {number} [maxRooms] how many rooms the server holds at most (站点-2); none: no limit
  * @property {(session: number) => void} [wrongCode] a session tried a room code no room has (站点-2)
  */
-/** @typedef {{ key: string, name: string, room: string | null, profile: Profile }} Session */
+/** @typedef {{ key: string, name: string, room: string | null, profile: Profile, chatAt?: number }} Session */
 /** A name card before the page sent its own. @type {Profile} */
 const NO_PROFILE = Object.freeze({ tag: '', avatar: '', assist: null });
 /** @typedef {{ o: RoomsOptions, rooms: Map<string, Room>, sessions: Map<number, Session>, recruitIds: string[] }} Lobby */
@@ -254,6 +254,20 @@ function stepTimedOut(L, r) {
   void start(L, r);
 }
 
+/**
+ * 表情交流 (房间-7): an emote of the phase's scene in an enabled theme goes to both seats with the sender's seat; one
+ * within `cd` seconds of the sender's last is dropped. @param {Lobby} L @param {Room} r @param {number} id @param {string} emote @param {string} theme
+ */
+function sendEmote(L, r, id, emote, theme) {
+  const s = /** @type {Session} */ (L.sessions.get(id)), now = L.o.now();
+  const scene = emoteSceneOf(r.phase);
+  if (!scene || !EMOTES.scenes[scene].includes(emote) || !EMOTES.themes.includes(theme)) return;
+  if (s.chatAt !== undefined && now - s.chatAt < EMOTES.cd * 1000) return;
+  s.chatAt = now;
+  const seat = seatOf(r, id);
+  for (const m of r.members) if (m.online) L.o.send(m.id, { t: 'emote', seat, id: emote, theme });
+}
+
 /** The host asks the guest to leave, at 项目调整 (房间-1). @param {Lobby} L @param {Room} r @param {number} id */
 function kick(L, r, id) {
   const guest = r.members[1];
@@ -276,6 +290,7 @@ const IN_ROOM = {
   pick: (L, r, id, m) => { if (r.phase === 'pick') afterPick(L, r, pick(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id), m.id)); },
   handover: (L, r, id) => { if (r.phase === 'pick') afterPick(L, r, handOver(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id))); },
   lineup: (L, r, id, m) => setLineup(L, r, id, m.lineup),
+  emote: (L, r, id, m) => sendEmote(L, r, id, m.id, m.theme),
   ready: (L, r, id, m) => setReady(L, r, id, m.on),
   // a like for the other seat on the last match's result, once each (房间-6)
   like: (L, r, id) => {
@@ -292,7 +307,7 @@ const IN_ROOM = {
  */
 function hello(L, id, key, name) {
   const old = [...L.sessions.entries()].find(([sid, s]) => s.key === key && sid !== id), was = old?.[1] ?? L.sessions.get(id);
-  L.sessions.set(id, { key, name, room: was?.room ?? null, profile: was?.profile ?? NO_PROFILE });
+  L.sessions.set(id, { key, name, room: was?.room ?? null, profile: was?.profile ?? NO_PROFILE, ...(was?.chatAt !== undefined ? { chatAt: was.chatAt } : {}) });
   if (old) L.sessions.delete(old[0]);
   const r = roomOf(L, id), m = r?.members.find((x) => x.key === key);
   if (r && m) { Object.assign(m, { id, name, online: true }); push(L, r); }

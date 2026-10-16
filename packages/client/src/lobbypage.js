@@ -94,16 +94,18 @@ export async function startLobby(el, H) {
   if (new URLSearchParams(location.search).has('html')) return null;
   const pack = await fetchJson(new URL('lobby.json', UI));
   if (!pack?.screens) return null;
-  const [battle, manifest, skills, atlas, portraits, equips, illusts, season] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
+  const [battle, manifest, skills, atlas, portraits, equips, illusts, season, emoticons] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
     fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS)),
-    fetchJson(new URL('uniequip/index.json', ASSETS)), fetchJson(new URL('charillust/index.json', ASSETS)), fetchJson(new URL('season/index.json', ASSETS))]);
+    fetchJson(new URL('uniequip/index.json', ASSETS)), fetchJson(new URL('charillust/index.json', ASSETS)), fetchJson(new URL('season/index.json', ASSETS)),
+    fetchJson(new URL('emoticons/index.json', UI))]);
   addArt(pack, season);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load();
   // the screens' particle effects, when the assets have them (页面-6)
   const effects = startLobbyFx(ui, UI).catch(() => null);
-  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips, illusts }), atlas, sound, pack, effects });
+  const emotes = emoticons?.themes ? { base: new URL('emoticons/', UI).href, index: emoticons } : null;
+  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips, illusts }), atlas, sound, pack, effects, emotes });
 }
 
 /**
@@ -205,6 +207,7 @@ function stepCtx(H, G, L, K) {
     nameOf: A.nameOf, rosterOf: (id) => ROSTER[id] ?? null, squad: A.squad, squadProblem: A.squadProblem, style: A.style, setDraft: A.setDraft,
     entryOf: (seat, id) => entryIn(S, seat, id) ?? (seat === S.view?.you ? H.entry(id) : null), skillId: K.skills.get, moduleType: K.skills.module, moduleCount: K.skills.modules, version: K.skills.version,
     modeIcon: (color) => spriteUrl(G.atlas, ROOM_ART, `${MODE_ICONS.NORMAL}${color ? '_color' : ''}`),
+    emoteArt: () => G.emotes, emote: A.emote,
   };
 }
 
@@ -251,7 +254,8 @@ function memberToast(v, was, toast) {
 
 /**
  * The lobby on a loaded UI.
- * @param {any} ui @param {LobbyHost} H @param {{ cards: import('./lobbycards.js').CardArt, atlas: any, sound: ReturnType<typeof createLobbySound>, pack: any, effects: Promise<unknown> }} G
+ * @param {any} ui @param {LobbyHost} H @param {{ cards: import('./lobbycards.js').CardArt, atlas: any, sound: ReturnType<typeof createLobbySound>, pack: any, effects: Promise<unknown>,
+ *   emotes: { base: string, index: any } | null }} G
  */
 function lobbyOn(ui, H, G) {
   const L = newLocal(), S = H.S;
@@ -294,6 +298,8 @@ function lobbyOn(ui, H, G) {
     ui, draw, toast, back,
     /** A match's result to show first. @param {import('./lobbymap.js').MatchResult} r */
     result: (r) => { L.finish = r; draw(); },
+    /** An emote came (房间-7): its bubble shows on the next drawing. */
+    emote: () => draw(),
     /** A join that came to nothing. */
     failed: () => { if (page.key === 'entry') page.c.failed(); },
     /** Before the match: the countdown and its logo, then black (at most 8 seconds). */
@@ -302,6 +308,6 @@ function lobbyOn(ui, H, G) {
     volume: (v) => G.sound.volume(v),
     resume: () => G.sound.resume(),
     /** What the lobby shows, for tests. */
-    state: () => ({ page: page.key, local: { ...L }, sounds: G.sound.heard() }),
+    state: () => ({ page: page.key, local: { ...L }, sounds: G.sound.heard(), chat: page.key === 'prepare' ? page.c?.chat?.state?.() ?? null : null }),
   };
 }

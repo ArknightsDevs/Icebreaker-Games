@@ -1,6 +1,6 @@
 // Extracts what 常规项目 takes from the game's activity table (docs/spec/room.md, page.md): the steps' times and the
-// lineup's size, the temporary recruits, the playing styles (with their icons, 页面-5) and the mode of the co-op
-// activity act1multi.
+// lineup's size, the temporary recruits, the playing styles (with their icons, 页面-5), the emotes (房间-7, with the
+// display table's emote data) and the mode of the co-op activity act1multi.
 // Usage: node tools/extract-activity.js --gamedata <ArknightsGameData checkout>
 // Writes packages/mode-regular/data/act1multi.json (the same input gives byte-identical output).
 import { execFileSync } from 'node:child_process';
@@ -49,6 +49,26 @@ function defaultTitle(titles) {
   return first(false) + first(true);
 }
 
+/** The emote scenes of 促融共竞 (display_meta_table emoticonData types; 房间-7). */
+const SCENES = Object.freeze({ ACTMULTIV3_ROOM: 'room', ACTMULTIV3_PICK: 'pick', ACTMULTIV3_BATTLE: 'battle' });
+
+/**
+ * The emotes (房间-7): the activity's enabled themes, its emotes by scene in their order with their texts, the time
+ * between two of a player's emotes and how long one shows, in seconds. Every enabled theme has every emote.
+ * @param {any} meta display_meta_table's emoticonData @param {any} a the activity
+ */
+function emotesOf(meta, a) {
+  const all = Object.values(meta.emojiDataDict).filter((/** @type {any} */ e) => Object.hasOwn(SCENES, e.type)).sort((/** @type {any} */ x, /** @type {any} */ y) => x.sortId - y.sortId);
+  /** @type {Record<string, string[]>} */
+  const scenes = { room: [], pick: [], battle: [] };
+  for (const e of /** @type {any[]} */ (all)) scenes[SCENES[/** @type {keyof typeof SCENES} */ (e.type)]].push(e.id);
+  for (const t of a.enabledEmoticonThemeIdList) {
+    const has = new Set(meta.emoticonThemeDataDict[t]), missing = all.filter((/** @type {any} */ e) => !has.has(e.id));
+    if (missing.length) throw new Error(`the theme ${t} lacks ${missing.map((/** @type {any} */ e) => e.id).join(', ')}`);
+  }
+  return { themes: [...a.enabledEmoticonThemeIdList], scenes, text: Object.fromEntries(all.map((/** @type {any} */ e) => [e.id, e.desc])), cd: a.constData.chatCd, time: a.constData.chatTime };
+}
+
 /** @param {string} root */
 export function extract(root) {
   const excel = join(root, 'zh_CN', 'gamedata', 'excel');
@@ -82,6 +102,7 @@ export function extract(root) {
       id: c.charId, elite: ELITE[/** @type {keyof typeof ELITE} */ (c.evolvePhase)], level: c.level, potential: c.potentialRank + 1, trust: trustOf(favor, c.favorPoint),
       skillLevel: c.mainSkillLevel + c.specializeLevel,
     })),
+    emotes: emotesOf(readJson(join(excel, 'display_meta_table.json')).emoticonData, a),
     styles: a.squadEffectList.map((/** @type {any} */ s) => ({
       id: s.id, name: s.name, icon: s.iconId, color: s.themeColor, buff: s.buffDesc, debuff: s.debuffDesc,
       device: { name: s.token.name, desc: s.token.desc },

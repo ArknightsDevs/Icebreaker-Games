@@ -39,6 +39,19 @@ export const MISSIONS = Object.freeze({ ...data.missions });
 /** The activity's toasts of the room flow (页面-6). @type {Readonly<Record<string, string>>} */
 export const TOASTS = Object.freeze({ ...data.toasts });
 
+/**
+ * The emotes (房间-7): the enabled themes, each scene's emotes in order (room: 项目调整, pick: the allocation, battle:
+ * the match), their texts, the seconds between two of a player's emotes (cd) and the seconds one shows (time).
+ * @type {Readonly<{ themes: readonly string[], scenes: Readonly<Record<'room' | 'pick' | 'battle', readonly string[]>>, text: Readonly<Record<string, string>>, cd: number, time: number }>}
+ */
+export const EMOTES = Object.freeze({ ...data.emotes, themes: Object.freeze([...data.emotes.themes]), scenes: Object.freeze({ ...data.emotes.scenes }), text: Object.freeze({ ...data.emotes.text }) });
+
+/**
+ * The scene of the emotes a room phase allows (房间-7, INF-0019): the room's at 项目调整, the allocation's from the
+ * coordination to 准备就绪, none at 项目确认 or in the match. @param {string | null | undefined} phase @returns {'room' | 'pick' | null}
+ */
+export const emoteSceneOf = (phase) => (phase === 'setup' ? 'room' : phase === 'pick' || phase === 'lineup' ? 'pick' : null);
+
 /** The name cards' title of a player who chose none (页面-6). */
 export const PLAYER_TITLE = data.title;
 

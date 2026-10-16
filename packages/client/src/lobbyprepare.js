@@ -2,7 +2,7 @@
 // countdown, warning from the activity's hintTime; the stage; leaving; 上一步 in the lineup), the two players beside
 // it (names, styles once shown, who has confirmed, 请离房间, the room's time left), the banner of a new phase, the
 // step views in its step container (项目确认 leaving with the entrance show), the countdown before the match, the
-// lost-connection view.
+// lost-connection view, the emotes (lobbychat.js, 房间-7).
 import { openPart, closePart, place, setSwitch, screenKey, placeAvatar } from './lobbykit.js';
 import { PLAYER_TITLE } from '@icebreaker/mode-regular';
 import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.js';
@@ -10,6 +10,7 @@ import { createStage, createStageList, createConfirm, playEntrance, classIcon, o
 import { createPick } from './lobbypick.js';
 import { createLineup } from './lobbylineup.js';
 import { clock, pingText, cardName } from './roomtext.js';
+import { createChat } from './lobbychat.js';
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./lobbystage.js').StepCtx} StepCtx */
 
@@ -44,7 +45,6 @@ export function createPrepare(ui, X) {
   const containers = Object.fromEntries((mv.viewPrefabs ?? []).map((/** @type {any} */ v) => [screenKey(v.viewPrefab), v.container]));
   const top = place(page, containers[TOP] ?? `${MAIN}/top_view`, TOP), side = place(page, containers[SIDE] ?? `${MAIN}/player_info_view`, SIDE);
   const tf = top?.view() ?? {}, sf = side?.view() ?? {};
-  page.show(`${MAIN}/emoji_chat_view`, false);
   if (top) wireTop(top, tf, X);
   // 查看地图: the stage's detail in its dialog (页面-6)
   top?.tap('@bkg/panel_horz_grp/panel_map_btn/btn_show_map', () => {
@@ -52,6 +52,7 @@ export function createPrepare(ui, X) {
     if (pr) openStageDialog(ui, pr, X);
   });
   if (side) wireSide(side, sf, X);
+  const chat = createChat(page, side, sf, X);
   /** @type {[any, any] | null} */
   let lastArgs = null;
   /** @type {string | null} */
@@ -69,6 +70,7 @@ export function createPrepare(ui, X) {
     stageList(S, L);
     if (top) topUpdate(top, tf, S, step, X);
     if (side) { side.root.active = step !== 'confirm'; sideUpdate(side, sf, S, X, step); }
+    chat.update(S, !fullSide(step));
     const b = bannerOf(phase, v);
     if (b) void banner(page, b);
     phase = v.phase;
@@ -95,7 +97,7 @@ export function createPrepare(ui, X) {
       if (!S.view) return;
       const cd = countdownOf(S.view, performance.now() - S.at);
       if (top) warn = countdownTick(top, tf, cd, warn);
-      if (side) side.text(sf.closeTxt, clock(S.view.left - (performance.now() - S.at)));
+      if (side) side.text(sf.closeTxt, clock(S.view.left - (performance.now() - S.at))); chat.tick(S);
       // the lobby's latency on the top bar and, beside no 上一步, on the side view's full panel (页面-6)
       const pt = S.ping == null ? '' : pingText(S.ping);
       if (top) { top.show(tf.pingLabel, !!pt); top.text(tf.pingLabel, pt); }
@@ -111,7 +113,7 @@ export function createPrepare(ui, X) {
       if (cd) await Promise.race([cd.anim(cd.view().cdAnim), wait(LOGO_STANDS_MS)]);
       await toBlack();
     },
-    close: () => { list?.close(); closePart(page); },
+    close: () => { list?.close(); chat.close(); closePart(page); }, chat,
   };
 }
 

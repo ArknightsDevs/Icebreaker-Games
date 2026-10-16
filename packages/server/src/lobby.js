@@ -25,6 +25,7 @@ const assistPick = (x) => x === null || (isRecord(x) && Object.keys(x).sort().jo
 const SHAPES = {
   hello: (m) => shortText(m.key, 64) && shortText(m.name, 16) && String(m.name).trim().length > 0,
   create: () => true, leave: () => true, kick: () => true, go: () => true, handover: () => true, like: () => true,
+  emote: (m) => shortText(m.id, 48) && shortText(m.theme, 48),
   ping: (m) => typeof m.at === 'number' && Number.isFinite(m.at),
   profile: (m) => typeof m.tag === 'string' && /^\d{4}$/.test(m.tag) && (m.avatar === '' || operatorId(m.avatar)) && assistPick(m.assist),
   join: (m) => shortText(m.code, 200),
@@ -36,7 +37,7 @@ const SHAPES = {
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup' };
+const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the

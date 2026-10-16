@@ -64,3 +64,8 @@ body.lobby-on header button { padding: 1px 8px; font-size: 12px; }
 body.lobby-on #back { position: fixed; left: 8px; top: 8px; z-index: 20; }
 body.lobby-on #box { position: fixed; inset: 48px 5vw 5vh; z-index: 30; overflow: auto; box-shadow: 0 8px 32px rgb(0 0 0 / 0.6); }
 #boxclose { float: right; }
+
+/* 表情交流 (房间-7) */
+.emotes { flex-wrap: wrap; gap: 4px; }
+.emote-btn { font-size: 0.85em; padding: 2px 8px; }
+.members .emote { color: #d2284b; font-weight: 600; }

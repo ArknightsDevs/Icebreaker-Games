@@ -2,7 +2,7 @@
 // says — 项目调整, 项目确认, 高顺位干员协调, 组建上场阵容 — and the match. Countdowns carry `data-until` (a
 // performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`. The mode and
 // the styles carry the activity's icons when the assets have them (页面-5).
-import { MODE, STYLES } from '@icebreaker/mode-regular';
+import { MODE, STYLES, EMOTES, emoteSceneOf } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText, cardName } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
@@ -11,9 +11,10 @@ import { skillLevelText, trainingText } from './training.js';
 /** @typedef {{ level: string, code: string, name: string, class: string, className: string, stages: { title: string, basic: string, advanced?: string, seconds: number }[], missions?: readonly string[], detail?: string }} ProjectView */
 /**
  * What the page knows: the lobby's projects and recruits, the room as last seen and when, the lineup being set, the
- * match this tab was sent to, the lobby's latency in ms (null until measured).
+ * match this tab was sent to, the lobby's latency in ms (null until measured), the emote each seat sent last and until
+ * when it shows, and when this player sent its last (房间-7; performance.now() times).
  * @typedef {{ conn: string, lobby: { name: string, projects: ProjectView[], recruits: BoxEntry[] } | null, view: any, at: number, draft: Pick[] | null,
- *   started: { match: string, seat: number } | null, ping: number | null }} RoomState
+ *   started: { match: string, seat: number } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number }} RoomState
  */
 /**
  * @typedef {object} RoomActions
@@ -25,6 +26,7 @@ import { skillLevelText, trainingText } from './training.js';
  * @property {() => string} style the play style of the save
  * @property {(icon: string, variant: '' | '_tiny') => string | null} icon a style icon's URL (页面-5), null without it
  * @property {() => string | null} modeIcon the mode's icon URL (页面-5), null without it
+ * @property {(id: string, theme: string) => void} emote sends an emote (房间-7)
  */
 
 /** A style as the room shows it: its small icon (页面-5) and its text. @param {RoomActions} A @param {string} id */
@@ -65,10 +67,26 @@ function header(S, A) {
     h('p', {}, '房间编号 ', h('strong', { class: 'code' }, v.code), v.phase !== 'battle' ? h('span', { class: 'muted' }, '　房间剩余 ', countdown(S, v.left)) : null),
     h('input', { class: 'invite', readOnly: true, value: inviteText(v.code, v.members[0]?.name ?? '', v.members[0]?.tag ?? ''), 'aria-label': '邀请文字', onfocus: (/** @type {Event} */ e) => /** @type {HTMLInputElement} */ (e.target).select() }),
     h('ul', { class: 'members' }, v.members.map((/** @type {any} */ m, /** @type {number} */ i) =>
-      h('li', { class: m.online ? '' : 'offline' }, `${i === 0 ? '房主' : '参加者'} · ${cardName(m)}${i === v.you ? '（你）' : ''}${m.online ? '' : ' · 掉线'}`))),
+      h('li', { class: m.online ? '' : 'offline' }, `${i === 0 ? '房主' : '参加者'} · ${cardName(m)}${i === v.you ? '（你）' : ''}${m.online ? '' : ' · 掉线'}`, bubble(S, i)))),
+    emoteBar(S, A),
     h('div', { class: 'row' },
       h('button', { onclick: () => A.send({ t: 'leave' }) }, host ? '解散房间' : '离开房间'),
       host && v.phase === 'setup' && v.members.length > 1 ? h('button', { onclick: () => A.send({ t: 'kick' }) }, '请离房间') : null));
+}
+
+/** The emote a seat sent, while it shows (房间-7). @param {RoomState} S @param {number} seat */
+function bubble(S, seat) {
+  const e = S.emotes[seat];
+  return e && e.until > performance.now() ? h('span', { class: 'emote' }, ` 「${EMOTES.text[e.id] ?? e.id}」`) : null;
+}
+
+/** The phase's emotes as buttons (房间-7), held for a second after one went; none at 项目确认 and in the match. @param {RoomState} S @param {RoomActions} A */
+function emoteBar(S, A) {
+  const scene = emoteSceneOf(S.view.phase);
+  if (!scene) return null;
+  const wait = performance.now() - S.chatAt < EMOTES.cd * 1000;
+  return h('div', { class: 'row emotes', 'aria-label': '交流' }, EMOTES.scenes[scene].map((id) =>
+    h('button', { class: 'emote-btn', disabled: wait, onclick: () => A.emote(id, EMOTES.themes[0] ?? '') }, EMOTES.text[id] ?? id)));
 }
 
 /** A project's mode (页面-5), code, name, class and its stages' tasks (房间-2). @param {ProjectView} p @param {RoomActions} A */

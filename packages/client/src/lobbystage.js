@@ -40,6 +40,8 @@ import { cardName } from './roomtext.js';
  * @property {(id: string, k: number) => string | null} moduleType a module's type (EXE-Y…), null until its data came
  * @property {(id: string) => number} moduleCount how many modules an operator has (0 until its data came)
  * @property {() => number} version a number that changes when lazily loaded data (skill ids, module types) comes
+ * @property {() => { base: string, index: any } | null} emoteArt the emote index and its folder's URL (房间-7), null without it
+ * @property {(id: string, theme: string) => void} emote sends an emote (房间-7)
  */
 
 /** The class nodes of the class icon prefab (common/multiv3_map_diff_icon). */

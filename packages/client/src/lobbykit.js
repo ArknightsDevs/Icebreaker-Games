@@ -167,28 +167,35 @@ const imageNode = (name, color, rt) => ({ name, active: true, children: [], rt,
   comps: { img: color ? { kind: 'atlas', ref: 'sprite/common_atlas/sprite_white', color, mesh: 0, slice: [0, 0, 1, 1] } : { kind: 'image', ref: null, color: [1, 1, 1, 1], type: 0, fill: 1, preserve: 0 } } });
 
 /**
- * A player's avatar as the original's recording shows it on the name cards (INF-0014): the picture on a light square
- * with a grey edge of 2 units; the frame's colours are measured there.
+ * A player's avatar as the original shows it (INF-0014): 150 units square in its loader (90 on a name card under the
+ * loader's 0.6, 120 on the side view under its 0.8, as the recording and the official screenshot show them), the
+ * picture on a light square with a grey edge of 2 units; the frame's colours are measured on the recording.
  */
-const AVATAR_EDGE = [0.7, 0.7, 0.7, 1], AVATAR_BACK = [0.88, 0.88, 0.88, 1];
+const AVATAR_SIZE = 150, AVATAR_EDGE = [0.7, 0.7, 0.7, 1], AVATAR_BACK = [0.88, 0.88, 0.88, 1];
 
 /** The templates the page adds to the pack before the UI starts (页面-6). */
 export const PAGE_SCREENS = Object.freeze({
   [PICTURE]: imageNode('picture', null, rectIn(0.5, 0.5, [100, 100])),
-  [AVATAR]: { ...imageNode('avatar', AVATAR_EDGE, rectIn(0, 1, [0, 0])),
+  [AVATAR]: { ...imageNode('avatar', AVATAR_EDGE, rectIn(0.5, 0.5, [AVATAR_SIZE, AVATAR_SIZE])),
     children: [imageNode('back', AVATAR_BACK, rectIn(0, 1, [-4, -4])), imageNode('face', null, rectIn(0, 1, [-4, -4]))] },
 });
 
+/** The avatar each loader node shows, so a view drawn again keeps it. @type {WeakMap<UiNode, string>} */
+const avatars = new WeakMap();
+
 /**
- * A player's avatar filling a node (页面-6): in its frame; the node left empty without one.
+ * A player's avatar in an avatar loader node (页面-6): in its frame at its size, kept while it stays the same; the node
+ * left empty without one.
  * @param {Part} p @param {string | undefined} at @param {string | null} url
  */
 export function placeAvatar(p, at, url) {
-  if (!at) return null;
-  if (!url) { unplace(p, at); return null; }
-  const c = place(p, at, AVATAR);
-  if (c) c.picture('@face', url);
-  return c;
+  const node = at ? p.node(at) : null;
+  if (!node || !at) return;
+  const old = placed.get(node);
+  if (url && avatars.get(node) === url && old && !old.dead) return;
+  if (url) avatars.set(node, url); else avatars.delete(node);
+  if (!url) { unplace(p, at); return; }
+  place(p, at, AVATAR)?.picture('@face', url);
 }
 
 /**

@@ -3,7 +3,8 @@
 // it (names, styles once shown, who has confirmed, 请离房间, the room's time left), the banner of a new phase, the
 // step views in its step container (项目确认 leaving with the entrance show), the countdown before the match, the
 // lost-connection view.
-import { openPart, closePart, place, setSwitch, screenKey } from './lobbykit.js';
+import { openPart, closePart, place, setSwitch, screenKey, placeAvatar } from './lobbykit.js';
+import { PLAYER_TITLE } from '@icebreaker/mode-regular';
 import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.js';
 import { createStage, createStageList, createConfirm, playEntrance, classIcon } from './lobbystage.js';
 import { createPick } from './lobbypick.js';
@@ -239,19 +240,31 @@ function sideUpdate(s, f, S, X, step) {
 }
 
 /**
- * One player's group of the side view: its name (no title or level: the platform has none), its style once shown, its
- * ready mark — the guest prepared in 项目调整, confirmed in 项目确认, ready in the lineup. Returns whether the mark shows.
+ * The avatar of a player of the side view (INF-0014, 房间-3): its assist's — this player's own from its 常规队 at once,
+ * the other's once the room shows it. @param {any} v @param {number} i @param {StepCtx} X
+ */
+function avatarOf(v, i, X) {
+  const own = i === v.you ? X.squad() : null, a = v.assists?.[i] ?? (own ? own.high[0] ?? own.low[0] ?? null : null);
+  return a ? X.cards.avatar(a.id) : null;
+}
+
+/**
+ * One player's group of the side view: its name, the title of a player who chose none, its avatar (no level: the
+ * platform has none), its style once shown, its ready mark — the guest prepared in 项目调整, confirmed in 项目确认,
+ * ready in the lineup. Returns whether the mark shows.
  * @param {Part} s @param {Record<string, any>} g @param {any} v @param {number} i @param {StepCtx} X @returns {boolean}
  */
 function player(s, g, v, i, X) {
-  s.text(g.playerNameTxt, v.members[i]?.name ?? '');
-  s.text(g.playerTitleTxt, '');
+  const m = v.members[i];
+  s.text(g.playerNameTxt, m?.name ?? '');
+  s.text(g.playerTitleTxt, m ? PLAYER_TITLE : '');
   s.show(g.playerLvTxt ? g.playerLvTxt.replace(/\/text_playerlevel$/, '') : null, false);
+  // the style: its full icon on the full panel (the slot's scaler is made at the full icon's 150 × 156), the small one on the narrow panel
   const style = v.styles?.[i] ?? '', url = style ? X.styleIcon(style, '_tiny') : null;
-  s.picture(g.effectImg, url);
+  s.picture(g.effectImg, style ? X.styleIcon(style, '') : null);
   s.picture(g.effectTinyImg, url);
   s.show(g.effectTinyImg, !!url);
-  s.show(g.avatarContainer, false);
+  placeAvatar(s, g.avatarContainer, m ? avatarOf(v, i, X) : null);
   /** @type {Record<string, boolean>} */
   const ready = { setup: i === 1 && v.prepared, confirm: !!v.confirmed[i], lineup: !!v.ready[i] }, on = ready[v.phase] ?? false;
   s.show(g.readyAnim?.animationWrapper, on);

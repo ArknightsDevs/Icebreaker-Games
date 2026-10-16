@@ -302,8 +302,8 @@ function showPlayer(p, f, X, v, [seat, illust, icon, name, card]) {
 /**
  * A player's short name card (INF-0014): its name and the title of a player who chose none (平凡的博士) on the default
  * card skin — the skin at its sprite's own size in the card's skin holder (the holder's scale makes it the card's
- * size, as the original's recording shows it) — and its assist's avatar in its frame filling the avatar box (the
- * avatar loader's parent, its own scale aside); no id, level, mentor mark or early-quit mask (the platform has none).
+ * size, as the original's recording shows it) — and its assist's avatar in its avatar loader; no id, level, mentor
+ * mark or early-quit mask (the platform has none).
  * @param {Part} c @param {string} name @param {string | undefined} skin the default skin's sprite @param {string | null} avatar
  */
 function nameCard(c, name, skin, avatar) {
@@ -313,5 +313,5 @@ function nameCard(c, name, skin, avatar) {
   c.text(f.doctorTitle, PLAYER_TITLE);
   for (const r of [f.doctorUidGO, f.mentorObj, f.earlyQuitMaskGO]) c.show(r, false);
   c.show('@container/headIcon/panel_exp', false);
-  placeAvatar(c, typeof f.avatarViewContainer === 'string' ? f.avatarViewContainer.replace(/\/[^/]+$/, '') : undefined, avatar);
+  placeAvatar(c, f.avatarViewContainer, avatar);
 }

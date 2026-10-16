@@ -10,14 +10,22 @@ Copyright (C) 2026 Icebreaker-Games contributors
 
 - **第 13 条（远程网络交互）**：如果你修改了本项目，并让用户通过网络与修改后的版本交互（例如架设联机服务器），就必须向这些用户提供修改后版本的对应源代码。
 - **引擎**：`engine/` 是明日方舟通用引擎（[Arknights-Universal-Engine](https://github.com/Cloudnyco/Arknights-Universal-Engine)）的 git 子模块，以 GPL-3.0-or-later 发布，见它自己的 LICENSE 和 NOTICE。
-- **第三方库**：通过 pnpm 安装的第三方库各自保留原许可证。
-- **干员 kit**：对局中运行的干员 kit 来自 [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol)（GPL-3.0-or-later，版权归其作者）的一个固定提交（见引擎的 `packages/content/data/kits.json`）。它们不在本仓库中：开服时由主机另行取得，原样使用，服务器只改写其中的导入路径（引擎 ADR 0058）。
+- **第三方库**：通过 pnpm 安装的第三方库（Release 完整包的 `node_modules/` 里是 three.js、ws、es-module-lexer）各自保留原许可证。
+- **干员 kit**：对局中运行的干员 kit 来自 [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol)（GPL-3.0-or-later，版权归其作者）的一个固定提交（见引擎的 `packages/content/data/kits.json`）。它们不在本仓库中：开服时由主机另行取得，原样使用，服务器只改写其中的导入路径（引擎 ADR 0058）。Release 的完整包附带了这个提交里对局运行需要的文件（`kits/stronghold-<提交>/`，连同它的 LICENSE 和 NOTICE），仍按 GPL-3.0-or-later 授权；完整源代码见该文件夹里的 `SOURCE.md`。
 
 ## 2. 不属于本项目、不受 AGPL 约束的内容
 
 《明日方舟》及「促融共竞」相关的全部**名称、角色、美术、Spine 模型、界面、特效、音乐音效、文本与游戏数据**，版权归上海鹰角网络科技有限公司及其授权方所有。
 
-- 这些素材**不在本仓库中**。开服时，主机从单独的素材仓库下载固定版本，提供给玩家。
+- 这些素材**不在本仓库中**。为了方便开服，[Releases](https://github.com/Cloudnyco/Icebreaker-Games/releases) 里的完整包（`Icebreaker-Games-v<版本>.zip`）和素材包（`Icebreaker-Games-v<版本>-assets.zip`）附带了它们（`assets/**`），同样按本声明使用。**下载即视为同意本声明**；请勿把素材用于本项目以外的用途，也不要单独再分发。
+- 素材的来源：
+  - 干员与召唤物的战斗 Spine：[HX0922/ArknightsSpine](https://github.com/HX0922/ArknightsSpine)（固定提交 dc788e3）；
+  - 敌人的 Spine：[isHarryh/Ark-Models](https://github.com/isHarryh/Ark-Models)（固定提交 8a3857c）；
+  - 头像、敌人图标：[yuanyan3060/ArknightsGameResource](https://github.com/yuanyan3060/ArknightsGameResource)（固定提交 9bf2396）；
+  - 干员战斗语音、关卡的战斗曲：[ArknightsAssets/ArknightsAssets2](https://github.com/ArknightsAssets/ArknightsAssets2)（固定提交 33a5327）；
+  - 音效库和语音的设定：由 [Kengxxiao/ArknightsGameData](https://github.com/Kengxxiao/ArknightsGameData)（提交 17759cc）的游戏数据生成；
+  - 两款显示字体 Bender（Jovanny Lemonad；Oleg Zhuravlev、Ivan Gladkikh）与 Novecento wide（Jan Tonellato / Synthview）不是游戏素材，取自 [TimWangZi/The-font-of-Arknights](https://github.com/TimWangZi/The-font-of-Arknights)，适用其作者的许可；
+  - 其余（战斗界面、特效、音效、地块套件、阴影等）由维护者另行准备。
 - 它们**不在 AGPL-3.0 授权范围内**，本项目也无权就它们向任何人授予任何权利。
 
 ## 3. 仅限非商业用途

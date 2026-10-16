@@ -26,7 +26,12 @@ export function createLineup(p, X) {
       if (cur.sub !== L.sub) {
         cur = { sub: L.sub, part: place(p, f.procViewContainer, /** @type {Record<string, string>} */ (LINEUP_VIEWS)[L.sub]), key: '' };
         const view = cur.part?.view();
-        if (cur.part && view) { cur.part.showAll([view.invertTips], false); void cur.part.anim(view.entryAnim); }
+        if (cur.part && view) {
+          cur.part.showAll([view.invertTips], false);
+          void cur.part.anim(view.entryAnim);
+          // choosing the lineup: the options' row comes up too
+          if (L.sub === 'sel') void cur.part.anim(view.reserveAnim);
+        }
       }
       if (!cur.part) return;
       const key = JSON.stringify([S.draft, v.lineups, v.ready, X.version()]);
@@ -57,9 +62,25 @@ const tabs = new WeakMap();
 /** The lineup being set, never null. @param {any} S @returns {Pick[]} */
 const draftOf = (S) => S.draft ?? [];
 
+/** Whether each option's card stands in the row below (not chosen), for its clip when that changes. @type {WeakMap<Part, boolean>} */
+const RESERVE_IN = new WeakMap();
+
 /**
- * Choosing the lineup: the chosen ones as small cards (a tap takes one out), every option below (a tap puts it in or
- * takes it out), the count's hint, 下一步 while the count is right.
+ * An option's card in the row below: a chosen one is taken out of the row (its clip backwards: it slides away and the
+ * row closes up), one given back comes in (forwards); the first time it stands as the clip leaves it.
+ * @param {Part} item @param {boolean} on
+ */
+function reserveSwitch(item, on) {
+  const was = RESERVE_IN.get(item);
+  if (was === on) return;
+  RESERVE_IN.set(item, on);
+  const a = item.view().animInOut;
+  void item.play(a?.animationWrapper ?? '@', a?.animationName ?? 'multi_v3_prepare_squad_reserve_char_card_switch', { reverse: !on, rate: was === undefined ? 1e4 : 1 });
+}
+
+/**
+ * Choosing the lineup: the chosen ones as small cards (a tap takes one out), the options not chosen below (a tap puts
+ * one in; a chosen one leaves the row), the count's hint, 下一步 while the count is right.
  * @param {Part} v @param {any} S @param {any} o @param {StepCtx} X
  */
 function select(v, S, o, X) {
@@ -77,8 +98,9 @@ function select(v, S, o, X) {
     item.tap('@panel_card/click_hotspot', () => toggle(id));
   });
   fillList(v, f.reserveList, opts.length, (item, i) => {
-    const { id, tag } = opts[i], card = holderCard(item, place, cardOf(X, S, S.view.you, id, tag), X.cards);
-    if (card) card.root.alpha = draft.some((x) => x.id === id) ? 0.4 : 1;
+    const { id, tag } = opts[i];
+    holderCard(item, place, cardOf(X, S, S.view.you, id, tag), X.cards);
+    reserveSwitch(item, !draft.some((x) => x.id === id));
     item.tap('@container', () => toggle(id));
   });
   v.text(f.minCntTips, why ? '编队至少6人' : `已选择 ${draft.length} 名`);

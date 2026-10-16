@@ -2,7 +2,7 @@
 // makes a room and 加入！ joins one by its code (the invitation text pasted whole works too, 房间-1); 编队 opens the
 // squad page. The entries of systems the platform does not have — quick match, the manual, milestones, rewards,
 // training, medals, invitations, the guide book — are hidden, not left as dead ends.
-import { openPart, closePart, inputOn } from './lobbykit.js';
+import { openPart, closePart, inputOn, placeBottomBar, placeTopMenu } from './lobbykit.js';
 import { startScene3d } from './lobby3d.js';
 import { PAGES } from './lobbymap.js';
 
@@ -44,6 +44,8 @@ export function createEntry(ui, A) {
   p.show(`${ENTRY}/panel_main/panel_match/group_act_end`, false);
   p.show(`${ENTRY}/panel_main/panel_left/left_panel_back`, false);
   p.show('@view_ui/canvas_ui/canvas_group/panel_entry_anim/entry_p2_season_cover/season_logo', false);
+  // the common bottom bar the page puts in its holder (the scrolling strip along the bottom)
+  if (f.bottomBarHolder) placeBottomBar(p, f.bottomBarHolder);
   let room = false, busy = false;
   const join = (/** @type {string} */ v) => { if (!v.trim()) return; joining(true); A.join(v); };
   const code = inputOn(p, `${ENTRY}/panel_room/panel_right/btn_join_room/hotspot`, { label: '房间编号', onEnter: join });
@@ -60,8 +62,13 @@ export function createEntry(ui, A) {
     room = on;
     busy = false;
     joining(false);
+    if (menu) menu.root.active = on;
     A.roomPanel(on);
   }
+  // the common top menu over the room panel: back and home both lead to the main panel (the page has no home above
+  // the activity's, so the main panel has none)
+  const menu = placeTopMenu(p, `${ENTRY}/top_menu_container`, { back: () => { void toRoom(false); }, home: () => { void toRoom(false); } });
+  if (menu) menu.root.active = false;
   p.tap(`${ENTRY}/panel_main/panel_match/btn_team_up/hotspot`, () => { void toRoom(true); });
   p.tap(`${ENTRY}/panel_main/panel_left/btn_formation/hotspot`, A.squad);
   p.tap(`${ENTRY}/panel_room/panel_right/btn_strat_room/hotspot`, A.create);

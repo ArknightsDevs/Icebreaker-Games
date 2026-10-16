@@ -15,11 +15,14 @@ const MAIN = '@state_engine/main_state';
 const TOP = 'prepare/mainviews/act_multi_v3_parepare_main_top_view', SIDE = 'prepare/mainviews/act_multi_v3_side_player_info_view';
 const COUNTDOWN = 'prepare/mainviews/act_multi_v3_countdown_view';
 /**
- * Whether the side view shows its full panel on a step: in 项目调整, 项目确认 and the lineup's check; the coordination
- * and the lineup's first two steps lay their cards out from the left edge, where only the small one fits (INF-0013).
+ * Whether the side view shows its full panel on a step: in 项目调整 and the lineup's check; 项目确认, the coordination
+ * and the lineup's first two steps lay their content out from the left edge, where only the small one fits (INF-0013).
  * @param {string} step
  */
-const fullSide = (step) => !['pick', 'sel', 'skill'].includes(step);
+const fullSide = (step) => step === 'stage' || step === 'check';
+
+/** What each side view showed last: its panel (small or not) and its players' ready marks, for the clips on a change. @type {WeakMap<Part, { small: boolean | null, ready: boolean[] }>} */
+const SIDE_SEEN = new WeakMap();
 
 /** The step controllers by step screen use (the three lineup steps share the squad check panel). */
 const CONTROL = Object.freeze({ stage: 'stage', confirm: 'confirm', start: 'start', pick: 'pick', sel: 'lineup', skill: 'lineup', check: 'lineup' });
@@ -39,18 +42,25 @@ export function createPrepare(ui, X) {
   page.show(`${MAIN}/emoji_chat_view`, false);
   if (top) wireTop(top, tf, X);
   if (side) wireSide(side, sf, X);
-  /** @type {{ ctl: string, step: string, c: { update: (S: any, L: any) => void } | null }} */
-  let cur = { ctl: '', step: '', c: null };
+  /** @type {[any, any] | null} */
+  let lastArgs = null;
   /** @type {string | null} */
   let phase = null, warn = false, list = /** @type {{ update: (S: any) => void, close: () => void } | null} */ (null);
-  const stepAt = mv.stepView ?? `${MAIN}/step_container`;
+  const steps = createSteps(page, mv.stepView ?? `${MAIN}/step_container`, X, () => { if (top) void top.anim(tf.switchAnim); });
 
-  /** @param {string} step */
-  function swap(step) {
-    const ctl = /** @type {Record<string, string>} */ (CONTROL)[step] ?? 'stage';
-    if (ctl === cur.ctl && cur.c) { cur.step = step; return; }
-    const part = place(page, stepAt, /** @type {Record<string, string>} */ (STEP_SCREENS)[step]);
-    cur = { ctl, step, c: part ? MAKERS[ctl](part, X) : null };
+  /** @param {any} S @param {any} L */
+  function update(S, L) {
+    lastArgs = [S, L];
+    const v = S.view, step = stepOf(v, L);
+    if (!steps.swap(step, () => { if (lastArgs) update(...lastArgs); })) return;
+    steps.c?.update(S, L);
+    stageList(S, L);
+    if (top) topUpdate(top, tf, S, step, X);
+    if (side) sideUpdate(side, sf, S, X, step);
+    const b = bannerOf(phase, v);
+    if (b) void banner(page, b);
+    phase = v.phase;
+    page.show(`${MAIN}/lost_connection_view`, X.offline());
   }
 
   /** The stage list over the page while the owner picks a stage (项目调整). @param {any} S @param {any} L */
@@ -63,19 +73,7 @@ export function createPrepare(ui, X) {
 
   return {
     part: page,
-    /** @param {any} S @param {any} L */
-    update(S, L) {
-      const v = S.view, step = stepOf(v, L);
-      swap(step);
-      cur.c?.update(S, L);
-      stageList(S, L);
-      if (top) topUpdate(top, tf, S, step, X);
-      if (side) sideUpdate(side, sf, S, X, step);
-      const b = bannerOf(phase, v);
-      if (b) void banner(page, b);
-      phase = v.phase;
-      page.show(`${MAIN}/lost_connection_view`, X.offline());
-    },
+    update,
     /** The countdowns, a few times a second. @param {any} S */
     tick(S) {
       if (!S.view) return;
@@ -85,15 +83,50 @@ export function createPrepare(ui, X) {
     },
     /** Before the match: the countdown, then the start (页面-6); resolves when they have played. @param {any} S */
     async start(S) {
-      swap('start');
-      cur.c?.update(S, null);
+      await steps.leaving;
+      steps.swap('start', () => undefined);
+      steps.c?.update(S, null);
       const at = containers[COUNTDOWN] ?? `${MAIN}/countdown_view_container`, cd = place(page, at, COUNTDOWN);
       // the countdown ends on its white logo; it goes when it has played and the start show begins from white
       if (cd) await cd.anim(cd.view().cdAnim);
       unplace(page, at);
-      await /** @type {any} */ (cur.c)?.play?.();
+      // the start show fills the screen: the side view gives way to it
+      page.show(containers[SIDE] ?? `${MAIN}/player_info_view`, false);
+      await /** @type {any} */ (steps.c)?.play?.();
     },
     close: () => { list?.close(); closePart(page); },
+  };
+}
+
+/**
+ * The prepare page's step views (页面-6): `swap` keeps the same controller, else places a new view (and calls
+ * `entered`); 项目确认 first plays its exit clip, the new view coming after it (`again` runs then), and swap returns
+ * false while that clip plays.
+ * @param {Part} page @param {string} at the step container @param {StepCtx} X @param {() => void} entered
+ */
+function createSteps(page, at, X, entered) {
+  /** @type {{ ctl: string, c: { update: (S: any, L: any) => void } | null, part: Part | null }} */
+  let cur = { ctl: '', c: null, part: null };
+  /** @type {Promise<void> | null} */
+  let leaving = null;
+  return {
+    get c() { return cur.c; },
+    get leaving() { return leaving; },
+    /** @param {string} step @param {() => void} again */
+    swap(step, again) {
+      if (leaving) return false;
+      const ctl = /** @type {Record<string, string>} */ (CONTROL)[step] ?? 'stage';
+      if (ctl === cur.ctl && cur.c) return true;
+      const exit = cur.ctl === 'confirm' ? cur.part?.view().mapConfirmExitAnim : null;
+      if (exit?.animationName && cur.part) {
+        leaving = cur.part.anim(exit).then(() => { leaving = null; cur = { ctl: '', c: null, part: null }; again(); });
+        return false;
+      }
+      const part = place(page, at, /** @type {Record<string, string>} */ (STEP_SCREENS)[step]);
+      cur = { ctl, c: part ? MAKERS[ctl](part, X) : null, part };
+      entered();
+      return true;
+    },
   };
 }
 
@@ -154,14 +187,25 @@ function wireSide(s, f, X) {
 /**
  * The two players (页面-6): the mate above, this player below — names, the style once the room shows it, the confirm
  * marks while the stage is confirmed, the mate offline, 请离房间 for the owner in 项目调整; the full view or the small
- * one by the step (fullSide); on the full one 上一步 in the lineup's check, else the room's time left.
+ * one by the step (fullSide), sliding in as the panels change; on the full one 上一步 in the lineup's check, else the
+ * room's time left.
  * @param {Part} s @param {Record<string, any>} f @param {any} S @param {StepCtx} X @param {string} step
  */
 function sideUpdate(s, f, S, X, step) {
   const v = S.view, me = v.you, mate = 1 - me, other = v.members[mate] ?? null, small = !fullSide(step);
+  const seen = SIDE_SEEN.get(s) ?? { small: null, ready: [false, false] };
+  SIDE_SEEN.set(s, seen);
   setSwitch(s, f.tinyToggle ?? '@', small);
+  if (seen.small !== null && seen.small !== small) void s.anim(small ? f.tinyPanelInAnim : f.fullPanelInAnim);
+  seen.small = small;
   setSwitch(s, f.topPlayerToggle, !!other);
-  for (const [g, i] of /** @type {[any, number][]} */ ([[f.topPlayerGroup, mate], [f.botPlayerGroup, me]])) if (g) player(s, g, v, i, X);
+  for (const [g, i, k] of /** @type {[any, number, number][]} */ ([[f.topPlayerGroup, mate, 0], [f.botPlayerGroup, me, 1]])) {
+    if (!g) continue;
+    const ready = player(s, g, v, i, X);
+    // a mark that comes draws itself in (its clip); one that goes is hidden
+    if (ready && !seen.ready[k]) void s.anim(g.readyAnim);
+    seen.ready[k] = ready;
+  }
   s.showAll(f.charPickObjs, v.styles?.some((/** @type {string} */ x) => x));
   s.showAll(f.stageCheckObjs, false);
   s.show(f.kickBtnObj, me === 0 && v.phase === 'setup' && !!other);
@@ -172,8 +216,8 @@ function sideUpdate(s, f, S, X, step) {
 
 /**
  * One player's group of the side view: its name (no title or level: the platform has none), its style once shown, its
- * ready mark — the guest prepared in 项目调整, confirmed in 项目确认, ready in the lineup.
- * @param {Part} s @param {Record<string, any>} g @param {any} v @param {number} i @param {StepCtx} X
+ * ready mark — the guest prepared in 项目调整, confirmed in 项目确认, ready in the lineup. Returns whether the mark shows.
+ * @param {Part} s @param {Record<string, any>} g @param {any} v @param {number} i @param {StepCtx} X @returns {boolean}
  */
 function player(s, g, v, i, X) {
   s.text(g.playerNameTxt, v.members[i]?.name ?? '');
@@ -185,8 +229,9 @@ function player(s, g, v, i, X) {
   s.show(g.effectTinyImg, !!url);
   s.show(g.avatarContainer, false);
   /** @type {Record<string, boolean>} */
-  const ready = { setup: i === 1 && v.prepared, confirm: !!v.confirmed[i], lineup: !!v.ready[i] };
-  s.show(g.readyAnim?.animationWrapper, ready[v.phase] ?? false);
+  const ready = { setup: i === 1 && v.prepared, confirm: !!v.confirmed[i], lineup: !!v.ready[i] }, on = ready[v.phase] ?? false;
+  s.show(g.readyAnim?.animationWrapper, on);
+  return on;
 }
 
 /**

@@ -5,9 +5,10 @@
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./lobbykit.js').Part} Part */
 /**
  * The pictures the cards take from elsewhere: an operator's avatar URL, a profession's icon URL and colour, an elite
- * phase's icon URL, a rarity's URL, a potential's mark URL (by the potential, 1–6), a skill's icon URL (each null when
- * there is none).
- * @typedef {{ avatar: (id: string) => string | null, profession: (p: string) => { url: string | null, color: number[] } | null,
+ * phase's icon URL, a rarity's URL, a potential's mark URL (by the potential, 1–6), a skill's icon URL, its half-length
+ * portrait's URL at an elite phase (each null when there is none).
+ * @typedef {{ avatar: (id: string) => string | null, portrait: (id: string, elite: number) => string | null,
+ *   profession: (p: string) => { url: string | null, color: number[] } | null,
  *   elite: (phase: number) => string | null, rarity: (r: number) => string | null, potential: (p: number) => string | null,
  *   skill: (skillId: string) => string | null }} CardArt
  */
@@ -32,10 +33,11 @@ export function fillCard(card, d, art) {
   const f = card.view();
   card.show(f.emptyPartGO, false);
   card.show(f.normalPartGO, true);
-  // the pack's portrait slot is a half-length picture's, taller than the window its mask shows; the square avatar
-  // fills the window instead, so the face shows (INF-0008)
-  card.picture(f.imgCharPortrait, art.avatar(d.id));
-  card.fillParent(f.imgCharPortrait);
+  // the portrait slot is made for the half-length portrait (taller than the window its mask shows); without one the
+  // square avatar fills the window instead, so the face shows (INF-0008)
+  const portrait = art.portrait(d.id, d.entry?.elite ?? 0);
+  card.picture(f.imgCharPortrait, portrait ?? art.avatar(d.id));
+  if (!portrait) card.fillParent(f.imgCharPortrait);
   card.text(f.textLv, d.entry ? String(d.entry.level) : '');
   if (f.textName) card.text(f.textName, d.name);
   const prof = art.profession(d.profession);

@@ -48,6 +48,9 @@ export function createPick(p, X) {
         turn = S.view.picking.by;
         setSwitch(p, cv.skipTextToggle, pv.mine && pv.yielded);
         void p.anim(pv.mine ? cv.myTurnAnim : cv.pTurnAnim);
+        // this player's turn: after a moment the hand points at the cards
+        const at = turn;
+        if (pv.mine) setTimeout(() => { if (turn === at) void p.anim(cv.notiPlayerAnim); }, (cv.delayOnNotiPlayerAnim ?? 0.5) * 1000);
       }
       if (pv.kept.length > kept) got(p, gv, cardOf(X, S, S.view.you, pv.kept[pv.kept.length - 1], 'kept'), X);
       kept = pv.kept.length;

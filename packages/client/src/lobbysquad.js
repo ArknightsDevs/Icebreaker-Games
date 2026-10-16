@@ -2,7 +2,7 @@
 // operators, one of its low-priority ones — with the 常规队 tab, the play style's button and the two 快捷编队 buttons,
 // which open the page's own box editor (the original's operator picker is not in the pack). The style button opens
 // the style select state: the five styles, the chosen one's gains, costs and carried unit, 确认修改 to keep it.
-import { openPart, closePart, place, unplace, fillList } from './lobbykit.js';
+import { openPart, closePart, place, unplace, fillList, placeTopMenu } from './lobbykit.js';
 import { fillCard } from './lobbycards.js';
 import { PAGES } from './lobbymap.js';
 import { STYLES } from '@icebreaker/mode-regular';
@@ -19,6 +19,8 @@ import { plain } from './roomtext.js';
  * @property {(id: string) => { rarity: number, profession: string } | null} rosterOf
  * @property {import('./lobbycards.js').CardArt} cards
  * @property {(style: string, variant: '' | '_tiny' | '_show') => string | null} styleIcon
+ * @property {() => void} back the page's back (the style select first, else out of the page)
+ * @property {() => void} home out of the page to the entry
  */
 
 const DEF = '@state_engine/default_state';
@@ -27,12 +29,13 @@ const DEF = '@state_engine/default_state';
 export function createSquad(ui, A) {
   const p = openPart(ui, PAGES.squad), f = p.view(DEF);
   p.show(`${DEF}/btn_guidebook`, false);
+  placeTopMenu(p, `${DEF}/top_menu_container`, { back: A.back, home: A.home });
   p.tap(`${DEF}/btn_high_pri_edit/click_area`, A.editBox);
   p.tap(`${DEF}/btn_low_pri_edit/click_area`, A.editBox);
   /** @type {{ close: () => void } | null} */
   let styles = null;
   const closeStyles = () => { styles?.close(); styles = null; draw(); };
-  p.tap(`${DEF}/left_part/btn_change_effect/click_area`, () => { if (!styles) styles = createStyles(p, A); });
+  p.tap(`${DEF}/left_part/btn_change_effect/click_area`, () => { if (!styles) styles = createStyles(p, A, closeStyles); });
   fillList(p, f.tabList, 1, (t) => {
     const tf = t.view();
     t.text(tf.textName, '常规队');
@@ -68,12 +71,14 @@ export function createSquad(ui, A) {
 /**
  * The style select state over the squad page (房间-3): each style's card (its name, colour, icon; the save's marked
  * 已应用, the one looked at selected), the one looked at's info, 确认修改 to keep it (已应用 when it is the save's).
- * @param {Part} page @param {SquadActions} A
+ * @param {Part} page @param {SquadActions} A @param {() => void} close
  */
-function createStyles(page, A) {
+function createStyles(page, A, close) {
   const s = place(page, '@state_engine/effect_select_state_root', 'squad/sqaud_effect_select_state');
   if (!s) return { close: () => undefined };
   const st0 = /** @type {Part} */ (s), f = st0.view();
+  // its own top menu over the squad page: back closes it, home leaves the page
+  placeTopMenu(st0, '@top_menu_container', { back: close, home: A.home });
   let looked = A.style();
   st0.show('@group_title/right_info', false);
   st0.text(f.textHint, '选择比赛风格');
@@ -112,6 +117,7 @@ function styleInfo(info, st, A) {
   info.text(f.textDebuffDesc, plain(st.debuff));
   info.text(f.textTokenName, st.device.name);
   info.text(f.textTokenDesc, plain(st.device.desc));
+  info.picture(f.imgTokenIcon, A.cards.avatar(st.device.key));
   info.picture('@title/img_playingstyle', A.styleIcon(st.id, '_tiny'));
 }
 

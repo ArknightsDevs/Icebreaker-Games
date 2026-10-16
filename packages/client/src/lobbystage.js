@@ -2,7 +2,7 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { place, unplace, fillList, setSwitch } from './lobbykit.js';
+import { place, unplace, fillList, setSwitch, placeTopMenu } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
 import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
 
@@ -93,6 +93,8 @@ export function createStage(p, X) {
       setSwitch(p, f.guestBtnAvailToggle, true);
       setSwitch(p, f.guestPreparedCancelBtnToggle, v.prepared);
       if (pr && shown !== v.project) {
+        // the guest sees the stage the owner chose come in
+        if (!sp.owner) void p.anim(f.guestMapDetailInAnim);
         p.text(f.mapCodeText, pr.code);
         p.text(f.mapModeText, pr.name);
         p.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
@@ -116,9 +118,11 @@ export function createStageList(page, X) {
   const sf = state?.view() ?? {}, arena = state && sf.viewHolder && sf.viewPrefab ? place(state, sf.viewHolder, sf.viewPrefab) : null;
   const af = arena?.view() ?? {};
   state?.tap('@btn_back', () => X.list(false));
+  // the common top menu: back closes the list
+  if (state) placeTopMenu(state, '@top_menu_container', { back: () => X.list(false) });
   state?.show('@btn_reward', false);
   arena?.show('@pnl_content/dec_info', false);
-  let cls = '', current = -1;
+  let cls = '', current = -1, played = '';
   /** @param {string} c */
   const tab = (c) => { cls = c; current = -2; };
   TABS.forEach((c, i) => {
@@ -131,6 +135,11 @@ export function createStageList(page, X) {
       if (!arena) return;
       const projects = X.projects(), v = S.view;
       if (!cls) cls = projects[v.project]?.class ?? TABS[0];
+      // the class shown comes in with its colour line (each class its own clip)
+      if (arena && cls !== played) {
+        played = cls;
+        void arena.anim((af.animConfigs ?? []).find((/** @type {any} */ c) => c.diffType === TABS.indexOf(cls) + 2)?.diffAnim);
+      }
       TABS.forEach((c, i) => {
         const t = `@pnl_content/panel_top_bar/layout_tab/pnl_tab${i + 1}`, has = projects.some((x) => x.class === c);
         arena.show(t, has);
@@ -247,7 +256,8 @@ export function createStart(p, X) {
   p.show('@multi_v3_stage_confirm', false);
   p.show(f.entranceShowRoot, true);
   p.showAll(f.invertObjs, false);
-  for (const r of [f.selfAssitIllustContainer, f.partnerAssitIllustContainer]) p.show(r, false);
+  // the season's icon and the assist illustrations are filled at run time from art the packs do not have
+  for (const r of [f.selfAssitIllustContainer, f.partnerAssitIllustContainer, f.seasonIconImg2]) p.show(r, false);
   /** @type {any} */
   let view = null;
   return {
@@ -262,17 +272,23 @@ export function createStart(p, X) {
           p.picture(icon, st ? X.styleIcon(st.id, '') : null);
           p.text(name, st?.name ?? '');
           const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
-          if (c) nameCard(c, v.members[seat]?.name ?? '');
+          if (c) nameCard(c, v.members[seat]?.name ?? '', X.art().namecard);
         }
       }
       await p.anim(f.normEnterAnim);
+      await p.anim(f.showExitAnim);
     },
   };
 }
 
-/** A player's short name card: its name; no id, title, level, mentor mark or early-quit mask. @param {Part} c @param {string} name */
-function nameCard(c, name) {
-  const f = c.view();
+/**
+ * A player's short name card: its name on the default card skin (the player's own skin is theirs to choose in the
+ * game; INF-0014); no id, title, level, mentor mark or early-quit mask.
+ * @param {Part} c @param {string} name @param {string | undefined} skin the default skin's sprite
+ */
+function nameCard(c, name, skin) {
+  const f = c.view(), bg = c.node(f.bgImgContainer), sp = skin ? c.scr.ctx.pack.sprites[skin] : null;
+  if (bg?.el && sp) Object.assign(bg.el.style, { backgroundImage: `url("${c.scr.ctx.base}${sp.uri}")`, backgroundSize: '100% 100%' });
   c.text(f.doctorName, name);
   for (const r of [f.doctorUidGO, f.mentorObj, f.earlyQuitMaskGO]) c.show(r, false);
   c.text(f.doctorTitle, '');

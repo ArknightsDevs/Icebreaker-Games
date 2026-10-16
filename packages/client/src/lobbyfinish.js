@@ -2,7 +2,7 @@
 // the players come back — the stage's name and class, the stamps won as the rating's stars, each stage's mark of a
 // stamp won; 下一步 goes on to the room (at 项目调整 again). The original's rewards, milestones and illustrations are
 // of systems the platform does not have and stay hidden.
-import { openPart, closePart, place } from './lobbykit.js';
+import { openPart, closePart, place, placeBottomBar } from './lobbykit.js';
 import { PAGES } from './lobbymap.js';
 import { fillDiff } from './lobbystage.js';
 
@@ -32,7 +32,7 @@ function completeInfo(info, r, pr, done) {
   info.text(cf.textStageName, pr ? `${pr.code} ${pr.name}` : '');
   const icon = pr && cf.diffIconContainer && cf.diffIconPrefab ? place(info, cf.diffIconContainer, cf.diffIconPrefab) : null;
   if (icon && pr) fillDiff(icon, pr.class);
-  if (cf.bottomBarContainer && cf.bottomBarPrefab) place(info, cf.bottomBarContainer, cf.bottomBarPrefab);
+  if (cf.bottomBarContainer && cf.bottomBarPrefab) placeBottomBar(info, cf.bottomBarContainer, cf.bottomBarPrefab);
   const mode = cf.modeViewContainer && cf.modePrefabList?.[0] ? place(info, cf.modeViewContainer, cf.modePrefabList[0]) : null;
   if (mode) stars(mode, r, pr);
   info.tap('@panel_front/btn_next/hotspot', done);
@@ -40,8 +40,9 @@ function completeInfo(info, r, pr, done) {
 }
 
 /**
- * The rating: a star for each stamp won (at most 3), each stage's panel marked when it won its stamps; the stage's
- * task as the title and description.
+ * The rating: a star for each stamp won (at most 3), each stage's panel marked when it won its stamps (its clip after
+ * the panel's own); the last stage's task as the title and its goal as the description (the task's icon is filled at
+ * run time from art the packs do not have).
  * @param {Part} m @param {MatchResult} r @param {import('./roomview.js').ProjectView | null} pr
  */
 function stars(m, r, pr) {
@@ -52,17 +53,20 @@ function stars(m, r, pr) {
   m.show(f.newStarGO, false);
   const task = pr?.stages[pr.stages.length - 1];
   m.text(f.textTitle, task?.title ?? '');
-  m.text(f.textDesc, r.result === 1 ? '比赛胜利' : '比赛结束');
-  m.show('@group_info/main/panel_stage1/panel_progress/panel_num', false);
-  m.show('@group_info/main/panel_stage2/panel_progress/panel_num_1', false);
-  m.show('@group_info/main/panel_stage2/panel_progress/panel_num_2', false);
-  m.show('@group_info/main/panel_stage2/panel_progress/div', false);
-  m.show('@group_info/main/panel_stage1/panel_progress/panel_got', (r.stamps[0] ?? 0) > 0);
-  m.show('@group_info/main/panel_stage2/panel_progress/panel_got_1', (r.stamps[1] ?? 0) > 0);
-  m.show('@group_info/main/panel_stage2/panel_progress/panel_got_2', (r.stamps[1] ?? 0) > 1);
-  for (const [s, v] of /** @type {[string, number][]} */ ([[f.sliderStage1, r.stamps[0] ?? 0], [f.sliderStage2, Math.min(2, r.stamps[1] ?? 0) / 2]])) {
-    const n = m.node(s);
-    if (n) m.scr.slider('', Math.min(1, v), n);
-  }
-  void m.anim(f.animEnter);
+  m.text(f.textDesc, task?.basic ?? '');
+  m.show(f.imgType, false);
+  const s1 = r.stamps[0] ?? 0, s2 = r.stamps[1] ?? 0, got = [s1 > 0, s2 > 0, s2 > 1];
+  stagePanels(m, f, got, [s1, Math.min(2, s2) / 2]);
+  void m.anim(f.animEnter).then(() => Promise.all([f.animComplete1, f.animComplete2, f.animComplete3].map((a, i) => (got[i] ? m.anim(a) : null))));
+}
+
+/**
+ * The two stages' panels: their stamps' marks (stage 1 one, stage 2 two) and progress bars; no counts (the room keeps
+ * stamps only). @param {Part} m @param {Record<string, any>} f @param {boolean[]} got @param {number[]} bars
+ */
+function stagePanels(m, f, got, bars) {
+  const at = '@group_info/main/panel_stage', p1 = `${at}1/panel_progress`, p2 = `${at}2/panel_progress`;
+  for (const r of [`${p1}/panel_num`, `${p2}/panel_num_1`, `${p2}/panel_num_2`, `${p2}/div`]) m.show(r, false);
+  [`${p1}/panel_got`, `${p2}/panel_got_1`, `${p2}/panel_got_2`].forEach((r, i) => m.show(r, got[i]));
+  [f.sliderStage1, f.sliderStage2].forEach((s, i) => { const n = m.node(s); if (n) m.scr.slider('', Math.min(1, bars[i]), n); });
 }

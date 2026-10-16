@@ -40,13 +40,19 @@ function lobbyArt(lobby, kind, i) {
 /**
  * The pictures cards take (页面-6): avatars from the manifest, profession and elite icons from the battle UI pack, the
  * rarity strips and potential marks the lobby pack carries (the game's common ones; the battle pack's rarity sprites
- * are the deploy cards' glows), skill icons from the skill icon index.
- * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack @returns {import('./lobbycards.js').CardArt}
+ * are the deploy cards' glows), skill icons from the skill icon index, the operators' half-length portraits from the
+ * portrait index (by elite phase: the elite-2 one from elite 2 when there is one).
+ * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack @param {any} portraits
+ * @returns {import('./lobbycards.js').CardArt}
  */
-function cardArt(battle, manifest, skills, lobby) {
+function cardArt(battle, manifest, skills, lobby, portraits) {
   const card = battle?.hud?.card, url = (/** @type {string | null | undefined} */ key) => (key && battle?.sprites?.[key] ? new URL(battle.sprites[key].uri, UI).href : null);
   return {
     avatar: (id) => (manifest?.files?.[`avatar:${id}`] ? new URL(manifest.files[`avatar:${id}`].file, ASSETS).href : null),
+    portrait: (id, elite) => {
+      const p = portraits?.portraits?.[id], file = p ? (elite >= 2 && p['2']) || p['1'] : null;
+      return file ? new URL(`portraits/${file}`, ASSETS).href : null;
+    },
     profession: (p) => (card?.professions?.[p] ? { url: url(card.professions[p].sprite), color: card.professions[p].color } : null),
     elite: (phase) => url(card?.elite?.[phase]),
     rarity: (r) => lobbyArt(lobby, 'rarity', r - 1),
@@ -64,14 +70,14 @@ export async function startLobby(el, H) {
   if (new URLSearchParams(location.search).has('html')) return null;
   const pack = await fetchJson(new URL('lobby.json', UI));
   if (!pack?.screens) return null;
-  const [battle, manifest, skills, atlas] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
-    fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART)]);
+  const [battle, manifest, skills, atlas, portraits] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
+    fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS))]);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load();
   // the screens' particle effects, when the assets have them (页面-6)
   void startLobbyFx(ui, UI).catch(() => null);
-  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack), atlas, sound, pack });
+  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, portraits), atlas, sound, pack });
 }
 
 /**
@@ -176,9 +182,9 @@ function pageMakers(ui, H, G, L, K) {
   const A = H.A;
   return {
     entry: () => createEntry(ui, { create: () => A.send({ t: 'create' }), join: (code) => A.send({ t: 'join', code }), squad: () => { L.squad = true; draw(); },
-      squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; H.backButton(on); } }),
+      squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; } }),
     squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, editBox: H.editBox, nameOf: A.nameOf,
-      rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon }),
+      rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
     prepare: () => createPrepare(ui, X),
     finish: () => createFinish(ui, /** @type {any} */ (L.finish), { project: (level) => X.projects().find((p) => p.level === level) ?? null, done: () => { L.finish = null; draw(); } }),
   };
@@ -211,7 +217,8 @@ function lobbyOn(ui, H, G) {
     if (key !== page.key) {
       page.c?.close();
       page = { key, c: makers[key]() };
-      H.backButton(key === 'squad' || key === 'finish' || (key === 'entry' && L.room));
+      // the pages' own top menus (the game's common one) do the going back: the page's button stays hidden
+      H.backButton(false);
     }
     if (S.view?.phase !== 'lineup') L.sub = 'sel';
     members = memberToast(S.view, members, toast);

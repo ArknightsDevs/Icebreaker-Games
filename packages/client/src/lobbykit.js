@@ -198,3 +198,40 @@ export function inputOn(p, at, o) {
   box.el.addEventListener('click', (e) => e.stopPropagation());
   return { ...box, value: () => box.el.value };
 }
+
+/** The common bottom bar (the scrolling 「Now Streaming…」 strip). */
+export const BOTTOM_BAR = 'common/bottom_bar_prefab';
+
+/**
+ * The common bottom bar placed at a node (页面-6): its title 「RHODES ISLAND:」 (set by the game at run time; the
+ * activity's screenshots show it), its season logo hidden (filled at run time from art the packs do not have).
+ * @param {Part} p @param {string} at @param {string} [prefab] @returns {Part | null}
+ */
+export function placeBottomBar(p, at, prefab = BOTTOM_BAR) {
+  const bar = place(p, at, prefab);
+  if (!bar) return null;
+  const f = bar.view();
+  bar.show(f.imgSeasonLogo ?? '@season_logo', false);
+  bar.text('@title_layout_max/title_layout_min/text', 'RHODES ISLAND:');
+  return bar;
+}
+
+/** The game's common top menu (back, home), which the activity's pages put in their top menu container. */
+export const TOP_MENU = 'common/panel_common_topmenu';
+
+/**
+ * The common top menu placed at a node (页面-6): back always, home only when there is one (its back-only face
+ * otherwise).
+ * @param {Part} p @param {string} at @param {{ back: () => void, home?: () => void }} on @returns {Part | null}
+ */
+export function placeTopMenu(p, at, on) {
+  const m = place(p, at, TOP_MENU);
+  if (!m) return null;
+  m.show('@panel_default', !!on.home);
+  m.show('@panel_backonly', !on.home);
+  m.show('@panel_default/panel_detail_menu', false);
+  m.tap('@btn_topmenu_back/panel_hotspot', on.back);
+  const home = on.home;
+  if (home) m.tap('@panel_default/btn_topmenu_home/panel_hotspot', home);
+  return m;
+}

@@ -128,9 +128,11 @@ test('[房间-4] shared high-priority operators are picked in turns before the l
   const g = rig();
   twoConfirming(g);
   g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: { high: squadOf(10, 10, 0).high.slice(0, 2).concat(squadOf(8, 0, 30).high), low: squadOf(0, 10, 50).low } });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_3', squad: { high: squadOf(10, 10, 0).high.slice(0, 2).concat(squadOf(8, 0, 30).high), low: squadOf(0, 10, 50).low } });
   const p = g.last(1, 'room').picking;
   assert.equal(g.last(1, 'room').phase, 'pick');
+  assert.deepEqual(g.last(1, 'room').styles, ['buff_1', 'buff_3'], 'the styles are public once both have confirmed (房间-3)');
+  assert.equal(g.last(1, 'room').squads, null, 'the squads not yet');
   assert.equal(p.left.length, 2);
   g.rooms.message(p.by === 0 ? 2 : 1, { t: 'pick', id: p.left[0] });
   assert.equal(g.last(1, 'room').picking.left.length, 2, 'not its turn');
@@ -344,7 +346,7 @@ test('[房间-1] a session that says hello again with a new name keeps its seat 
   assert.equal(g.rooms.rooms.size, 1);
 });
 
-test('[房间-3] [房间-6] each seat confirms with a play style, hidden from the other seat until the lineups; the match carries each seat\'s style runes', async () => {
+test('[房间-3] [房间-6] each seat confirms with a play style, hidden from the other seat until both have confirmed; the match carries each seat\'s style runes', async () => {
   const g = rig();
   twoConfirming(g);
   g.rooms.message(1, { t: 'confirm', style: 'nope', squad: squadOf(10, 10, 0) });
@@ -353,7 +355,7 @@ test('[房间-3] [房间-6] each seat confirms with a play style, hidden from th
   assert.deepEqual(g.last(2, 'room').styles, ['', ''], 'not shown to the other seat yet');
   assert.deepEqual(g.last(1, 'room').styles, ['buff_5', '']);
   g.rooms.message(2, { t: 'confirm', style: 'buff_3', squad: squadOf(10, 10, 20) });
-  assert.deepEqual(g.last(2, 'room').styles, ['buff_5', 'buff_3'], 'public with the lineups');
+  assert.deepEqual(g.last(2, 'room').styles, ['buff_5', 'buff_3'], 'public once both have confirmed');
   g.t.now += TIMES.lineup;
   g.rooms.tick();
   await settle();

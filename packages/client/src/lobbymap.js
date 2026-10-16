@@ -12,7 +12,7 @@ export const PAGES = Object.freeze({
 /** The step screens of the prepare page by step (页面-6). */
 export const STEP_SCREENS = Object.freeze({
   stage: 'prepare/steps/multiv3_prepare_stage_choose_panel', confirm: 'prepare/steps/multiv3_prepare_entrance_show_panel',
-  start: 'prepare/steps/multiv3_prepare_entrance_show_panel', pick: 'prepare/steps/multiv3_prepare_char_pick_panel',
+  pick: 'prepare/steps/multiv3_prepare_char_pick_panel',
   sel: 'prepare/steps/multiv3_prepare_squad_check_panel', skill: 'prepare/steps/multiv3_prepare_squad_check_panel',
   check: 'prepare/steps/multiv3_prepare_squad_check_panel',
 });
@@ -47,13 +47,13 @@ export function pageOf(S, L) {
 /**
  * The prepare page's step for a room's phase (页面-6): 项目调整 the stage choose panel, 项目确认 the stage confirm part
  * of the entrance show panel, 高顺位干员协调 the char pick panel, 组建上场阵容 the squad check panel at the page's
- * sub-step, the match the entrance show's start.
+ * sub-step, still there while the match's countdown plays over it.
  * @param {{ phase: string }} v @param {Local} L
  */
 export function stepOf(v, L) {
   /** @type {Record<string, string>} */
-  const by = { setup: 'stage', confirm: 'confirm', pick: 'pick', battle: 'start' };
-  return v.phase === 'lineup' ? L.sub : by[v.phase] ?? 'stage';
+  const by = { setup: 'stage', confirm: 'confirm', pick: 'pick' };
+  return v.phase === 'lineup' || v.phase === 'battle' ? L.sub : by[v.phase] ?? 'stage';
 }
 
 /**

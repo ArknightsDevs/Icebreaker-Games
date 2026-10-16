@@ -244,8 +244,8 @@ function lobbyOn(ui, H, G) {
     result: (r) => { L.finish = r; draw(); },
     /** A join that came to nothing. */
     failed: () => { if (page.key === 'entry') page.c.failed(); },
-    /** Before the match: the countdown and the start (at most 8 seconds). */
-    start: () => Promise.race([page.key === 'prepare' ? page.c.start(S) : Promise.resolve(), new Promise((done) => { setTimeout(done, 8000); })]),
+    /** Before the match: the countdown and its logo, then black (at most 8 seconds). */
+    start: () => Promise.race([page.key === 'prepare' ? page.c.start() : Promise.resolve(), new Promise((done) => { setTimeout(done, 8000); })]),
     /** The player's sound volume, 0–1. @param {number} v */
     volume: (v) => G.sound.volume(v),
     resume: () => G.sound.resume(),

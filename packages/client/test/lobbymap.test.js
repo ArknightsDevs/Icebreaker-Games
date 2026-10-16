@@ -14,11 +14,11 @@ test('[页面-6] the page: a result first, the entry page (or its squad page) wi
   assert.equal(pageOf({ view: { phase: 'setup' } }, { ...L, finish: { match: 'm', result: 1, level: 'x', stamps: [] } }), 'finish');
 });
 
-test('[页面-6] the step of each phase: the stage choose panel, the confirm, the pick, the lineup at its sub-step, the start', () => {
+test('[页面-6] the step of each phase: the stage choose panel, the confirm, the pick, the lineup at its sub-step, still the lineup while the match starts', () => {
   const L = newLocal();
-  assert.deepEqual(['setup', 'confirm', 'pick', 'battle', 'other'].map((phase) => stepOf({ phase }, L)), ['stage', 'confirm', 'pick', 'start', 'stage']);
+  assert.deepEqual(['setup', 'confirm', 'pick', 'battle', 'other'].map((phase) => stepOf({ phase }, L)), ['stage', 'confirm', 'pick', L.sub, 'stage']);
   assert.equal(stepOf({ phase: 'lineup' }, { ...L, sub: 'skill' }), 'skill');
-  for (const s of ['stage', 'confirm', 'start', 'pick', 'sel', 'skill', 'check']) assert.ok(/** @type {Record<string, string>} */ (STEP_SCREENS)[s], s);
+  for (const s of ['stage', 'confirm', 'pick', 'sel', 'skill', 'check']) assert.ok(/** @type {Record<string, string>} */ (STEP_SCREENS)[s], s);
   assert.deepEqual(Object.keys(LINEUP_VIEWS), ['sel', 'skill', 'check']);
 });
 

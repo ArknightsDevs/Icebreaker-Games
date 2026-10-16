@@ -2,7 +2,7 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { place, unplace, fillList, setSwitch, placeTopMenu } from './lobbykit.js';
+import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
 import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
 
@@ -247,38 +247,33 @@ export function createConfirm(p, X) {
   };
 }
 
+/** How long the entrance show holds 比赛启动 between its clips, as the original's recording shows it (INF-0015). */
+export const SHOW_HOLD_MS = 1200;
+
 /**
- * The match's start (房间-6): both players' name cards and styles, the start clip; `play` resolves when it has played.
- * @param {Part} p @param {StepCtx} X
+ * The entrance show once both players have confirmed (页面-6): on 项目确认's own panel, the logo comes together, then
+ * 比赛启动 with both players' name cards and styles (房间-3), held a while, then it goes; resolves when it has gone.
+ * @param {Part} p the 项目确认 part @param {StepCtx} X @param {any} v the room's view
  */
-export function createStart(p, X) {
+export async function playEntrance(p, X, v) {
   const f = p.view();
   p.show('@multi_v3_stage_confirm', false);
   p.show(f.entranceShowRoot, true);
   p.showAll(f.invertObjs, false);
   // the season's icon and the assist illustrations are filled at run time from art the packs do not have
   for (const r of [f.selfAssitIllustContainer, f.partnerAssitIllustContainer, f.seasonIconImg2]) p.show(r, false);
-  /** @type {any} */
-  let view = null;
-  return {
-    /** @param {any} S */
-    update(S) { view = S.view; },
-    play: async () => {
-      const v = view;
-      if (v) {
-        for (const [seat, icon, name, card] of /** @type {[number, string, string, string][]} */ ([[v.you, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer],
-          [1 - v.you, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]])) {
-          const st = STYLES.find((s) => s.id === v.styles[seat]);
-          p.picture(icon, st ? X.styleIcon(st.id, '') : null);
-          p.text(name, st?.name ?? '');
-          const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
-          if (c) nameCard(c, v.members[seat]?.name ?? '', X.art().namecard);
-        }
-      }
-      await p.anim(f.normEnterAnim);
-      await p.anim(f.showExitAnim);
-    },
-  };
+  if (f.bottomBarContainer) placeBottomBar(p, f.bottomBarContainer);
+  for (const [seat, icon, name, card] of /** @type {[number, string, string, string][]} */ ([[v.you, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer],
+    [1 - v.you, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]])) {
+    const st = STYLES.find((s) => s.id === v.styles[seat]);
+    p.picture(icon, st ? X.styleIcon(st.id, '') : null);
+    p.text(name, st?.name ?? '');
+    const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
+    if (c) nameCard(c, v.members[seat]?.name ?? '', X.art().namecard);
+  }
+  await p.anim(f.normEnterAnim);
+  await new Promise((done) => { setTimeout(done, SHOW_HOLD_MS); });
+  await p.anim(f.showExitAnim);
 }
 
 /**

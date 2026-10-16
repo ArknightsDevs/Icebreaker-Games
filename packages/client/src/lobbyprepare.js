@@ -1,10 +1,11 @@
 // The activity's prepare page (docs/spec/page.md 页面-6): the room from 项目调整 to the match — its top bar (the step's
 // countdown, warning from the activity's hintTime; the stage; leaving; 上一步 in the lineup), the two players beside
 // it (names, styles once shown, who has confirmed, 请离房间, the room's time left), the banner of a new phase, the
-// step views in its step container, the countdown and the start before the match, the lost-connection view.
-import { openPart, closePart, place, unplace, setSwitch, screenKey } from './lobbykit.js';
+// step views in its step container (项目确认 leaving with the entrance show), the countdown before the match, the
+// lost-connection view.
+import { openPart, closePart, place, setSwitch, screenKey } from './lobbykit.js';
 import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.js';
-import { createStage, createStageList, createConfirm, createStart, classIcon } from './lobbystage.js';
+import { createStage, createStageList, createConfirm, playEntrance, classIcon } from './lobbystage.js';
 import { createPick } from './lobbypick.js';
 import { createLineup } from './lobbylineup.js';
 import { clock } from './roomtext.js';
@@ -14,6 +15,8 @@ import { clock } from './roomtext.js';
 const MAIN = '@state_engine/main_state';
 const TOP = 'prepare/mainviews/act_multi_v3_parepare_main_top_view', SIDE = 'prepare/mainviews/act_multi_v3_side_player_info_view';
 const COUNTDOWN = 'prepare/mainviews/act_multi_v3_countdown_view';
+/** When the countdown's logo stands and the screen goes black for the match, as the original's recording shows it (INF-0015). */
+const LOGO_STANDS_MS = 4400, BLACK_MS = 100;
 /**
  * Whether the side view shows its full panel on a step: in 项目调整 and the lineup's check; 项目确认, the coordination
  * and the lineup's first two steps lay their content out from the left edge, where only the small one fits (INF-0013).
@@ -25,10 +28,10 @@ const fullSide = (step) => step === 'stage' || step === 'check';
 const SIDE_SEEN = new WeakMap();
 
 /** The step controllers by step screen use (the three lineup steps share the squad check panel). */
-const CONTROL = Object.freeze({ stage: 'stage', confirm: 'confirm', start: 'start', pick: 'pick', sel: 'lineup', skill: 'lineup', check: 'lineup' });
+const CONTROL = Object.freeze({ stage: 'stage', confirm: 'confirm', pick: 'pick', sel: 'lineup', skill: 'lineup', check: 'lineup' });
 
 /** Each step's controller, made on a step part. @type {Record<string, (p: Part, X: StepCtx) => { update: (S: any, L: any) => void }>} */
-const MAKERS = { stage: createStage, confirm: createConfirm, start: createStart, pick: createPick, lineup: createLineup };
+const MAKERS = { stage: createStage, confirm: createConfirm, pick: createPick, lineup: createLineup };
 
 /**
  * The prepare page on the lobby UI.
@@ -46,13 +49,15 @@ export function createPrepare(ui, X) {
   let lastArgs = null;
   /** @type {string | null} */
   let phase = null, warn = false, list = /** @type {{ update: (S: any) => void, close: () => void } | null} */ (null);
-  const steps = createSteps(page, mv.stepView ?? `${MAIN}/step_container`, X, () => { if (top) void top.anim(tf.switchAnim); });
+  // the entrance show fills the screen: the top bar and the side view give way to it
+  const cover = (/** @type {boolean} */ on) => { for (const p of [top, side]) if (p) p.root.active = !on; };
+  const steps = createSteps(page, mv.stepView ?? `${MAIN}/step_container`, X, () => { if (top) void top.anim(tf.switchAnim); }, cover);
 
   /** @param {any} S @param {any} L */
   function update(S, L) {
     lastArgs = [S, L];
     const v = S.view, step = stepOf(v, L);
-    if (!steps.swap(step, () => { if (lastArgs) update(...lastArgs); })) return;
+    if (!steps.swap(step, S, () => { if (lastArgs) update(...lastArgs); })) return;
     steps.c?.update(S, L);
     stageList(S, L);
     if (top) topUpdate(top, tf, S, step, X);
@@ -81,30 +86,43 @@ export function createPrepare(ui, X) {
       if (top) warn = countdownTick(top, tf, cd, warn);
       if (side) side.text(sf.closeTxt, clock(S.view.left - (performance.now() - S.at)));
     },
-    /** Before the match: the countdown, then the start (页面-6); resolves when they have played. @param {any} S */
-    async start(S) {
+    /**
+     * Before the match (页面-6): the countdown over the lineup, 3-2-1, then the logo's white frame closing in; once
+     * the logo stands the screen goes black for the match page. Resolves then.
+     */
+    async start() {
       await steps.leaving;
-      steps.swap('start', () => undefined);
-      steps.c?.update(S, null);
       const at = containers[COUNTDOWN] ?? `${MAIN}/countdown_view_container`, cd = place(page, at, COUNTDOWN);
-      // the countdown ends on its white logo; it goes when it has played and the start show begins from white
-      if (cd) await cd.anim(cd.view().cdAnim);
-      unplace(page, at);
-      // the start show fills the screen: the side view gives way to it
-      page.show(containers[SIDE] ?? `${MAIN}/player_info_view`, false);
-      await /** @type {any} */ (steps.c)?.play?.();
+      if (cd) await Promise.race([cd.anim(cd.view().cdAnim), wait(LOGO_STANDS_MS)]);
+      await toBlack();
     },
     close: () => { list?.close(); closePart(page); },
   };
 }
 
+/** @param {number} ms */
+const wait = (ms) => new Promise((done) => { setTimeout(done, ms); });
+
+/** The screen fades to black over everything (the match page comes next). */
+async function toBlack() {
+  const body = globalThis.document?.body;
+  if (!body) return;
+  const el = document.createElement('div');
+  Object.assign(el.style, { position: 'fixed', inset: '0', background: '#000', opacity: '0', transition: `opacity ${BLACK_MS}ms linear`, zIndex: '2147483647', pointerEvents: 'none' });
+  body.appendChild(el);
+  void el.offsetWidth;
+  el.style.opacity = '1';
+  await wait(BLACK_MS);
+}
+
 /**
  * The prepare page's step views (页面-6): `swap` keeps the same controller, else places a new view (and calls
- * `entered`); 项目确认 first plays its exit clip, the new view coming after it (`again` runs then), and swap returns
- * false while that clip plays.
+ * `entered`); 项目确认 first plays its exit clip and, going on to the coordination or the lineup, the entrance show
+ * over the covered page, the new view coming after them (`again` runs then); swap returns false while they play.
  * @param {Part} page @param {string} at the step container @param {StepCtx} X @param {() => void} entered
+ * @param {(on: boolean) => void} cover hides what the entrance show covers
  */
-function createSteps(page, at, X, entered) {
+function createSteps(page, at, X, entered, cover) {
   /** @type {{ ctl: string, c: { update: (S: any, L: any) => void } | null, part: Part | null }} */
   let cur = { ctl: '', c: null, part: null };
   /** @type {Promise<void> | null} */
@@ -112,14 +130,17 @@ function createSteps(page, at, X, entered) {
   return {
     get c() { return cur.c; },
     get leaving() { return leaving; },
-    /** @param {string} step @param {() => void} again */
-    swap(step, again) {
+    /** @param {string} step @param {any} S @param {() => void} again */
+    swap(step, S, again) {
       if (leaving) return false;
       const ctl = /** @type {Record<string, string>} */ (CONTROL)[step] ?? 'stage';
       if (ctl === cur.ctl && cur.c) return true;
-      const exit = cur.ctl === 'confirm' ? cur.part?.view().mapConfirmExitAnim : null;
-      if (exit?.animationName && cur.part) {
-        leaving = cur.part.anim(exit).then(() => { leaving = null; cur = { ctl: '', c: null, part: null }; again(); });
+      const was = cur.part, exit = cur.ctl === 'confirm' ? was?.view().mapConfirmExitAnim : null;
+      if (exit?.animationName && was) {
+        const show = ctl !== 'stage' && S.view;
+        leaving = was.anim(exit)
+          .then(async () => { if (show) { cover(true); try { await playEntrance(was, X, S.view); } finally { cover(false); } } })
+          .then(() => { leaving = null; cur = { ctl: '', c: null, part: null }; again(); });
         return false;
       }
       const part = place(page, at, /** @type {Record<string, string>} */ (STEP_SCREENS)[step]);
@@ -153,7 +174,7 @@ function topUpdate(t, f, S, step, X) {
     if (!t.node(f.diffIconContainer)?.kids.length) classIcon(t, f.diffIconContainer, f.diffIconPrefab, p, f.diffIconScale ?? 1);
   }
   const full = fullSide(step);
-  for (const r of t.view('@hideInEntrance').gos ?? []) t.show(r, step !== 'confirm' && step !== 'start');
+  for (const r of t.view('@hideInEntrance').gos ?? []) t.show(r, step !== 'confirm');
   t.show(f.btnReturn, !full && step === 'skill');
   t.show(f.space, full);
   if (full) t.show('@bkg/btn_exit', false);

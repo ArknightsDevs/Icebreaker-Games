@@ -45,16 +45,20 @@ const fail = (L, id, msg) => L.o.send(id, { t: 'error', msg });
 /** The time left until a moment, never below 0. @param {Lobby} L @param {number} at */
 const until = (L, at) => Math.max(0, at - L.o.now());
 
-/** A room as a seat sees it: the squads and options only once the lineups are being set (房间-5). @param {Lobby} L @param {Room} r @param {number} seat */
+/**
+ * A room as a seat sees it: the other seat's style once both have confirmed (房间-3), the squads and options only once
+ * the lineups are being set (房间-5).
+ * @param {Lobby} L @param {Room} r @param {number} seat
+ */
 function view(L, r, seat) {
-  const p = r.phase === 'pick' ? r.coord?.picking ?? null : null, lineup = r.phase === 'lineup' || r.phase === 'battle';
+  const p = r.phase === 'pick' ? r.coord?.picking ?? null : null, shown = r.phase === 'pick' || r.phase === 'lineup' || r.phase === 'battle';
   return {
     t: 'room', code: r.code, you: seat, phase: r.phase, project: r.project, prepared: r.prepared,
     members: r.members.map((m) => ({ name: m.name, online: m.online })), left: until(L, r.expires), step: r.due ? until(L, r.due) : 0,
     confirmed: r.squads.map((s) => s !== null),
     picking: p ? { left: p.left, by: p.by, yielded: p.yielded, won: p.won } : null,
     options: r.phase === 'lineup' ? r.options : null, squads: r.phase === 'lineup' ? r.squads : null,
-    styles: lineup ? r.styles : r.styles.map((s, i) => (i === seat ? s : '')),
+    styles: shown ? r.styles : r.styles.map((s, i) => (i === seat ? s : '')),
     lineups: r.lineups.map((l) => (l ? l.map((x) => x.id) : null)), ready: r.ready,
   };
 }

@@ -2,8 +2,8 @@
 // the players come back. Its first part: this player's assistant, the stage's name and class, the stamps won as the
 // rating's stars, each stage's mark of a stamp won; 下一步 goes on to its second part: both players' assistants and
 // name cards, the stage's code and class, its stars and rating, when it ended; 返回房间 goes on to the room (at 项目调整
-// again), 返回主页 leaves it. The original's rewards, milestones, likes and reports are of systems the platform does not
-// have and stay hidden.
+// again), 返回主页 leaves it; a like for the other player (once), and the like this player got. The original's rewards,
+// milestones and reports are of systems the platform does not have and stay hidden.
 import { openPart, closePart, place, placeBottomBar, placePicture } from './lobbykit.js';
 import { PAGES } from './lobbymap.js';
 import { fillDiff, nameCard } from './lobbystage.js';
@@ -14,8 +14,10 @@ import { cardName } from './roomtext.js';
 /** A player as the room shows it (房间-1). @typedef {{ name: string, tag?: string, avatar?: string, assist?: { id: string, art: number } | null }} Player */
 /**
  * What the finish view works with: the stage of a level, the room's players (this player first; the room's view, else
- * this player's own name card), the steps' pictures and names, going on to the room, leaving it.
- * @typedef {{ project: (level: string) => ProjectView | null, players: () => [Player | null, Player | null], X: StepCtx, done: () => void, quit: () => void }} FinishCtx
+ * this player's own name card), the likes on the result (given, got: 房间-6), the steps' pictures and names, liking
+ * the other player, going on to the room, leaving it.
+ * @typedef {{ project: (level: string) => ProjectView | null, players: () => [Player | null, Player | null], likes: () => [boolean, boolean], X: StepCtx,
+ *   like: () => void, done: () => void, quit: () => void }} FinishCtx
  */
 
 /** The stamps won as stars, at most 3. @param {MatchResult} r */
@@ -32,16 +34,18 @@ export function createFinish(ui, r, A) {
   page.show(f.playerDisplayContainer, false);
   page.show(f.reportPanelContainer, false);
   const info = f.completeInfoContainer && f.completeInfoPrefab ? place(page, f.completeInfoContainer, f.completeInfoPrefab) : null;
+  /** @type {ReturnType<typeof players> | null} */
+  let second = null;
   const next = async () => {
     if (info) await info.anim(info.view().hideAnim);
     page.show(f.completeInfoContainer, false);
     page.show(f.playerDisplayContainer, true);
     const pd = f.playerDisplayContainer && f.playerDisplayPrefab ? place(page, f.playerDisplayContainer, f.playerDisplayPrefab) : null;
-    if (pd) players(pd, r, pr, A); else A.done();
+    if (pd) second = players(pd, r, pr, A); else A.done();
   };
   if (info) completeInfo(info, r, pr, A, () => { void next(); });
   else void next();
-  return { part: page, close: () => closePart(page) };
+  return { part: page, close: () => closePart(page), update: () => second?.likes() };
 }
 
 /**
@@ -84,16 +88,38 @@ export function finishTime(t) {
  * @param {Part} pd @param {MatchResult} r @param {ProjectView | null} pr @param {FinishCtx} A
  */
 function players(pd, r, pr, A) {
-  const f = pd.view(), X = A.X;
-  A.players().forEach((m, i) => playerSide(pd, f, X, m, i === 0));
+  const f = pd.view(), X = A.X, both = A.players();
+  both.forEach((m, i) => playerSide(pd, f, X, m, i === 0));
   stageInfo(pd, f, r, pr, X);
   for (const g of [f.reverseBgGO, f.reverseTagGO, f.newPhotoGO, f.btnReportGO, f.reportSuccGO, f.btnContinueMatchGO, f.btnContinueCoopGO, f.btnCompleteTrainingGO,
-    f.animGotLike?.animationWrapper, f.animGiveLike?.animationWrapper, '@panel_middle/report_toggle']) pd.show(g, false);
+    '@panel_middle/report_toggle']) pd.show(g, false);
   pd.show(f.btnReturnRoomGO, true);
   if (f.bottomBarContainer && f.bottomBarPrefab) placeBottomBar(pd, f.bottomBarContainer, f.bottomBarPrefab);
   pd.tap(`${f.btnReturnRoomGO ?? '@panel_front/room_btn'}/hotspot`, A.done);
   pd.tap('@panel_front/quit_btn/hotspot', A.quit);
+  const likes = likesOn(pd, f, A, !!both[1]);
   void pd.anim(f.enterAnim);
+  return { likes };
+}
+
+/**
+ * The likes on the player display (房间-6): the like button on the other player's card — a tap likes it once, its clip
+ * turns it to the liked mark —, and on this player's card the mark of a like it got, played in when it comes. Returns
+ * what the room's views call to show the likes as they are now.
+ * @param {Part} pd @param {Record<string, any>} f @param {FinishCtx} A @param {boolean} mate there is another player
+ */
+function likesOn(pd, f, A, mate) {
+  const give = f.animGiveLike, got = f.animGotLike, shown = { gave: false, got: false };
+  pd.show(give?.animationWrapper, mate);
+  pd.show(got?.animationWrapper, false);
+  const now = () => {
+    const [gave, gotIt] = A.likes();
+    if (gave && !shown.gave && give) { shown.gave = true; void pd.anim(give); }
+    if (gotIt && !shown.got && got) { shown.got = true; pd.show(got.animationWrapper, true); void pd.anim(got); }
+  };
+  if (give) pd.tap(`${give.animationWrapper}/btn_like/hotspot`, () => { if (!shown.gave) { A.like(); shown.gave = true; void pd.anim(give); } });
+  now();
+  return now;
 }
 
 /**

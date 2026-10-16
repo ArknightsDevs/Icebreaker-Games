@@ -182,9 +182,15 @@ test('[房间-5] [房间-6] the lineup step runs out: a seat without a lineup ge
   g.t.now += 3 * TIMES.room;
   g.rooms.tick();
   assert.equal(g.rooms.rooms.size, 1, 'no countdown in battle');
+  g.rooms.message(1, { t: 'like' });
+  assert.deepEqual(g.last(1, 'room').likes, [false, false], 'no like before a match has ended');
   g.rooms.ended('m1');
   const v = g.last(1, 'room');
   assert.deepEqual([v.phase, v.left], ['setup', TIMES.room]);
+  // 房间-6: each seat may like the other once on the result
+  g.rooms.message(2, { t: 'like' });
+  g.rooms.message(2, { t: 'like' });
+  assert.deepEqual(g.last(1, 'room').likes, [false, true], 'the guest liked the host, once');
 });
 
 test('[房间-1] joining: a full room or one past 项目调整 takes nobody; the own room again changes nothing; another room leaves the first', async () => {

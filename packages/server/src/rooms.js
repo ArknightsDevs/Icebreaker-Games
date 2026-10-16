@@ -30,6 +30,7 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {(Squad | null)[]} squads @property {string[]} styles each seat's play style (房间-3) @property {Coordination | null} coord
  * @property {Options[]} options @property {(Pick[] | null)[]} lineups @property {boolean[]} ready
  * @property {string | null} match
+ * @property {boolean[] | null} likes after a match, whether each seat liked the other on the result (房间-6); null before one
  */
 /**
  * @typedef {object} RoomsOptions
@@ -69,6 +70,7 @@ function view(L, r, seat) {
     lineups: r.lineups.map((l) => (l ? l.map((x) => x.id) : null)), ready: r.ready,
     // each seat's skill and module for its lineup's operators, in their order (房间-6: both lineups shown in full)
     choices: r.lineups.map((l) => (l ? l.map((x) => ({ skill: x.skill, module: x.module })) : null)),
+    likes: r.likes ?? [false, false],
   };
 }
 /** @param {Lobby} L @param {Room} r */
@@ -95,7 +97,7 @@ function create(L, id) {
   if (s.room) leave(L, id);
   let code;
   do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
-  const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true, profile: s.profile }], project: 0, expires: L.o.now() + TIMES.room });
+  const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true, profile: s.profile }], project: 0, expires: L.o.now() + TIMES.room, likes: null });
   toSetup(r);
   L.rooms.set(code, r);
   s.room = code;
@@ -272,6 +274,13 @@ const IN_ROOM = {
   handover: (L, r, id) => { if (r.phase === 'pick') afterPick(L, r, handOver(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id))); },
   lineup: (L, r, id, m) => setLineup(L, r, id, m.lineup),
   ready: (L, r, id, m) => setReady(L, r, id, m.on),
+  // a like for the other seat on the last match's result, once each (房间-6)
+  like: (L, r, id) => {
+    const seat = seatOf(r, id);
+    if (!r.likes || r.likes[seat] || r.members.length < 2) return;
+    r.likes[seat] = true;
+    push(L, r);
+  },
 };
 
 /**
@@ -316,6 +325,7 @@ function ended(L, match) {
   if (!r) return;
   toSetup(r);
   r.expires = L.o.now() + TIMES.room;
+  r.likes = [false, false];
   push(L, r);
 }
 

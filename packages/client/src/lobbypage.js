@@ -221,7 +221,8 @@ function pageMakers(ui, H, G, L, K) {
       rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
     prepare: () => createPrepare(ui, X),
     finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level) => X.projects().find((p) => p.level === level) ?? null,
-      players: () => playersOf(H), done: () => { L.finish = null; draw(); }, quit: () => { L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
+      players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
+      done: () => { L.finish = null; draw(); }, quit: () => { L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
   };
 }
 
@@ -232,6 +233,12 @@ function pageMakers(ui, H, G, L, K) {
 function playersOf(H) {
   const v = H.S.view;
   return v ? [v.members[v.you] ?? null, v.members[1 - v.you] ?? null] : [H.card(), null];
+}
+
+/** The likes on the last match's result (房间-6): whether this player gave one, and got one. @param {LobbyHost} H @returns {[boolean, boolean]} */
+function likesOf(H) {
+  const v = H.S.view;
+  return v?.likes ? [!!v.likes[v.you], !!v.likes[1 - v.you]] : [false, false];
 }
 
 /** The owner's toast when the mate joins or leaves (页面-6); the count now. @param {any} v @param {number} was @param {(t: string) => void} toast */

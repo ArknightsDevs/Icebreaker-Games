@@ -21,7 +21,7 @@ const assistPick = (x) => x === null || (isRecord(x) && Object.keys(x).sort().jo
 /** Each message's fields beside `t`, and the check of their values. @type {Record<string, (m: Record<string, unknown>) => boolean>} */
 const SHAPES = {
   hello: (m) => shortText(m.key, 64) && shortText(m.name, 16) && String(m.name).trim().length > 0,
-  create: () => true, leave: () => true, kick: () => true, go: () => true, handover: () => true,
+  create: () => true, leave: () => true, kick: () => true, go: () => true, handover: () => true, like: () => true,
   ping: (m) => typeof m.at === 'number' && Number.isFinite(m.at),
   profile: (m) => typeof m.tag === 'string' && /^\d{4}$/.test(m.tag) && (m.avatar === '' || operatorId(m.avatar)) && assistPick(m.assist),
   join: (m) => shortText(m.code, 200),

@@ -55,7 +55,7 @@ export function createPrepare(ui, X) {
   /** @type {[any, any] | null} */
   let lastArgs = null;
   /** @type {string | null} */
-  let phase = null, warn = false, list = /** @type {{ update: (S: any) => void, close: () => void } | null} */ (null);
+  let phase = null, warn = false, offline = false, list = /** @type {{ update: (S: any) => void, close: () => void } | null} */ (null);
   // the entrance show fills the screen: the top bar and the side view give way to it
   const cover = (/** @type {boolean} */ on) => { for (const p of [top, side]) if (p) p.root.active = !on; };
   const steps = createSteps(page, mv.stepView ?? `${MAIN}/step_container`, X, () => { if (top) void top.anim(tf.switchAnim); }, cover);
@@ -72,7 +72,11 @@ export function createPrepare(ui, X) {
     const b = bannerOf(phase, v);
     if (b) void banner(page, b);
     phase = v.phase;
-    page.show(`${MAIN}/lost_connection_view`, X.offline());
+    // the connection lost: its view comes in with its clip (页面-6)
+    const lost = X.offline(), at = `${MAIN}/lost_connection_view`;
+    page.show(at, lost);
+    if (lost && !offline) void page.anim(page.view(at).entryAnim);
+    offline = lost;
   }
 
   /** The stage list over the page while the owner picks a stage (项目调整). @param {any} S @param {any} L */

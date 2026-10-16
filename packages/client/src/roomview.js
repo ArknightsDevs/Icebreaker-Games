@@ -8,7 +8,7 @@ import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText } fro
 import { skillLevelText, trainingText } from './training.js';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
-/** @typedef {{ level: string, code: string, name: string, className: string, stages: { title: string, basic: string, advanced?: string, seconds: number }[] }} ProjectView */
+/** @typedef {{ level: string, code: string, name: string, class: string, className: string, stages: { title: string, basic: string, advanced?: string, seconds: number }[] }} ProjectView */
 /**
  * What the page knows: the lobby's projects and recruits, the room as last seen and when, the lineup being set, the
  * match this tab was sent to.

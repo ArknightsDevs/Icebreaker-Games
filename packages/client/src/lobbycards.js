@@ -1,0 +1,84 @@
+// The operator cards of the lobby screens (docs/spec/page.md 页面-6): a card prefab of the pack (the large or the mini
+// card) showing an operator of a box — its avatar for the portrait, its name, level, elite phase, profession and
+// rarity, its colour by where it comes from, its skill and module — with the battle UI pack's icons for profession,
+// elite phase and rarity (the lobby pack has none of its own).
+/** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./lobbykit.js').Part} Part */
+/**
+ * The pictures the cards take from elsewhere: an operator's avatar URL, a profession's icon URL and colour, an elite
+ * phase's icon URL, a rarity's URL, a skill's icon URL (each null when there is none).
+ * @typedef {{ avatar: (id: string) => string | null, profession: (p: string) => { url: string | null, color: number[] } | null,
+ *   elite: (phase: number) => string | null, rarity: (r: number) => string | null, skill: (skillId: string) => string | null }} CardArt
+ */
+/**
+ * A card to show: the operator, its box entry (null: unknown), its name, rarity and profession, where it comes from
+ * (its colour: kept high-priority, drawn low-priority, a temporary recruit, other), its chosen skill and module.
+ * @typedef {{ id: string, entry: BoxEntry | null, name: string, rarity: number, profession: string, from?: 'kept' | 'drawn' | 'recruit' | 'extra',
+ *   skill?: number, skillId?: string | null, module?: number }} CardData
+ */
+
+/** The cards' colour config id by where an operator comes from (the cards' `colorConfigs`: 1 red, 2 grey, 3 blue, 0 light). */
+export const FROM_COLOR = Object.freeze({ kept: 1, drawn: 2, recruit: 3, extra: 0 });
+
+/** A card's colour for an id type from its controller's configs. @param {Record<string, any>} f @param {number} id */
+const colorOf = (f, id) => (f.colorConfigs ?? []).find((/** @type {any} */ c) => c.idType === id)?.color ?? null;
+
+/**
+ * Shows an operator on a card prefab (charcard/char_card_large or char_card_mini) by its controller's references.
+ * @param {Part} card @param {CardData} d @param {CardArt} art
+ */
+export function fillCard(card, d, art) {
+  const f = card.view();
+  card.show(f.emptyPartGO, false);
+  card.show(f.normalPartGO, true);
+  card.picture(f.imgCharPortrait, art.avatar(d.id));
+  card.text(f.textLv, d.entry ? String(d.entry.level) : '');
+  if (f.textName) card.text(f.textName, d.name);
+  const prof = art.profession(d.profession);
+  card.picture(f.imgProfession, prof?.url ?? null);
+  card.show(f.imgProfession, !!prof?.url);
+  card.picture(f.imgElite, d.entry ? art.elite(d.entry.elite) : null);
+  card.show(f.imgElite, !!(d.entry && art.elite(d.entry.elite)));
+  if (f.imgRarity) card.picture(f.imgRarity, art.rarity(d.rarity));
+  // no potential icons in the packs: the potential mark stays hidden
+  card.show(f.potentialGO, false);
+  const c = colorOf(f, FROM_COLOR[d.from ?? 'extra']);
+  if (c) card.color(f.colorGraphic, c);
+  if (f.iconPriGO) {
+    card.show(f.iconPriGO, d.from === 'kept' || d.from === 'drawn');
+    card.show(f.iconPriHighGO, d.from === 'kept');
+    card.show(f.iconPriLowGO, d.from === 'drawn');
+  }
+  if (f.skillEquipPanelGO) fillSkill(card, f, d, art);
+}
+
+/** A large card's skill and module panel. @param {Part} card @param {Record<string, any>} f @param {CardData} d @param {CardArt} art */
+function fillSkill(card, f, d, art) {
+  const skill = d.skill ?? -1, module = d.module ?? -1, lv = d.entry && skill >= 0 ? d.entry.skills[skill] : 0;
+  card.show(f.emptySkillPanelGO, skill < 0);
+  card.show(f.normalSkillPanelGO, skill >= 0);
+  if (skill >= 0) {
+    card.picture(f.imgSkillIcon, d.skillId ? art.skill(d.skillId) : null);
+    card.text(f.textSkillLv, lv > 7 ? '' : String(lv));
+    card.show(f.imgSkillSpecLv, lv > 7);
+  }
+  card.show(f.emptyEquipPanelGO, module < 0);
+  card.show(f.normalEquipPanelGO, module >= 0);
+  if (module >= 0 && d.entry) card.text(f.textEquipLv, String(d.entry.modules[module] ?? ''));
+}
+
+/**
+ * A step's card holder (a prefab whose controller names a card prefab and its container: the pick's large card, the
+ * lineup's small card, the reserve card holding a small card) with its card placed and shown, through as many
+ * holders as there are.
+ * @param {Part} holder @param {(p: Part, at: string, prefab: string) => Part | null} place @param {CardData} d @param {CardArt} art
+ * @returns {Part | null} the card
+ */
+export function holderCard(holder, place, d, art) {
+  const f = holder.view(), inner = f.cardPrefab && f.container ? place(holder, f.container, f.cardPrefab) : null;
+  if (f.teampTag) holder.show(f.teampTag, d.from === 'recruit');
+  if (!inner) return null;
+  const g = inner.view();
+  if (g.cardPrefab && g.container) return holderCard(inner, place, d, art);
+  fillCard(inner, d, art);
+  return inner;
+}

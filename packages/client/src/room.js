@@ -1,20 +1,23 @@
 // The room page (docs/spec/room.md): the lobby connection, the room as the server tells it, and the box and 常规队 of
 // the local save. When the room's match starts the page goes to the battle page with the match and the seat; the
 // battle page comes back here when it ends. The lobby key stays in this tab (session.js), so a reload or the way back
-// takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5).
+// takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5); with their
+// lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
 import { ROSTER, loadTraining } from '@aue/content';
 import { squadProblem, MODE } from '@icebreaker/mode-regular';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf } from './save.js';
 import { createBoxView } from './boxview.js';
 import { renderRoom, entryIn } from './roomview.js';
-import { CLOSED, clock, startingLineup } from './roomtext.js';
+import { CLOSED, clock, startingLineup, inviteText } from './roomtext.js';
 import { loadRoomAtlas, styleIcon, modeIcon } from './roomart.js';
 import { createRoomMusic } from './roommusic.js';
 import { readSettings, writeSettings, VOLUMES } from './settings.js';
+import { startLobby } from './lobbypage.js';
+import { resultOf } from './lobbymap.js';
 
-/** Where this tab's last match is kept, for a way back into it. */
-const MATCH_KEY = 'ice.match';
+/** Where this tab's last match is kept, for a way back into it; where the battle page leaves its result (页面-6). */
+const MATCH_KEY = 'ice.match', RESULT_KEY = 'ice.result';
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const store = localStore(), key = tabKey(LOBBY_KEY);
 let save = readSave(store);
@@ -29,6 +32,8 @@ let ws = null;
 let retry = 0;
 /** @type {ReturnType<typeof setTimeout> | undefined} */
 let toastTimer;
+/** The original lobby screens when the assets have them (页面-6). @type {Awaited<ReturnType<typeof startLobby>>} */
+let lobby = null;
 
 /** @returns {{ match: string, seat: number } | null} */
 function readStarted() {
@@ -41,6 +46,7 @@ function writeStarted(s) {
 
 /** @param {string} text */
 function toast(text) {
+  if (lobby) { lobby.toast(text); return; }
   const t = $('toast');
   t.textContent = text;
   t.hidden = false;
@@ -62,7 +68,7 @@ const A = {
   modeIcon: () => modeIcon(atlas, ART, MODE.type),
 };
 
-const box = createBoxView($('box'), {
+const box = createBoxView($('boxbody'), {
   roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, toast, icon: A.icon,
   setSave: (s) => {
     const renamed = s.name !== save.name;
@@ -81,10 +87,42 @@ function drawMusic() {
 }
 
 function draw() {
-  renderRoom($('screen'), S, A);
   $('conn').textContent = S.conn;
   drawMusic();
+  if (lobby) { lobby.draw(); return; }
+  renderRoom($('screen'), S, A);
   $('box').hidden = !!S.view && !['setup', 'confirm'].includes(S.view.phase);
+}
+
+/** The box editor over the lobby screens (页面-6: the original's operator picker is not in the pack). @param {boolean} on */
+function boxOpen(on) {
+  document.body.classList.toggle('box-open', on);
+  $('box').hidden = !on;
+}
+
+/** The battle page's result, once (页面-6). */
+function takeResult() {
+  let raw = null;
+  try { raw = sessionStorage.getItem(RESULT_KEY); sessionStorage.removeItem(RESULT_KEY); } catch { /* no result kept */ }
+  return resultOf(raw);
+}
+
+/** The lobby screens when the assets have them; else the HTML room stays. */
+async function lobbyMode() {
+  lobby = await startLobby($('lobby'), {
+    S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, editBox: () => boxOpen(true), invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? ''),
+    setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); box.render(); draw(); },
+    backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx,
+  }).catch((e) => { console.error(e); return null; });
+  if (!lobby) return;
+  document.body.classList.add('lobby-on');
+  $('lobby').hidden = false;
+  $('boxbtn').hidden = false;
+  $('boxclose').hidden = false;
+  boxOpen(false);
+  const r = takeResult();
+  if (r) lobby.result(r);
+  draw();
 }
 
 /** A room view: the lineup a player starts from once the lineups are set (房间-5). @param {any} v */
@@ -100,13 +138,15 @@ function onRoom(v) {
 function onMessage(m) {
   if (m.t === 'lobby') S.lobby = m;
   else if (m.t === 'room') onRoom(m);
-  else if (m.t === 'error') toast(m.msg);
+  else if (m.t === 'error') { lobby?.failed(); toast(m.msg); }
   else if (m.t === 'closed') { S.view = null; S.draft = null; toast(CLOSED[m.why] ?? '房间已关闭'); }
   else if (m.t === 'start') {
     S.started = { match: m.match, seat: m.seat };
     writeStarted(S.started);
     const to = `/play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
-    void music.leave().then(() => location.assign(to));
+    // with the lobby screens the countdown and the start play first (页面-6)
+    void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));
+    draw();
     return;
   }
   draw();
@@ -135,11 +175,15 @@ $('music').addEventListener('click', () => {
   drawMusic();
 });
 // a page may sound only after a gesture: the music starts on the first touch or key
-addEventListener('pointerdown', () => music.start());
-addEventListener('keydown', () => music.start());
+addEventListener('pointerdown', () => { music.start(); lobby?.resume(); });
+addEventListener('keydown', (e) => { music.start(); lobby?.resume(); if (e.key === 'Escape' && lobby) lobby.back(); });
+$('back').addEventListener('click', () => lobby?.back());
+$('boxbtn').addEventListener('click', () => boxOpen(!document.body.classList.contains('box-open')));
+$('boxclose').addEventListener('click', () => { boxOpen(false); draw(); });
 void loadRoomAtlas(ART).then((a) => { atlas = a; box.render(); draw(); });
 box.render();
 draw();
 connect();
+void lobbyMode();
 // for end-to-end tests and the console
-Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null } });
+Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null, lobby: () => lobby?.state() ?? null } });

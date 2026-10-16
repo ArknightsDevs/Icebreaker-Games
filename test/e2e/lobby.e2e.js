@@ -29,7 +29,8 @@ describe('two players through a room into a match', () => {
   async function player(name) {
     const page = await (await browser.newContext()).newPage(), errors = /** @type {string[]} */ ([]);
     collectErrors(page, errors);
-    await page.goto(`http://127.0.0.1:${stack.port}/`);
+    // the page's own HTML room (页面-6: the fallback, also with the assets' lobby screens)
+    await page.goto(`http://127.0.0.1:${stack.port}/?html`);
     await page.locator('#conn', { hasText: '已连接' }).waitFor();
     await page.getByLabel('你的名字').fill(name);
     await page.getByLabel('你的名字').press('Tab');

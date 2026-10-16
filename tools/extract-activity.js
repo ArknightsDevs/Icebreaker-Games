@@ -11,6 +11,9 @@ import { fileURLToPath } from 'node:url';
 const ACTIVITY = 'act1multi';
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'mode-regular', 'data', `${ACTIVITY}.json`);
 const ELITE = Object.freeze({ PHASE_0: 0, PHASE_1: 1, PHASE_2: 2 });
+/** The toasts of the activity's room flow the lobby screens show (页面-6). */
+const TOASTS = Object.freeze(['noRoom', 'fullRoom', 'roomIdFormatError', 'roomIdCopySuccess', 'roomCollaboratorJoinRoom', 'roomCollaboratorExitRoom',
+  'roomOwnerReviseMap', 'roomCollaboratorReviseMap', 'matchPrepareRoomClose']);
 
 /** @param {string} file @returns {any} */
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
@@ -34,7 +37,8 @@ const board = (bb) => bb.map((b) => [b.key, b.valueStr ?? b.value]);
 export function extract(root) {
   const excel = join(root, 'zh_CN', 'gamedata', 'excel');
   const a = readJson(join(excel, 'activity_table.json')).activity.MULTIPLAY_V3[ACTIVITY], favor = readJson(join(excel, 'favor_table.json'));
-  const steps = Object.fromEntries(a.selectStepDataList.map((/** @type {any} */ s) => [s.stepType, { title: s.title, seconds: s.time }]));
+  const steps = Object.fromEntries(a.selectStepDataList.map((/** @type {any} */ s) => [s.stepType, { title: s.title, seconds: s.time, hint: s.hintTime }]));
+  const normal = new Set(Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'NORMAL').flatMap((/** @type {any} */ t) => t.stageIdInModeList));
   return {
     source: { repo: 'Kengxxiao/ArknightsGameData', commit: commitOf(root), file: 'zh_CN/gamedata/excel/activity_table.json', activity: `MULTIPLAY_V3/${ACTIVITY}` },
     lineup: { min: a.constData.squadMinNum, max: a.constData.squadMaxNum },
@@ -43,6 +47,10 @@ export function extract(root) {
     classes: Object.fromEntries(Object.values(a.mapDiffDataDict).map((/** @type {any} */ d) => [d.diffType, d.name])),
     stages: Object.fromEntries(Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'NORMAL')
       .flatMap((/** @type {any} */ t) => t.stageIdInModeList.map((/** @type {string} */ id) => [id, t.difficulty])).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
+    // the lobby screens (页面-6): each stage's preview picture, the toasts of the room flow
+    pictures: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => normal.has(m.stageId))
+      .map((/** @type {any} */ m) => [m.stageId, m.previewIconId]).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
+    toasts: Object.fromEntries(TOASTS.map((k) => [k, a.constToastData[k]])),
     recruits: a.tempCharDataList.map((/** @type {any} */ c) => ({
       id: c.charId, elite: ELITE[/** @type {keyof typeof ELITE} */ (c.evolvePhase)], level: c.level, potential: c.potentialRank + 1, trust: trustOf(favor, c.favorPoint),
       skillLevel: c.mainSkillLevel + c.specializeLevel,

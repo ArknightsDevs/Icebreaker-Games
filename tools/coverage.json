@@ -6,7 +6,8 @@
     "packages/server/src/rooms.js",
     "packages/client/src/save.js",
     "packages/client/src/training.js",
-    "packages/client/src/roomtext.js"
+    "packages/client/src/roomtext.js",
+    "packages/client/src/lobbymap.js"
   ],
   "branches": 95,
   "lines": 95,

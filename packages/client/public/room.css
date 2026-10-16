@@ -50,3 +50,17 @@ details.save { margin-top: 12px; }
 .tools { display: inline-flex; gap: 8px; align-items: baseline; }
 #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgb(0 0 0 / 0.85); padding: 10px 16px; max-width: 90vw; }
 @media (max-width: 640px) { td { display: block; border: 0; } tr { display: block; border-top: 1px solid #333840; padding: 4px 0; } }
+/* The original lobby screens over the whole page (页面-6): the page's own tools in a corner, the box editor over them. */
+@font-face { font-family: "Novecento Wide"; src: url(/assets/skeleton/fonts/novecento-wide-normal.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Bender"; src: url(/assets/skeleton/fonts/bender-regular.woff2) format("woff2"); font-display: swap; }
+:root { --aue-ui-latin: "Novecento Wide", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Bender", sans-serif; --aue-ui-arvo: "Arvo", serif; }
+#lobby { position: fixed; inset: 0; background: #1b1d21; }
+#lobby[hidden], #back[hidden], #boxbtn[hidden], #boxclose[hidden] { display: none; }
+body.lobby-on { overflow: hidden; }
+body.lobby-on #room-app { max-width: none; padding: 0; }
+body.lobby-on h1, body.lobby-on #screen { display: none; }
+body.lobby-on header { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 20; background: rgb(0 0 0 / 0.45); padding: 2px 8px; font-size: 12px; }
+body.lobby-on header button { padding: 1px 8px; font-size: 12px; }
+body.lobby-on #back { position: fixed; left: 8px; top: 8px; z-index: 20; }
+body.lobby-on #box { position: fixed; inset: 48px 5vw 5vh; z-index: 30; overflow: auto; box-shadow: 0 8px 32px rgb(0 0 0 / 0.6); }
+#boxclose { float: right; }

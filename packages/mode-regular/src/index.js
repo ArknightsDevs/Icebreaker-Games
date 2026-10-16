@@ -22,6 +22,17 @@ export const STEP_MS = Object.freeze({
   confirm: data.steps.ENTRANCE.seconds * 1000, pick: data.steps.CHAR_PICK.seconds * 1000, lineup: data.steps.SQUAD_CHECK.seconds * 1000,
 });
 
+/** From how many milliseconds left a step's countdown shows its warning (the activity's `hintTime`; 页面-6). */
+export const STEP_HINT_MS = Object.freeze({
+  confirm: data.steps.ENTRANCE.hint * 1000, pick: data.steps.CHAR_PICK.hint * 1000, lineup: data.steps.SQUAD_CHECK.hint * 1000,
+});
+
+/** Each 常规项目 stage's preview picture (the activity's `previewIconId`; 页面-6). @type {Readonly<Record<string, string>>} */
+export const PICTURES = Object.freeze({ ...data.pictures });
+
+/** The activity's toasts of the room flow (页面-6). @type {Readonly<Record<string, string>>} */
+export const TOASTS = Object.freeze({ ...data.toasts });
+
 /** The fewest and most operators of a lineup (房间-5). */
 export const LINEUP = Object.freeze({ ...data.lineup });
 

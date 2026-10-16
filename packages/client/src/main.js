@@ -159,7 +159,7 @@ function markField(game, pointer, marks) {
  * @typedef {{ game: Awaited<ReturnType<typeof setUp>> | null, net: string, costAsker: number, players: number,
  *   control: import('./controls.js').Control | null, lastView: import('@aue/schema').View | null, unitKeys: Map<number, string>,
  *   pointer: { row: number, col: number } | null, hudNow: import('@aue/ui').HudState | null, hand: Hand | null,
- *   requests: import('./battlehud.js').Requests, audio: Awaited<ReturnType<typeof createBattleAudio>>, music: boolean,
+ *   requests: import('./battlehud.js').Requests, audio: Awaited<ReturnType<typeof createBattleAudio>>, music: boolean, stamps: number[],
  *   battle: ReturnType<typeof startBattle>, mark: () => void, skills: ReturnType<typeof createSkillBar>, bar: () => void,
  *   panel: ReturnType<typeof createSettingsPanel> | undefined }} Page
  */
@@ -168,7 +168,7 @@ async function main() {
   const art = await assets();
   /** @type {Page} */
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
-    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false });
+    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false, stamps: [] });
   if (art) void startAudio(P);
   P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
   $('fps').hidden = !settings.showFps;
@@ -258,7 +258,8 @@ function frameSound(P, f) {
 function onFrame(P, f) {
   const { view, events, status } = f, game = P.game;
   const end = events.find((e) => e['type'] === 'end');
-  if (end && MATCH) ended(Number(end['result']));
+  stampsOf(P.stamps, events);
+  if (end && MATCH) ended(Number(end['result']), P);
   for (const [id, k] of Object.entries(f.keys)) P.unitKeys.set(Number(id), k);
   frameSound(P, f);
   P.players = view.players.length;
@@ -284,9 +285,19 @@ function onFrame(P, f) {
   P.lastView = view;
 }
 
-/** A room's match ended (房间-6): the result and the way back to the room. @param {number} result 1: won, 0: lost */
-function ended(result) {
+/** Each stage's stamps as it settles (engine 合作-6), for the room's result view (页面-6). @param {number[]} stamps @param {Record<string, string | number>[]} events */
+function stampsOf(stamps, events) {
+  for (const e of events) if (e['type'] === 'stage' && Number(e['on']) === 0) stamps[Number(e['index'])] = Number(e['stamps']);
+}
+
+/**
+ * A room's match ended (房间-6): the result and the way back to the room; the result kept for the room's result view
+ * (页面-6). @param {number} result 1: won, 0: lost @param {Page} P
+ */
+function ended(result, P) {
   notice(`比赛结束：${result === 1 ? '胜利' : '失败'}。`);
+  const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', stamps = [...P.stamps].map((x) => x ?? 0);
+  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, stamps })); } catch { /* the room shows no result */ }
   const back = document.createElement('a');
   back.href = '/room';
   back.className = 'back';

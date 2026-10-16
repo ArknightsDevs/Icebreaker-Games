@@ -1,0 +1,274 @@
+// The stage steps of the prepare page (docs/spec/page.md 页面-6): 项目调整 on the stage choose panel (the owner picks
+// the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
+// panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
+// players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
+import { place, fillList, setSwitch } from './lobbykit.js';
+import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
+import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
+
+/** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./roomview.js').ProjectView} ProjectView */
+/** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
+/**
+ * What the steps work with: the room's messages, the lobby's projects, the pack's art, the cards' pictures, the
+ * styles' icons, toasts, leaving (asked first), 请离房间, 上一步, whether the page is offline, the stage list, the
+ * lineup's sub-step, copying the invitation, names, the save's squad and style, the lineup being set and the room's
+ * box entries.
+ * @typedef {object} StepCtx
+ * @property {(m: Record<string, unknown>) => void} send
+ * @property {() => ProjectView[]} projects
+ * @property {() => any} art
+ * @property {import('./lobbycards.js').CardArt} cards
+ * @property {(style: string, variant: '' | '_tiny' | '_show') => string | null} styleIcon
+ * @property {(text: string) => void} toast
+ * @property {() => void} leave
+ * @property {() => void} kick
+ * @property {() => void} back
+ * @property {() => boolean} offline
+ * @property {(open: boolean) => void} list
+ * @property {(sub: 'sel' | 'skill' | 'check') => void} sub
+ * @property {() => void} copy
+ * @property {(id: string) => string} nameOf
+ * @property {(id: string) => { rarity: number, profession: string } | null} rosterOf
+ * @property {() => import('@icebreaker/mode-regular').Squad} squad
+ * @property {() => string | null} squadProblem
+ * @property {() => string} style
+ * @property {(d: Pick[]) => void} setDraft
+ * @property {(seat: number, id: string) => BoxEntry | null} entryOf
+ * @property {(id: string, skill: number) => string | null} skillId
+ * @property {() => string | null} modeIcon the mode's icon URL
+ * @property {() => number} version a number that changes when lazily loaded data (skill ids) comes
+ */
+
+/** The class nodes of the class icon prefab (common/multiv3_map_diff_icon). */
+const CLASSES = Object.freeze(['TRAINING', 'ORDINARY', 'DIFFICULTY', 'EXTREMELY']);
+
+/** Shows a project's class on a class icon. @param {Part} icon @param {string} cls the class (ORDINARY…) or its name */
+export function fillDiff(icon, cls) {
+  for (const c of CLASSES) icon.show(`@${c}`, c === cls || icon.node(`@${c}/Text`)?.n.comps.text?.text === cls);
+}
+
+/**
+ * A project's class icon in a container, at the scale its controller gives.
+ * @param {Part} p @param {string | undefined} at @param {string | undefined} prefab @param {ProjectView} pr @param {number} [scale]
+ */
+export function classIcon(p, at, prefab, pr, scale = 1) {
+  const icon = at && prefab ? place(p, at, prefab) : null;
+  if (!icon) return;
+  fillDiff(icon, pr.class);
+  icon.root.rt.scale = [scale, scale];
+}
+
+/**
+ * 项目调整 on the stage choose panel (房间-2). @param {Part} p @param {StepCtx} X
+ */
+export function createStage(p, X) {
+  const f = p.view();
+  p.tap('@owner_guest_toggle/group_owner/group_btn_select_map/bg/hotspot', () => X.list(true));
+  p.tap('@group_map_detail/root_switch_map/hotspot', () => X.list(true));
+  p.tap('@group_room_id/container/btn_copy', X.copy);
+  p.tap('@owner_guest_toggle/group_owner/group_wait_status/group_btn_prepared/btn_enter_toggle/prepared_avail/hotspot', () => X.send({ t: 'go' }));
+  /** @type {any} */
+  let last = null;
+  p.tap('@owner_guest_toggle/group_guest/group_btn_prepared_g/has_map_toggle/has_map', () => X.send({ t: 'prepare', on: !last?.prepared }));
+  p.show('@group_top_deco/group_invert', false);
+  /** @type {number} */
+  let shown = -1, entered = false;
+  return {
+    /** @param {any} S */
+    update(S) {
+      const v = S.view, sp = stagePanel(v), pr = X.projects()[v.project];
+      if (!entered) { entered = true; void p.anim(sp.owner ? f.ownerInAnim : f.guestInAnim); }
+      if (shown >= 0 && shown !== v.project) X.toast(sp.owner ? TOASTS.roomOwnerReviseMap : TOASTS.roomCollaboratorReviseMap);
+      last = v;
+      p.showAll(f.emptyMapObjs, false);
+      p.showAll(f.selectedMapObjs, true);
+      p.showAll(f.ownerObjs, sp.owner);
+      p.showAll(f.guestObjs, !sp.owner);
+      setSwitch(p, f.ownerGusetToggle, sp.owner);
+      setSwitch(p, f.randomMapToggle, false);
+      p.text(f.roomIdText, v.code);
+      p.text(f.ownerWatingStatusTxt, ownerStatus(v));
+      p.text(f.guestWatingStatusTxt, v.prepared ? '已准备就绪，等待房主进入备赛' : '房主已选好项目，准备好后点击准备就绪');
+      setSwitch(p, f.ownerPreparBtnAvailToggle, sp.canEnter);
+      setSwitch(p, f.guestBtnAvailToggle, true);
+      setSwitch(p, f.guestPreparedCancelBtnToggle, v.prepared);
+      if (pr && shown !== v.project) {
+        p.text(f.mapCodeText, pr.code);
+        p.text(f.mapModeText, pr.name);
+        p.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
+        classIcon(p, f.mapDiffIconViewContainer, f.mapDiffIconViewPrefab, pr, f.mapDiffScale ?? 1);
+      }
+      shown = v.project;
+    },
+  };
+}
+
+/** The stage list's tabs by class, in the list's order (its tabs' `diffType` 2–4). */
+const TABS = Object.freeze(['ORDINARY', 'DIFFICULTY', 'EXTREMELY']);
+
+/**
+ * The stage list over the prepare page for the owner (房间-2): a tab for each class that has projects, a row of the
+ * class's projects (their small pictures and codes, the current one marked); a pick sets the project and closes it.
+ * @param {Part} page @param {StepCtx} X
+ */
+export function createStageList(page, X) {
+  const state = place(page, '@state_engine/stage_list_state', 'prepare/stagelist/stage_list_state');
+  const sf = state?.view() ?? {}, arena = state && sf.viewHolder && sf.viewPrefab ? place(state, sf.viewHolder, sf.viewPrefab) : null;
+  const af = arena?.view() ?? {};
+  state?.tap('@btn_back', () => X.list(false));
+  state?.show('@btn_reward', false);
+  arena?.show('@pnl_content/dec_info', false);
+  let cls = '', current = -1;
+  /** @param {string} c */
+  const tab = (c) => { cls = c; current = -2; };
+  TABS.forEach((c, i) => {
+    const t = `@pnl_content/panel_top_bar/layout_tab/pnl_tab${i + 1}`;
+    arena?.tap(`${t}/hotspot`, () => { tab(c); X.list(true); });
+  });
+  return {
+    /** @param {any} S */
+    update(S) {
+      if (!arena) return;
+      const projects = X.projects(), v = S.view;
+      if (!cls) cls = projects[v.project]?.class ?? TABS[0];
+      TABS.forEach((c, i) => {
+        const t = `@pnl_content/panel_top_bar/layout_tab/pnl_tab${i + 1}`, has = projects.some((x) => x.class === c);
+        arena.show(t, has);
+        arena.show(`${t}/img_selected`, c === cls);
+        arena.text(`${t}/text_tab`, projects.find((x) => x.class === c)?.className ?? '');
+      });
+      if (current === v.project) return;
+      current = v.project;
+      rows(arena, af, { projects, cls, chosen: v.project }, X);
+    },
+    close: () => { if (state) state.scr.remove(state.root); },
+  };
+}
+
+/**
+ * The list's row of a class's projects, the chosen one marked.
+ * @param {Part} arena @param {Record<string, any>} af @param {{ projects: ProjectView[], cls: string, chosen: number }} o @param {StepCtx} X
+ */
+function rows(arena, af, o, X) {
+  const { projects, cls, chosen } = o;
+  const mine = projects.map((x, i) => ({ x, i })).filter(({ x }) => x.class === cls);
+  fillList(arena, af.layout, 1, (row) => {
+    const rf = row.view();
+    fillList(row, rf.titleLayout, 1, (t) => { t.text('@text_name', MODE.name); t.show('@img_seperator', false); });
+    fillList(row, rf.stageLayout, mine.length, (item, k) => {
+      const { x, i } = mine[k], f = item.view(), small = pictureOf(X.art(), x.level);
+      item.text(f.stageCodeText, x.code);
+      item.sprite(f.stageImage, small ? X.art().stageIcon?.[`${small.split('/').pop()}_small`] ?? small : null);
+      item.show(f.pnlLocked, false);
+      item.show(f.pnlCorner, false);
+      item.show(f.randomPanel, false);
+      item.show(f.pnlTrackpoint, false);
+      item.show('@pnl_stage/detail_panel/normal_panel/star_content', false);
+      item.show(f.pnlSelected, i === chosen);
+      item.tap('@hotspot', () => { X.send({ t: 'project', index: i }); X.list(false); });
+    });
+  }, af.rowViewPrefab);
+}
+
+/**
+ * The stage's detail (项目确认, 房间-2): its code, the mode and class, its picture, each stage's task.
+ * @param {Part} d @param {ProjectView} pr @param {StepCtx} X
+ */
+function fillDetail(d, pr, X) {
+  const f = d.view();
+  d.text(f.stageCodeTxt, pr.code);
+  d.text(f.modeNameCodeTxt, `${MODE.name}·${pr.name}`);
+  classIcon(d, f.diffIconViewContainer, f.diffIconViewPrefab, pr, f.diffScale ?? 1);
+  d.picture(f.titleModeIconImg, X.modeIcon());
+  d.show(f.titleModeIconImg, !!X.modeIcon());
+  d.showAll([f.seasonIcon, f.pnlSeasonIcon], false);
+  d.text(f.stageDetailTxt, pr.stages.map((s, i) => `阶段${i + 1}：${s.title}`).join('\n'));
+  d.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
+  fillList(d, f.goalItemContainer, pr.stages.length, (g, i) => {
+    const s = pr.stages[i], gf = g.view();
+    g.text(gf.goalTxt, `${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''}`);
+    g.text(gf.rewardCntTxt, `${s.seconds}秒`);
+    g.show(gf.nextArrowObj, false);
+    g.show(gf.itemIconImg, false);
+  }, f.goalItemPrefab);
+  const regular = (f.modeConfigs ?? []).find((/** @type {any} */ m) => m.modeType === 1);
+  for (const m of f.modeConfigs ?? []) d.show(m.recordObj, m === regular);
+  if (regular) { d.show(regular.recordContentObj, false); d.show(regular.noRecordObj, true); }
+}
+
+/**
+ * 项目确认 (房间-2, 房间-3): the stage's detail, the mate's confirmation, this player's button — 我确认好了 sends the
+ * save's 常规队 and style, unless the 常规队 cannot be used.
+ * @param {Part} p @param {StepCtx} X
+ */
+export function createConfirm(p, X) {
+  const f = p.view();
+  p.show(f.entranceShowRoot, false);
+  p.show('@multi_v3_stage_confirm', true);
+  p.showAll(f.invertObjs, false);
+  void p.anim(f.mapConfirmEnterAnim);
+  let detail = false;
+  /** @type {any} */
+  let last = null;
+  p.tap('@multi_v3_stage_confirm/panel_certain/btn_certain_player', () => {
+    if (last?.confirmed[last.you]) return;
+    const why = X.squadProblem();
+    if (why) { X.toast(`常规队不能参赛：${why}`); return; }
+    X.send({ t: 'confirm', squad: X.squad(), style: X.style() });
+  });
+  return {
+    /** @param {any} S */
+    update(S) {
+      const v = S.view, pr = X.projects()[v.project];
+      last = v;
+      if (!detail && pr) {
+        detail = true;
+        const d = f.stageDetailContainer && f.stageDetailPrefab ? place(p, f.stageDetailContainer, f.stageDetailPrefab) : null;
+        if (d) { fillDetail(d, pr, X); void d.anim(d.view().inAnim); }
+      }
+      setSwitch(p, f.partnerReadyToggle, !!v.confirmed[1 - v.you]);
+      setSwitch(p, f.confirmBtnToggle, !!v.confirmed[v.you]);
+    },
+  };
+}
+
+/**
+ * The match's start (房间-6): both players' name cards and styles, the start clip; `play` resolves when it has played.
+ * @param {Part} p @param {StepCtx} X
+ */
+export function createStart(p, X) {
+  const f = p.view();
+  p.show('@multi_v3_stage_confirm', false);
+  p.show(f.entranceShowRoot, true);
+  p.showAll(f.invertObjs, false);
+  for (const r of [f.selfAssitIllustContainer, f.partnerAssitIllustContainer]) p.show(r, false);
+  /** @type {any} */
+  let view = null;
+  return {
+    /** @param {any} S */
+    update(S) { view = S.view; },
+    play: async () => {
+      const v = view;
+      if (v) {
+        for (const [seat, icon, name, card] of /** @type {[number, string, string, string][]} */ ([[v.you, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer],
+          [1 - v.you, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]])) {
+          const st = STYLES.find((s) => s.id === v.styles[seat]);
+          p.picture(icon, st ? X.styleIcon(st.id, '') : null);
+          p.text(name, st?.name ?? '');
+          const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
+          if (c) nameCard(c, v.members[seat]?.name ?? '');
+        }
+      }
+      await p.anim(f.normEnterAnim);
+    },
+  };
+}
+
+/** A player's short name card: its name; no id, title, level, mentor mark or early-quit mask. @param {Part} c @param {string} name */
+function nameCard(c, name) {
+  const f = c.view();
+  c.text(f.doctorName, name);
+  for (const r of [f.doctorUidGO, f.mentorObj, f.earlyQuitMaskGO]) c.show(r, false);
+  c.text(f.doctorTitle, '');
+  c.show('@container/headIcon/panel_exp', false);
+}

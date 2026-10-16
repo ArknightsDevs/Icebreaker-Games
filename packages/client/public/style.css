@@ -1,6 +1,6 @@
 /* The M0.5 skeleton page: the field fills the window, the HUD sits on top, the deploy bar at the bottom. */
 :root { color-scheme: dark; --bg: #1b1d21; --fg: #e8eaee; --muted: #9aa1ab; --accent: #2f86e8; --partner: #3f9b5c; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
+html, body { margin: 0; height: 100%; background: #000; color: var(--fg); font: 14px/1.5 system-ui, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
 #app { position: relative; height: 100%; overflow: hidden; }
 #field { display: block; width: 100%; height: 100%; }
 #hud { position: absolute; top: 12px; left: 16px; right: 16px; display: flex; gap: 16px; flex-wrap: wrap; pointer-events: none; }

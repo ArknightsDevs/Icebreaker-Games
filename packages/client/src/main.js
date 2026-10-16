@@ -13,7 +13,7 @@ import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
-import { createUi, createBattleHud, cardViews } from '@aue/ui';
+import { createUi, createBattleHud, createStart, cardViews } from '@aue/ui';
 import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './battlehud.js';
 import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
@@ -98,7 +98,10 @@ async function effectPack() {
  * @param {number} joined the last frame sealed when the page joined (−1 before the battle began)
  */
 async function setUp(match, art, changed, joined) {
-  const content = await matchContent(match), models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
+  const content = await matchContent(match);
+  // the original UI opens first: its start panel is the loading screen while the field, the models and the effects load
+  const early = art && !BARS ? openEarlyUi(match, content, joined < 0) : Promise.resolve(null);
+  const models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
   const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
@@ -106,30 +109,47 @@ async function setUp(match, art, changed, joined) {
   const devices = /** @type {Record<string, { side?: string }>} */ (/** @type {any} */ (content).devices ?? {});
   const foeDevices = new Set(Object.entries(devices).filter(([, d]) => d.side === 'ENEMY').map(([k]) => k));
   // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
-  const pack = art && !BARS ? await loadUiPack(ASSETS) : null;
+  const opened = await early, pack = opened?.loaded ?? null;
   const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, foeDevices,
     kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
-  const ui = renderer && pack ? await originalUi(match, content, avatar, pack, joined < 0) : null;
+  const ui = renderer && opened ? originalUi(match, content, avatar, opened) : null;
   return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders, foeDevices, early: joined < 0 };
 }
 
 /**
- * The original battle UI over the field (the engine's 界面-10…14) when the assets have its pack, else null (the page
- * keeps its own bars). A match of two joined before it began shows the start panel with the level's code and name
- * (界面-21).
- * @param {import('@aue/schema').Match} match @param {any} content @param {(id: string) => string | null} avatar
- * @param {NonNullable<Awaited<ReturnType<typeof loadUiPack>>>} loaded the battle UI pack @param {boolean} early joined before it began
+ * The original battle UI opened before the rest loads (the engine's 界面-21), when the assets have its pack, else null:
+ * in a match of two joined before it began, its start panel with the level's code and name over the page — the
+ * original's loading screen — played on its own clock until the page's loop takes over.
+ * @param {import('@aue/schema').Match} match @param {any} content @param {boolean} early joined before it began
  */
-async function originalUi(match, content, avatar, loaded, early) {
-  const host = $('ui'), base = new URL('ui/', ASSETS).href;
-  const ui = createUi({ pack: loaded.pack, host, base });
+async function openEarlyUi(match, content, early) {
+  const loaded = await loadUiPack(ASSETS);
+  if (!loaded) return null;
+  const ui = createUi({ pack: loaded.pack, host: $('ui'), base: new URL('ui/', ASSETS).href }), lv = content.level;
+  const start = early && (match.decks?.length ?? 1) === 2 && lv.code ? createStart(ui, { code: lv.code, name: lv.name ?? '' }) : null;
+  const field = $('field');
+  ui.resize(field.clientWidth, field.clientHeight);
+  let at = performance.now(), on = true;
+  const loop = (/** @type {number} */ now) => { if (!on) return; ui.tick(Math.min(0.1, (now - at) / 1000)); at = now; requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
   await ui.load();
+  return { loaded, ui, start, stop: () => { on = false; } };
+}
+
+/**
+ * The original battle UI over the field (the engine's 界面-10…14) on the UI opened early: the HUD, with the start panel
+ * already showing (界面-21); the early clock stops for the page's loop.
+ * @param {import('@aue/schema').Match} match @param {any} content @param {(id: string) => string | null} avatar
+ * @param {NonNullable<Awaited<ReturnType<typeof openEarlyUi>>>} opened
+ */
+function originalUi(match, content, avatar, opened) {
+  const { ui, loaded, start } = opened, base = new URL('ui/', ASSETS).href;
   const deck = deckCards(match, content, seat, avatar);
-  const lv = content.level, stage = early && lv.code ? { code: lv.code, name: lv.name ?? '' } : null;
-  const hud = createBattleHud(ui, { deck, coop: (match.decks?.length ?? 1) === 2, stage });
+  const hud = createBattleHud(ui, { deck, coop: (match.decks?.length ?? 1) === 2, start });
+  opened.stop();
   document.body.classList.add('original-ui');
   return { ui, hud, deck, icons: loaded.icons, iconBase: new URL('skills/', base).href };
 }

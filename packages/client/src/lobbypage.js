@@ -41,11 +41,14 @@ function lobbyArt(lobby, kind, i) {
  * The pictures cards take (页面-6): avatars from the manifest, profession and elite icons from the battle UI pack, the
  * rarity strips and potential marks the lobby pack carries (the game's common ones; the battle pack's rarity sprites
  * are the deploy cards' glows), skill icons from the skill icon index, the operators' half-length portraits from the
- * portrait index (by elite phase: the elite-2 one from elite 2 when there is one).
- * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack @param {any} portraits
+ * portrait index (by elite phase: the elite-2 one from elite 2 when there is one), the modules' type icons and marks
+ * from the module icon index (a type's icon is named by it in lower case, a few in its own case).
+ * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack
+ * @param {{ portraits: any, equips: any }} indexes the portrait index and the module icon index
  * @returns {import('./lobbycards.js').CardArt}
  */
-function cardArt(battle, manifest, skills, lobby, portraits) {
+function cardArt(battle, manifest, skills, lobby, { portraits, equips }) {
+  const equipUrl = (/** @type {string | undefined} */ file) => (file ? new URL(`uniequip/${file}`, ASSETS).href : null);
   const card = battle?.hud?.card, url = (/** @type {string | null | undefined} */ key) => (key && battle?.sprites?.[key] ? new URL(battle.sprites[key].uri, UI).href : null);
   return {
     avatar: (id) => (manifest?.files?.[`avatar:${id}`] ? new URL(manifest.files[`avatar:${id}`].file, ASSETS).href : null),
@@ -58,6 +61,8 @@ function cardArt(battle, manifest, skills, lobby, portraits) {
     rarity: (r) => lobbyArt(lobby, 'rarity', r - 1),
     potential: (p) => lobbyArt(lobby, 'potential', p - 1),
     skill: (id) => (skills?.icons?.[id] ? new URL(skills.icons[id], new URL('skills/', UI)).href : null),
+    equip: (type) => equipUrl(equips?.type?.[type.toLowerCase()] ?? equips?.type?.[type]),
+    equipMark: (mark) => equipUrl(equips?.extra?.[mark.toLowerCase()]),
   };
 }
 
@@ -70,14 +75,15 @@ export async function startLobby(el, H) {
   if (new URLSearchParams(location.search).has('html')) return null;
   const pack = await fetchJson(new URL('lobby.json', UI));
   if (!pack?.screens) return null;
-  const [battle, manifest, skills, atlas, portraits] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
-    fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS))]);
+  const [battle, manifest, skills, atlas, portraits, equips] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
+    fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS)),
+    fetchJson(new URL('uniequip/index.json', ASSETS))]);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load();
   // the screens' particle effects, when the assets have them (页面-6)
   void startLobbyFx(ui, UI).catch(() => null);
-  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, portraits), atlas, sound, pack });
+  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips }), atlas, sound, pack });
 }
 
 /**
@@ -134,22 +140,31 @@ function runUi(ui, tick) {
 }
 
 /**
- * The skill ids of operators, loaded on first ask (null until then); `changed` when some came.
+ * The skill ids and module types of operators, loaded on first ask (null until then); `changed` when some came.
  * @param {() => void} changed
  */
 function skillIdsOf(changed) {
-  /** @type {Map<string, string[]>} */
+  /** @type {Map<string, { skills: string[], modules: string[] }>} */
   const ids = new Map();
   let version = 0;
+  /** @param {string} id */
+  const of = (id) => {
+    if (!ids.has(id)) {
+      ids.set(id, { skills: [], modules: [] });
+      void loadTraining(id).then((t) => {
+        ids.set(id, { skills: t.skills.map((s) => s?.id ?? ''), modules: t.modules.map((m) => /** @type {any} */ (m).type ?? '') });
+        version++; changed();
+      }, () => undefined);
+    }
+    return /** @type {{ skills: string[], modules: string[] }} */ (ids.get(id));
+  };
   return {
     /** @param {string} id @param {number} k */
-    get: (id, k) => {
-      if (!ids.has(id)) {
-        ids.set(id, []);
-        void loadTraining(id).then((t) => { ids.set(id, t.skills.map((s) => s?.id ?? '')); version++; changed(); }, () => undefined);
-      }
-      return ids.get(id)?.[k] || null;
-    },
+    get: (id, k) => of(id).skills[k] || null,
+    /** A module's type (EXE-Y…). @param {string} id @param {number} k */
+    module: (id, k) => of(id).modules[k] || null,
+    /** How many modules an operator has (0 until its data came). @param {string} id */
+    modules: (id) => of(id).modules.length,
     version: () => version,
   };
 }
@@ -168,7 +183,7 @@ function stepCtx(H, G, L, K) {
     back: K.back, offline: () => S.conn !== '已连接', list: (open) => { L.list = open; K.draw(); }, sub: (sub) => { L.sub = sub; K.draw(); },
     copy: () => K.toast(copyText(H.invite()) ? TOASTS.roomIdCopySuccess : H.invite()),
     nameOf: A.nameOf, rosterOf: (id) => ROSTER[id] ?? null, squad: A.squad, squadProblem: A.squadProblem, style: A.style, setDraft: A.setDraft,
-    entryOf: (seat, id) => entryIn(S, seat, id) ?? (seat === S.view?.you ? H.entry(id) : null), skillId: K.skills.get, version: K.skills.version,
+    entryOf: (seat, id) => entryIn(S, seat, id) ?? (seat === S.view?.you ? H.entry(id) : null), skillId: K.skills.get, moduleType: K.skills.module, moduleCount: K.skills.modules, version: K.skills.version,
     modeIcon: () => spriteUrl(G.atlas, ROOM_ART, MODE_ICONS.NORMAL),
   };
 }

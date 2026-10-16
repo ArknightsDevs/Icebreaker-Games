@@ -6,17 +6,19 @@
 /**
  * The pictures the cards take from elsewhere: an operator's avatar URL, a profession's icon URL and colour, an elite
  * phase's icon URL, a rarity's URL, a potential's mark URL (by the potential, 1–6), a skill's icon URL, its half-length
- * portrait's URL at an elite phase (each null when there is none).
+ * portrait's URL at an elite phase, a module's type icon URL by its type (uniequip_table's typeName1-typeName2, e.g.
+ * EXE-Y) and the mark of its extra type (its typeName2: X, Y, D…) (each null when there is none).
  * @typedef {{ avatar: (id: string) => string | null, portrait: (id: string, elite: number) => string | null,
  *   profession: (p: string) => { url: string | null, color: number[] } | null,
  *   elite: (phase: number) => string | null, rarity: (r: number) => string | null, potential: (p: number) => string | null,
- *   skill: (skillId: string) => string | null }} CardArt
+ *   skill: (skillId: string) => string | null, equip: (type: string) => string | null, equipMark: (mark: string) => string | null }} CardArt
  */
 /**
  * A card to show: the operator, its box entry (null: unknown), its name, rarity and profession, where it comes from
- * (its colour: kept high-priority, drawn low-priority, a temporary recruit, other), its chosen skill and module.
+ * (its colour: kept high-priority, drawn low-priority, a temporary recruit, other), its chosen skill and module (with
+ * the module's type).
  * @typedef {{ id: string, entry: BoxEntry | null, name: string, rarity: number, profession: string, from?: 'kept' | 'drawn' | 'recruit' | 'extra',
- *   skill?: number, skillId?: string | null, module?: number }} CardData
+ *   skill?: number, skillId?: string | null, module?: number, moduleType?: string | null }} CardData
  */
 
 /** The cards' colour config id by where an operator comes from (the cards' `colorConfigs`: 1 red, 2 grey, 3 blue, 0 light). */
@@ -81,6 +83,7 @@ function fillSkill(card, f, d, art) {
   }
   card.show(f.emptyEquipPanelGO, module < 0);
   card.show(f.normalEquipPanelGO, module >= 0);
+  if (module >= 0) card.picture(f.imgEquipIcon, d.moduleType ? art.equip(d.moduleType) : null);
   if (module >= 0 && d.entry) card.text(f.textEquipLv, String(d.entry.modules[module] ?? ''));
 }
 

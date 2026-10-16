@@ -27,12 +27,15 @@ export const moduleOpen = (m, elite, level) => elite >= m.phase && level >= m.le
 export const maxPotential = (t) => 1 + (t.potentials?.length ?? 0);
 
 /**
- * A new box entry: the operator fully promoted and levelled, its open skills at their highest, potential 1, trust
- * 100%, modules not unlocked. @param {string} id @param {Training} t @returns {BoxEntry}
+ * A new box entry: the operator fully promoted and levelled, its open skills and modules at their highest, potential
+ * 1, trust 100%. @param {string} id @param {Training} t @returns {BoxEntry}
  */
 export function fullEntry(id, t) {
-  const elite = t.phases.length - 1;
-  return { id, elite, level: t.phases[elite].maxLevel, potential: 1, trust: 100, skills: openSkills(t, elite).map((s) => skillCap(elite, s.levels.length)), modules: t.modules.map(() => 0) };
+  const elite = t.phases.length - 1, level = t.phases[elite].maxLevel;
+  return {
+    id, elite, level, potential: 1, trust: 100, skills: openSkills(t, elite).map((s) => skillCap(elite, s.levels.length)),
+    modules: t.modules.map((m) => (moduleOpen(m, elite, level) ? m.levels.length : 0)),
+  };
 }
 
 /** An entry brought within its operator's limits (after a change of promotion or level, or from an old save). @param {BoxEntry} e @param {Training} t @returns {BoxEntry} */

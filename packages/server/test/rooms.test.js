@@ -158,6 +158,7 @@ test('[房间-5] [房间-6] a lineup of 6–10 from the seat\'s options, then �
   g.rooms.message(1, { t: 'lineup', lineup: lineup(0, 6) });
   g.rooms.message(1, { t: 'ready', on: true });
   g.rooms.message(2, { t: 'lineup', lineup: lineup(1, 8) });
+  assert.deepEqual(g.last(1, 'room').choices[1]?.[0], { skill: 1, module: 1 }, 'the other seat\'s skills and modules are shown with its lineup');
   g.rooms.message(2, { t: 'ready', on: true });
   assert.equal(g.last(1, 'room').phase, 'battle', 'at once: the match is starting');
   await settle();

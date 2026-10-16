@@ -6,9 +6,9 @@ import { loadTraining } from '@aue/content';
 import { fullEntry, clampEntry, skillCap, skillLevelText, trainingText, maxPotential } from '../src/training.js';
 import { clock, inviteText, turnText, startingLineup, lineupCount, PHASE_TITLES, CLOSED, styleText } from '../src/roomtext.js';
 
-test('[页面-2] a new six-star: E2 at its top level, its 3 skills at mastery 3, potential 1, trust 100%, modules not unlocked', async () => {
+test('[页面-2] a new six-star: E2 at its top level, its 3 skills at mastery 3, its module at stage 3, potential 1, trust 100%', async () => {
   const t = await loadTraining('char_1035_wisdel'), e = fullEntry('char_1035_wisdel', t);
-  assert.deepEqual(e, { id: 'char_1035_wisdel', elite: 2, level: 90, potential: 1, trust: 100, skills: [10, 10, 10], modules: [0] });
+  assert.deepEqual(e, { id: 'char_1035_wisdel', elite: 2, level: 90, potential: 1, trust: 100, skills: [10, 10, 10], modules: [3] });
   assert.equal(entryProblem(e), null);
   assert.equal(maxPotential(t), 6);
 });

@@ -60,6 +60,8 @@ function view(L, r, seat) {
     options: r.phase === 'lineup' ? r.options : null, squads: r.phase === 'lineup' ? r.squads : null,
     styles: shown ? r.styles : r.styles.map((s, i) => (i === seat ? s : '')),
     lineups: r.lineups.map((l) => (l ? l.map((x) => x.id) : null)), ready: r.ready,
+    // each seat's skill and module for its lineup's operators, in their order (房间-6: both lineups shown in full)
+    choices: r.lineups.map((l) => (l ? l.map((x) => ({ skill: x.skill, module: x.module })) : null)),
   };
 }
 /** @param {Lobby} L @param {Room} r */

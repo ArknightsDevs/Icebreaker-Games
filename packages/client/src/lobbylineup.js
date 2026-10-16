@@ -117,8 +117,15 @@ function select(v, S, o, X) {
  * @param {Part} v @param {any} S @param {StepCtx} X
  */
 function skills(v, S, X) {
-  const f = v.view(), draft = draftOf(S), modules = tabs.get(v) ?? false;
-  v.tap('@tab_show_switch/hotspot', () => { tabs.set(v, !modules); void v.anim(f.tabSwitchAnim); skills(v, S, X); });
+  const f = v.view(), draft = draftOf(S), tab = f.tabSwitchAnim;
+  // the tab's clip runs from 模组 chosen to 技能 chosen: the step opens on 技能 (the clip's end), 模组 plays it back
+  if (!tabs.has(v)) { tabs.set(v, false); if (tab?.animationName) void v.play(tab.animationWrapper, tab.animationName, { rate: 1e4 }); }
+  const modules = tabs.get(v) ?? false;
+  v.tap('@tab_show_switch/hotspot', () => {
+    tabs.set(v, !modules);
+    if (tab?.animationName) void v.play(tab.animationWrapper, tab.animationName, { reverse: !modules });
+    skills(v, S, X);
+  });
   /** @param {number} i @param {Partial<Pick>} change */
   const set = (i, change) => X.setDraft(draft.map((x, k) => (k === i ? { ...x, ...change } : x)));
   fillList(v, f.charCardContent, draft.length, (item, i) => {
@@ -126,6 +133,8 @@ function skills(v, S, X) {
     const card = vf.container && vf.cardPrefab ? place(item, vf.container, vf.cardPrefab) : null;
     // the skill view's card prefab is the large card itself, not a holder
     if (card) fillCard(card, { id: d.id, entry: e, name: X.nameOf(d.id), rarity: r?.rarity ?? 1, profession: r?.profession ?? '', skill: d.skill, module: d.module, skillId: X.skillId(d.id, d.skill) }, X.cards);
+    // the skills and modules are chosen on the right: the card's own panel of them is not shown here (the original)
+    if (card) card.show(card.view().skillEquipPanelGO, false);
     fillList(item, vf.contentSkill, e?.skills.length ?? 0, (s, k) => {
       const sf = s.view(), lv = e?.skills[k] ?? 0;
       s.show(sf.emptyPartGo, false); s.show(sf.lockPartGo, false); s.show(sf.normalPartGo, true);
@@ -136,14 +145,20 @@ function skills(v, S, X) {
       if (lv > 7 && sf.skillLevelImages) s.sprite(sf.imgSpecializeLv, sf.skillLevelImages[lv - 7] ?? null);
       s.tap('@normal_part/click_area', () => set(i, { skill: k }));
     });
-    const mods = (e?.modules ?? []).map((st, k) => ({ st, k })).filter((m) => m.st > 0);
+    // each of its modules: its type's icon, the type's name and its extra-type mark (EXE + Y), its stage; one not
+    // unlocked in the box is locked; a tap chooses one or drops it
+    const count = Math.max(X.moduleCount(d.id), e?.modules.length ?? 0);
     item.show(vf.objSkillPanel, !modules);
-    item.show(vf.objModulePanel, modules && mods.length > 0);
-    fillList(item, vf.contentModule, mods.length, (m, j) => {
-      const mf = m.view(), { st, k } = mods[j];
-      m.show(mf.emptyPartGo, false); m.show(mf.lockPartGo, false); m.show(mf.normalPartGo, true);
+    item.show(vf.objModulePanel, modules);
+    fillList(item, vf.contentModule, count, (m, k) => {
+      const mf = m.view(), st = e?.modules[k] ?? 0, type = X.moduleType(d.id, k) ?? '', [name, mark] = type.split('-');
+      m.show(mf.emptyPartGo, false); m.show(mf.lockPartGo, st === 0); m.show(mf.normalPartGo, st > 0);
+      if (st === 0) return;
       m.show(mf.selectBgGo, d.module === k);
-      m.text(mf.textEquipName, `模组${k + 1}`);
+      m.picture(mf.imgEquipIcon, type ? X.cards.equip(type) : null);
+      m.text(mf.textEquipName, name ?? '');
+      m.show(mf.imgEquipType, !!mark);
+      if (mark) m.picture(mf.imgEquipType, X.cards.equipMark(mark));
       m.text(mf.textLv, String(st));
       m.tap('@normal_part/click_area', () => set(i, { module: d.module === k ? -1 : k }));
     });
@@ -158,14 +173,19 @@ function skills(v, S, X) {
  */
 function check(v, S, X) {
   const f = v.view(), me = S.view.you, mate = 1 - me, mine = S.view.lineups[me] ?? draftOf(S).map((x) => x.id), theirs = S.view.lineups[mate];
-  // this player's cards with the skills and modules of its draft; the mate's choices are not in the room's view
+  // this player's cards with the skills and modules of its draft
   const chosen = new Map(draftOf(S).map((x) => [x.id, x]));
   fillList(v, f.mySquad, mine.length, (item, i) => {
     const d = chosen.get(mine[i]);
     setSwitch(item, '@', true);
-    holderCard(item, place, { ...cardOf(X, S, me, mine[i], 'extra'), ...(d ? { skill: d.skill, module: d.module, skillId: X.skillId(d.id, d.skill) } : {}) }, X.cards);
+    holderCard(item, place, { ...cardOf(X, S, me, mine[i], 'extra'), ...(d ? { skill: d.skill, module: d.module, skillId: X.skillId(d.id, d.skill), moduleType: X.moduleType(d.id, d.module) } : {}) }, X.cards);
   });
-  fillList(v, f.partnerSquad, theirs?.length ?? 0, (item, i) => { setSwitch(item, '@', true); holderCard(item, place, cardOf(X, S, mate, theirs[i], 'extra'), X.cards); });
+  // the mate's cards with the skills and modules it chose (房间-6)
+  fillList(v, f.partnerSquad, theirs?.length ?? 0, (item, i) => {
+    const c = S.view.choices?.[mate]?.[i], id = theirs[i];
+    setSwitch(item, '@', true);
+    holderCard(item, place, { ...cardOf(X, S, mate, id, 'extra'), ...(c ? { skill: c.skill, module: c.module, skillId: X.skillId(id, c.skill), moduleType: X.moduleType(id, c.module) } : {}) }, X.cards);
+  });
   v.show(f.waitingTips, !theirs);
   const ready = !!S.view.ready[me];
   setSwitch(v, f.btnPrepare, !ready);

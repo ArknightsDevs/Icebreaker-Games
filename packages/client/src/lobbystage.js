@@ -36,7 +36,9 @@ import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
  * @property {(seat: number, id: string) => BoxEntry | null} entryOf
  * @property {(id: string, skill: number) => string | null} skillId
  * @property {() => string | null} modeIcon the mode's icon URL
- * @property {() => number} version a number that changes when lazily loaded data (skill ids) comes
+ * @property {(id: string, k: number) => string | null} moduleType a module's type (EXE-Y…), null until its data came
+ * @property {(id: string) => number} moduleCount how many modules an operator has (0 until its data came)
+ * @property {() => number} version a number that changes when lazily loaded data (skill ids, module types) comes
  */
 
 /** The class nodes of the class icon prefab (common/multiv3_map_diff_icon). */

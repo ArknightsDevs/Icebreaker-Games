@@ -23,7 +23,7 @@ import { styleIcon, loadRoomAtlas, spriteUrl, MODE_ICONS } from './roomart.js';
  * What the room page gives the lobby: its state and actions, the save's box entries, setting the style, opening the
  * page's box editor, its back button shown or not, the invitation text, the sound volume.
  * @typedef {{ S: RoomState, A: RoomActions, entry: (id: string) => import('@icebreaker/mode-regular').BoxEntry | null, setStyle: (id: string) => void,
- *   editBox: () => void, backButton: (on: boolean) => void, invite: () => string, sfx: number }} LobbyHost
+ *   editBox: () => void, backButton: (on: boolean) => void, invite: () => string, sfx: number, card: () => any }} LobbyHost
  */
 
 const ASSETS = new URL('/assets/skeleton/', location.href), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
@@ -220,8 +220,18 @@ function pageMakers(ui, H, G, L, K) {
     squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, editBox: H.editBox, nameOf: A.nameOf,
       rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
     prepare: () => createPrepare(ui, X),
-    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { project: (level) => X.projects().find((p) => p.level === level) ?? null, done: () => { L.finish = null; draw(); } }),
+    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level) => X.projects().find((p) => p.level === level) ?? null,
+      players: () => playersOf(H), done: () => { L.finish = null; draw(); }, quit: () => { L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
   };
+}
+
+/**
+ * The room's players for the finish view (页面-6): this player and the other as the room shows them, this player's
+ * own name card while the room has not come back yet. @param {LobbyHost} H @returns {[any, any]}
+ */
+function playersOf(H) {
+  const v = H.S.view;
+  return v ? [v.members[v.you] ?? null, v.members[1 - v.you] ?? null] : [H.card(), null];
 }
 
 /** The owner's toast when the mate joins or leaves (页面-6); the count now. @param {any} v @param {number} was @param {(t: string) => void} toast */

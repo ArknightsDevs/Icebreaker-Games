@@ -112,7 +112,7 @@ describe('two players through the original lobby screens', { skip: HAS_LOBBY ? f
     for (const p of players) assert.deepEqual(p.errors, []);
   });
 
-  test('[页面-6] a match\'s result left by the battle page: the finish view once, 下一步 back to the entry page', { timeout: 60000 }, async () => {
+  test('[页面-6] a match\'s result left by the battle page: the finish view once, 下一步 to its players, 返回房间 back to the entry page', { timeout: 60000 }, async () => {
     const page = players[0]?.page ?? (await player('丙')).page;
     await page.evaluate(() => sessionStorage.setItem('ice.result', JSON.stringify({ match: 'm', result: 1, level: 'act1multi_01', stamps: [1, 1] })));
     await page.goto(`http://127.0.0.1:${stack.port}/`);
@@ -120,6 +120,11 @@ describe('two players through the original lobby screens', { skip: HAS_LOBBY ? f
     await sleep(2500);
     assert.equal(await page.locator('#lobby .aue-n[data-name="star1"]:visible').count() + await page.locator('#lobby .aue-n[data-name="star2"]:visible').count(), 2, 'two stamps, two stars');
     await hot(page, 'btn_next').click();
+    // the second part: both players, the rating of two stars (崭露头角), 返回房间
+    await page.locator('#lobby .aue-n[data-name="room_btn"]:visible').first().waitFor({ timeout: 10000 });
+    await sleep(1500);
+    assert.equal(await page.locator('#lobby .aue-n[data-name="type_02"]:visible').count(), 1, 'two stars: 崭露头角');
+    await hot(page, 'room_btn').click();
     await until('the room page again', async () => ((await lobby(page))?.page !== 'finish' ? true : undefined));
     assert.equal(await page.evaluate(() => sessionStorage.getItem('ice.result')), null, 'shown once');
   });

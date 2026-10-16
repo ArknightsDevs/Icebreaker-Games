@@ -2,7 +2,7 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar } from './lobbykit.js';
+import { openPart, closePart, place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
 import { STYLES, MODE, TOASTS, PLAYER_TITLE } from '@icebreaker/mode-regular';
 import { cardName } from './roomtext.js';
@@ -188,6 +188,21 @@ function rows(arena, af, o, X) {
   }, af.rowViewPrefab);
 }
 
+/** The dialog 「查看地图」 opens (页面-6): the stage detail over the prepare page. */
+const STAGE_DIALOG = 'dialog/stage_detail_dialog';
+
+/**
+ * The stage's detail in its dialog over the prepare page (页面-6, 「查看地图」 on the top bar): as 项目确认 shows it; its
+ * close button or a tap outside it closes it. @param {any} ui @param {ProjectView} pr @param {StepCtx} X
+ */
+export function openStageDialog(ui, pr, X) {
+  const dlg = openPart(ui, STAGE_DIALOG, 70), f = dlg.view(), close = () => closePart(dlg);
+  const d = f.viewContainer && f.viewPrefab ? place(dlg, f.viewContainer, f.viewPrefab) : null;
+  if (d) { fillDetail(d, pr, X); void d.anim(d.view().inAnim); }
+  dlg.tap(`${f.backBtnRect ?? '@btn_close'}/hotspot`, close);
+  dlg.tap('@darken', close);
+}
+
 /** The room a goal row keeps at its right once its text takes the reward's (INF-0016). */
 const GOAL_RIGHT = 12;
 
@@ -307,7 +322,7 @@ function showPlayer(p, f, X, v, [seat, illust, icon, name, card]) {
  * or early-quit mask (the platform has none).
  * @param {Part} c @param {string} name @param {string | undefined} skin the default skin's sprite @param {string | null} avatar
  */
-function nameCard(c, name, skin, avatar) {
+export function nameCard(c, name, skin, avatar) {
   const f = c.view(), sp = skin ? c.scr.ctx.pack.sprites[skin] : null;
   placePicture(c, f.bgImgContainer, sp && skin ? { sprite: skin, pos: [0, 0], size: [sp.w, sp.h] } : null);
   c.text(f.doctorName, name);

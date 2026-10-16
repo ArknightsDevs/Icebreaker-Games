@@ -311,13 +311,33 @@ function stampsOf(stamps, events) {
 }
 
 /**
+ * The field's last frame, small and blurred, for the room's result view to show behind its panels as the original's
+ * blurred battle (页面-6): a JPEG data URL, or null. @param {Page} P
+ */
+function lastFrame(P) {
+  const r = P.game?.renderer, field = /** @type {HTMLCanvasElement} */ ($('field'));
+  if (!r || !field.width) return null;
+  try {
+    // the field's drawing is read in the same task it is drawn
+    r.render();
+    const c = document.createElement('canvas'), x = c.getContext('2d');
+    if (!x) return null;
+    c.width = 640; c.height = Math.round((640 * field.height) / field.width);
+    x.filter = 'blur(6px)';
+    x.drawImage(field, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.7);
+  } catch { return null; }
+}
+
+/**
  * A room's match ended (房间-6): the result and the way back to the room; the result kept for the room's result view
- * (页面-6). @param {number} result 1: won, 0: lost @param {Page} P
+ * (页面-6), with the field's last frame. @param {number} result 1: won, 0: lost @param {Page} P
  */
 function ended(result, P) {
   notice(`比赛结束：${result === 1 ? '胜利' : '失败'}。`);
-  const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', stamps = [...P.stamps].map((x) => x ?? 0);
-  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, stamps })); } catch { /* the room shows no result */ }
+  const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', stamps = [...P.stamps].map((x) => x ?? 0), bg = lastFrame(P);
+  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, stamps, at: Date.now() })); } catch { /* the room shows no result */ }
+  try { if (bg) sessionStorage.setItem('ice.result.bg', bg); } catch { /* the result shows without it */ }
   const back = document.createElement('a');
   back.href = '/room';
   back.className = 'back';

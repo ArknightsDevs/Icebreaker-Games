@@ -28,7 +28,10 @@ export const LINEUP_VIEWS = Object.freeze({
  * result to show after a match, whether the entry page shows its room panel.
  * @typedef {{ sub: 'sel' | 'skill' | 'check', list: boolean, squad: boolean, finish: MatchResult | null, room: boolean }} Local
  */
-/** A match's result as the battle page leaves it: won, the level, each stage's stamps. @typedef {{ match: string, result: number, level: string, stamps: number[] }} MatchResult */
+/**
+ * A match's result as the battle page leaves it: won, the level, each stage's stamps, when it ended (ms), the field's
+ * last frame blurred (a data URL). @typedef {{ match: string, result: number, level: string, stamps: number[], at?: number, bg?: string }} MatchResult
+ */
 
 /** A new lobby page's own state. @returns {Local} */
 export const newLocal = () => ({ sub: 'sel', list: false, squad: false, finish: null, room: false });
@@ -124,7 +127,8 @@ export const lineupOptions = (o, recruits) => [
 export function resultOf(raw) {
   try {
     const r = raw ? JSON.parse(raw) : null;
-    return r && typeof r.match === 'string' && typeof r.result === 'number' && Array.isArray(r.stamps) ? { match: r.match, result: r.result, level: String(r.level ?? ''), stamps: r.stamps.map(Number) } : null;
+    if (!(r && typeof r.match === 'string' && typeof r.result === 'number' && Array.isArray(r.stamps))) return null;
+    return { match: r.match, result: r.result, level: String(r.level ?? ''), stamps: r.stamps.map(Number), ...(Number.isFinite(r.at) ? { at: r.at } : {}) };
   } catch {
     return null;
   }

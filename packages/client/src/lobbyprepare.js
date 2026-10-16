@@ -6,7 +6,7 @@
 import { openPart, closePart, place, setSwitch, screenKey, placeAvatar } from './lobbykit.js';
 import { PLAYER_TITLE } from '@icebreaker/mode-regular';
 import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.js';
-import { createStage, createStageList, createConfirm, playEntrance, classIcon } from './lobbystage.js';
+import { createStage, createStageList, createConfirm, playEntrance, classIcon, openStageDialog } from './lobbystage.js';
 import { createPick } from './lobbypick.js';
 import { createLineup } from './lobbylineup.js';
 import { clock, pingText, cardName } from './roomtext.js';
@@ -46,6 +46,11 @@ export function createPrepare(ui, X) {
   const tf = top?.view() ?? {}, sf = side?.view() ?? {};
   page.show(`${MAIN}/emoji_chat_view`, false);
   if (top) wireTop(top, tf, X);
+  // 查看地图: the stage's detail in its dialog (页面-6)
+  top?.tap('@bkg/panel_horz_grp/panel_map_btn/btn_show_map', () => {
+    const v = lastArgs?.[0]?.view, pr = v ? X.projects()[v.project] : null;
+    if (pr) openStageDialog(ui, pr, X);
+  });
   if (side) wireSide(side, sf, X);
   /** @type {[any, any] | null} */
   let lastArgs = null;
@@ -162,13 +167,12 @@ function wireTop(t, f, X) {
   t.tap('@bkg/btn_exit/hot_spot', X.leave);
   t.tap('@bkg/panel_horz_grp/panel_pre_btn/btn_return', X.back);
   t.show(f.invertTipObj, false);
-  t.show('@bkg/panel_horz_grp/panel_map_btn/btn_show_map', false);
 }
 
 /**
- * The top bar for a room (页面-6): the stage and its class, leaving hidden while the stage is confirmed and the match
- * starts. Beside the side view's full panel its own leaving and 上一步 give way to the panel's, and its space for the
- * team keeps the stage clear of the panel (INF-0013).
+ * The top bar for a room (页面-6): 查看地图, the stage and its class, leaving hidden while the stage is confirmed and the
+ * match starts. Beside the side view's full panel its own leaving and 上一步 give way to the panel's; the bar's space
+ * for the team and, beside the full panel, its 上一步 slot keep the stage clear of the side view (INF-0013).
  * @param {Part} t @param {Record<string, any>} f @param {any} S @param {string} step @param {StepCtx} X
  */
 function topUpdate(t, f, S, step, X) {
@@ -180,8 +184,10 @@ function topUpdate(t, f, S, step, X) {
   }
   const full = fullSide(step);
   for (const r of t.view('@hideInEntrance').gos ?? []) t.show(r, step !== 'confirm');
-  t.show(f.btnReturn, !full && step === 'skill');
-  t.show(f.space, full);
+  // the bar keeps clear of the side view as the original does: the narrow view's space always, the 上一步 slot too
+  // beside the full view (under it there) and in the skill step (where 上一步 is on the bar)
+  t.show(f.btnReturn, full || step === 'skill');
+  t.show(f.space, true);
   if (full) t.show('@bkg/btn_exit', false);
 }
 

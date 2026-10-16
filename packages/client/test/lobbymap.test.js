@@ -95,3 +95,10 @@ test('[页面-6] a UI sound of a bank: by weight (all 0: alike), pitch and volum
   assert.deepEqual([pickOf(even, seq([0.4]))?.file, pickOf(even, seq([0.6]))?.file], ['a', 'b']);
   assert.equal(pickOf({ ...bank, sounds: [] }, Math.random), null);
 });
+
+test('[页面-6] a result keeps when its match ended; the finish view writes the time as the original does', async () => {
+  const { finishTime } = await import('../src/lobbyfinish.js');
+  assert.deepEqual(resultOf(JSON.stringify({ match: 'm', result: 1, level: 'act1multi_01', stamps: [1, 2], at: 5 })), { match: 'm', result: 1, level: 'act1multi_01', stamps: [1, 2], at: 5 });
+  assert.equal(resultOf(JSON.stringify({ match: 'm', result: 1, stamps: [], at: 'x' }))?.at, undefined);
+  assert.equal(finishTime(new Date(2026, 9, 17, 8, 7, 4)), '2026/10/17 08:07:04');
+});

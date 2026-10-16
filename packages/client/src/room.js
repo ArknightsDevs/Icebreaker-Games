@@ -116,9 +116,13 @@ function boxOpen(on) {
 
 /** The battle page's result, once (页面-6). */
 function takeResult() {
-  let raw = null;
-  try { raw = sessionStorage.getItem(RESULT_KEY); sessionStorage.removeItem(RESULT_KEY); } catch { /* no result kept */ }
-  return resultOf(raw);
+  let raw = null, bg = null;
+  try {
+    raw = sessionStorage.getItem(RESULT_KEY); bg = sessionStorage.getItem(`${RESULT_KEY}.bg`);
+    sessionStorage.removeItem(RESULT_KEY); sessionStorage.removeItem(`${RESULT_KEY}.bg`);
+  } catch { /* no result kept */ }
+  const r = resultOf(raw);
+  return r && bg?.startsWith('data:image/') ? { ...r, bg } : r;
 }
 
 /** The lobby screens when the assets have them; else the HTML room stays. */
@@ -126,7 +130,7 @@ async function lobbyMode() {
   lobby = await startLobby($('lobby'), {
     S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, editBox: () => boxOpen(true), invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
     setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
-    backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx,
+    backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }),
   }).catch((e) => { console.error(e); return null; });
   if (!lobby) return;
   document.body.classList.add('lobby-on');

@@ -14,6 +14,7 @@ import { createPrepare } from './lobbyprepare.js';
 import { createFinish } from './lobbyfinish.js';
 import { createLobbySound } from './lobbysound.js';
 import { AFTER_TICK } from './lobby3d.js';
+import { startLobbyFx } from './lobbyfx.js';
 import { entryIn } from './roomview.js';
 import { styleIcon, loadRoomAtlas, spriteUrl, MODE_ICONS } from './roomart.js';
 
@@ -60,6 +61,8 @@ export async function startLobby(el, H) {
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load();
+  // the screens' particle effects, when the assets have them (页面-6)
+  void startLobbyFx(ui, UI).catch(() => null);
   return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills), atlas, sound, pack });
 }
 

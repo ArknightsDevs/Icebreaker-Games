@@ -46,8 +46,14 @@ const fail = (L, id, msg) => L.o.send(id, { t: 'error', msg });
 const until = (L, at) => Math.max(0, at - L.o.now());
 
 /**
- * A room as a seat sees it: the other seat's style once both have confirmed (房间-3), the squads and options only once
- * the lineups are being set (房间-5).
+ * A seat's assist (房间-3): its 常规队's first operator — the first of the high priority, else of the low — by its
+ * id and elite phase (INF-0018). @param {Squad | null} s
+ */
+const assistOf = (s) => { const e = s ? s.high[0] ?? s.low[0] : null; return e ? { id: e.id, elite: e.elite } : null; };
+
+/**
+ * A room as a seat sees it: the other seat's style and assist once both have confirmed (房间-3), the squads and
+ * options only once the lineups are being set (房间-5).
  * @param {Lobby} L @param {Room} r @param {number} seat
  */
 function view(L, r, seat) {
@@ -59,6 +65,7 @@ function view(L, r, seat) {
     picking: p ? { left: p.left, by: p.by, yielded: p.yielded, won: p.won } : null,
     options: r.phase === 'lineup' ? r.options : null, squads: r.phase === 'lineup' ? r.squads : null,
     styles: shown ? r.styles : r.styles.map((s, i) => (i === seat ? s : '')),
+    assists: r.squads.map((s, i) => (shown || i === seat ? assistOf(s) : null)),
     lineups: r.lineups.map((l) => (l ? l.map((x) => x.id) : null)), ready: r.ready,
     // each seat's skill and module for its lineup's operators, in their order (房间-6: both lineups shown in full)
     choices: r.lineups.map((l) => (l ? l.map((x) => ({ skill: x.skill, module: x.module })) : null)),

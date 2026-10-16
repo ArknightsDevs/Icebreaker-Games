@@ -2,7 +2,7 @@
 // makes a room and 加入！ joins one by its code (the invitation text pasted whole works too, 房间-1); 编队 opens the
 // squad page. The entries of systems the platform does not have — quick match, the manual, milestones, rewards,
 // training, medals, invitations, the guide book — are hidden, not left as dead ends.
-import { openPart, closePart, inputOn, placeBottomBar, placeTopMenu } from './lobbykit.js';
+import { openPart, closePart, inputOn, placeBottomBar, placeTopMenu, seasonLogo } from './lobbykit.js';
 import { startScene3d } from './lobby3d.js';
 import { PAGES } from './lobbymap.js';
 
@@ -45,13 +45,13 @@ export function createEntry(ui, A) {
   /** @type {{ stop: () => void } | null} */
   let scene = null;
   const scene3d = startScene3d(ui, p.scr, ui.ctx.base).then((s) => { scene = s; if (s) p.show('@view_back', true); }, () => {});
-  // the season's logo comes from the activity's art, which the pack does not have
-  p.show(`${ENTRY}/panel_main/season_logo`, false);
+  // the season's logo and the title's season cover mark, which the game fills per season (INF-0018)
+  seasonLogo(p, f.imgLogo, 'logo');
+  seasonLogo(p, f.entryAnimLogo, 'mark');
   // the activity's "ended" marks, and the left panel's back that framed the buttons hidden above
   p.show(`${ENTRY}/panel_main/panel_left/btn_formation/act_end`, false);
   p.show(`${ENTRY}/panel_main/panel_match/group_act_end`, false);
   p.show(`${ENTRY}/panel_main/panel_left/left_panel_back`, false);
-  p.show('@view_ui/canvas_ui/canvas_group/panel_entry_anim/entry_p2_season_cover/season_logo', false);
   // the common bottom bar the page puts in its holder (the scrolling strip along the bottom)
   if (f.bottomBarHolder) placeBottomBar(p, f.bottomBarHolder);
   let room = false, busy = false;

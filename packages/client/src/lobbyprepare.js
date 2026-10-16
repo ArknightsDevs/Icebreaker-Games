@@ -18,8 +18,9 @@ const COUNTDOWN = 'prepare/mainviews/act_multi_v3_countdown_view';
 /** When the countdown's logo stands and the screen goes black for the match, as the original's recording shows it (INF-0015). */
 const LOGO_STANDS_MS = 4400, BLACK_MS = 100;
 /**
- * Whether the side view shows its full panel on a step: in 项目调整 and the lineup's check; 项目确认, the coordination
- * and the lineup's first two steps lay their content out from the left edge, where only the small one fits (INF-0013).
+ * Whether the side view shows its full panel on a step: in 项目调整 and the lineup's check; the coordination and the
+ * lineup's first two steps lay their content out from the left edge, where only the small one fits; 项目确认 shows no
+ * side view at all, as the original's recording does (INF-0013).
  * @param {string} step
  */
 const fullSide = (step) => step === 'stage' || step === 'check';
@@ -61,7 +62,7 @@ export function createPrepare(ui, X) {
     steps.c?.update(S, L);
     stageList(S, L);
     if (top) topUpdate(top, tf, S, step, X);
-    if (side) sideUpdate(side, sf, S, X, step);
+    if (side) { side.root.active = step !== 'confirm'; sideUpdate(side, sf, S, X, step); }
     const b = bannerOf(phase, v);
     if (b) void banner(page, b);
     phase = v.phase;

@@ -142,6 +142,40 @@ export function unplace(p, at) {
   placed.delete(node);
 }
 
+/** The season's art as sprites of the pack ('season/<name>', added from the season index when the assets have it). */
+export const SEASON = 'season/';
+
+/**
+ * A logo slot the game fills per season at run time (页面-6): the season's art made for it (INF-0018), or the slot
+ * hidden when the assets do not have it.
+ * @param {Part} p @param {string | undefined} r @param {'logo' | 'mark' | 'bar' | 'start' | 'detail'} name
+ */
+export function seasonLogo(p, r, name) {
+  if (!r) return;
+  const key = SEASON + name, on = Object.hasOwn(p.scr.ctx.pack.sprites, key);
+  if (on) p.sprite(r, key);
+  p.show(r, on);
+}
+
+/** The node an illust loader makes for its art (a template added to the pack with the art index). */
+export const ILLUST = 'charillust';
+
+/**
+ * An operator's illustration in an illust loader node (页面-6): the loader puts the art's prefab as it is — its own
+ * rect, under the loader's scale — so the part of the art the assets keep goes at its rect in the loader; the loader
+ * left empty without the art.
+ * @param {Part} p @param {string | undefined} at the loader @param {{ url: string, pos: number[], size: number[] } | null} ill
+ */
+export function placeIllust(p, at, ill) {
+  if (!at) return null;
+  if (!ill) { unplace(p, at); return null; }
+  const c = place(p, at, ILLUST);
+  if (!c) return null;
+  Object.assign(c.root.rt, { pos: [...ill.pos], size: [...ill.size] });
+  c.scr.picture('', ill.url, c.root);
+  return c;
+}
+
 /**
  * A list node filled with n items from its template (the node's `list` component, or the prefab given: a container a
  * controller fills with a prefab it names), each given to fill (界面-26). Items are kept and refilled on the next
@@ -204,14 +238,14 @@ export const BOTTOM_BAR = 'common/bottom_bar_prefab';
 
 /**
  * The common bottom bar placed at a node (页面-6): its title 「RHODES ISLAND:」 (set by the game at run time; the
- * activity's screenshots show it), its season logo hidden (filled at run time from art the packs do not have).
+ * activity's screenshots show it), its season logo the season's mark faint under the bar (INF-0018).
  * @param {Part} p @param {string} at @param {string} [prefab] @returns {Part | null}
  */
 export function placeBottomBar(p, at, prefab = BOTTOM_BAR) {
   const bar = place(p, at, prefab);
   if (!bar) return null;
   const f = bar.view();
-  bar.show(f.imgSeasonLogo ?? '@season_logo', false);
+  seasonLogo(bar, f.imgSeasonLogo ?? '@season_logo', 'bar');
   bar.text('@title_layout_max/title_layout_min/text', 'RHODES ISLAND:');
   return bar;
 }

@@ -338,6 +338,17 @@ test('[房间-6] a match that cannot start sends them back to 项目调整 with 
   assert.equal(g.last(1, 'room').phase, 'setup');
 });
 
+test("[房间-3] each seat's assist is its 常规队's first operator (high priority first, else low), the other seat's shown once both have confirmed", () => {
+  const g = rig();
+  twoConfirming(g);
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  assert.deepEqual(g.last(1, 'room').assists, [{ id: 'char_100_op0', elite: 2 }, null], "the own seat's at once");
+  assert.deepEqual(g.last(2, 'room').assists, [null, null], "not the other seat's yet");
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: { high: [], low: squadOf(0, 20, 30).low.map((e, i) => (i ? e : { ...e, elite: 1 })) } });
+  assert.deepEqual(g.last(1, 'room').assists, [{ id: 'char_100_op0', elite: 2 }, { id: 'char_130_op30', elite: 1 }], 'no high priority: the first low');
+  assert.deepEqual(g.last(2, 'room').assists, g.last(1, 'room').assists);
+});
+
 test('[房间-1] a session that says hello again with a new name keeps its seat under that name', () => {
   const g = rig();
   g.rooms.hello(1, 'ka', 'A');

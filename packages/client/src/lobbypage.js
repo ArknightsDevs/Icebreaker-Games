@@ -6,7 +6,7 @@
 import { createUi } from '@aue/ui';
 import { ROSTER, loadTraining } from '@aue/content';
 import { STYLES, TOASTS } from '@icebreaker/mode-regular';
-import { openPart, closePart, setSwitch } from './lobbykit.js';
+import { openPart, closePart, setSwitch, SEASON, ILLUST } from './lobbykit.js';
 import { PAGES, pageOf, newLocal } from './lobbymap.js';
 import { createEntry } from './lobbyentry.js';
 import { createSquad } from './lobbysquad.js';
@@ -42,12 +42,13 @@ function lobbyArt(lobby, kind, i) {
  * rarity strips and potential marks the lobby pack carries (the game's common ones; the battle pack's rarity sprites
  * are the deploy cards' glows), skill icons from the skill icon index, the operators' half-length portraits from the
  * portrait index (by elite phase: the elite-2 one from elite 2 when there is one), the modules' type icons and marks
- * from the module icon index (a type's icon is named by it in lower case, a few in its own case).
+ * from the module icon index (a type's icon is named by it in lower case, a few in its own case), the illustrations
+ * from the art index (by elite phase as the portraits; each with its rect in an illust loader).
  * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack
- * @param {{ portraits: any, equips: any }} indexes the portrait index and the module icon index
+ * @param {{ portraits: any, equips: any, illusts: any }} indexes the portrait index, the module icon index and the art index
  * @returns {import('./lobbycards.js').CardArt}
  */
-function cardArt(battle, manifest, skills, lobby, { portraits, equips }) {
+function cardArt(battle, manifest, skills, lobby, { portraits, equips, illusts }) {
   const equipUrl = (/** @type {string | undefined} */ file) => (file ? new URL(`uniequip/${file}`, ASSETS).href : null);
   const card = battle?.hud?.card, url = (/** @type {string | null | undefined} */ key) => (key && battle?.sprites?.[key] ? new URL(battle.sprites[key].uri, UI).href : null);
   return {
@@ -63,7 +64,25 @@ function cardArt(battle, manifest, skills, lobby, { portraits, equips }) {
     skill: (id) => (skills?.icons?.[id] ? new URL(skills.icons[id], new URL('skills/', UI)).href : null),
     equip: (type) => equipUrl(equips?.type?.[type.toLowerCase()] ?? equips?.type?.[type]),
     equipMark: (mark) => equipUrl(equips?.extra?.[mark.toLowerCase()]),
+    illust: (id, elite) => {
+      const p = illusts?.illusts?.[id], a = p ? (elite >= 2 && p['2']) || p['1'] : null;
+      return a ? { url: new URL(`charillust/${a.file}`, ASSETS).href, pos: a.pos, size: a.size } : null;
+    },
   };
+}
+
+/**
+ * What the lobby pack gets from the other indexes before the UI starts (页面-6): the season's logos as its sprites
+ * (season/<name>, INF-0018), and the node an illust loader makes for its art (placeIllust gives its rect and picture).
+ * @param {any} pack @param {any} season the season index
+ */
+function addArt(pack, season) {
+  for (const [name, v] of Object.entries(season ?? {})) {
+    if (v && typeof v === 'object' && typeof v.file === 'string') pack.sprites[SEASON + name] = { w: v.w, h: v.h, uri: `../season/${v.file}` };
+  }
+  pack.screens[ILLUST] = { name: 'illust', active: true, children: [],
+    comps: { img: { kind: 'image', ref: null, color: [1, 1, 1, 1], type: 0, fill: 1, preserve: 0 } },
+    rt: { amin: [0.5, 0.5], amax: [0.5, 0.5], pos: [0, 0], size: [100, 100], pivot: [0.5, 0.5], scale: [1, 1], rotz: 0 } };
 }
 
 /**
@@ -75,15 +94,16 @@ export async function startLobby(el, H) {
   if (new URLSearchParams(location.search).has('html')) return null;
   const pack = await fetchJson(new URL('lobby.json', UI));
   if (!pack?.screens) return null;
-  const [battle, manifest, skills, atlas, portraits, equips] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
+  const [battle, manifest, skills, atlas, portraits, equips, illusts, season] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
     fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS)),
-    fetchJson(new URL('uniequip/index.json', ASSETS))]);
+    fetchJson(new URL('uniequip/index.json', ASSETS)), fetchJson(new URL('charillust/index.json', ASSETS)), fetchJson(new URL('season/index.json', ASSETS))]);
+  addArt(pack, season);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load();
   // the screens' particle effects, when the assets have them (页面-6)
   const effects = startLobbyFx(ui, UI).catch(() => null);
-  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips }), atlas, sound, pack, effects });
+  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips, illusts }), atlas, sound, pack, effects });
 }
 
 /**
@@ -184,7 +204,7 @@ function stepCtx(H, G, L, K) {
     copy: () => K.toast(copyText(H.invite()) ? TOASTS.roomIdCopySuccess : H.invite()),
     nameOf: A.nameOf, rosterOf: (id) => ROSTER[id] ?? null, squad: A.squad, squadProblem: A.squadProblem, style: A.style, setDraft: A.setDraft,
     entryOf: (seat, id) => entryIn(S, seat, id) ?? (seat === S.view?.you ? H.entry(id) : null), skillId: K.skills.get, moduleType: K.skills.module, moduleCount: K.skills.modules, version: K.skills.version,
-    modeIcon: () => spriteUrl(G.atlas, ROOM_ART, MODE_ICONS.NORMAL),
+    modeIcon: (color) => spriteUrl(G.atlas, ROOM_ART, `${MODE_ICONS.NORMAL}${color ? '_color' : ''}`),
   };
 }
 

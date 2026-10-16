@@ -2,7 +2,7 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar } from './lobbykit.js';
+import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placeIllust } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
 import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
 
@@ -35,7 +35,7 @@ import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
  * @property {(d: Pick[]) => void} setDraft
  * @property {(seat: number, id: string) => BoxEntry | null} entryOf
  * @property {(id: string, skill: number) => string | null} skillId
- * @property {() => string | null} modeIcon the mode's icon URL
+ * @property {(color?: boolean) => string | null} modeIcon the mode's icon URL (its coloured tile when asked)
  * @property {(id: string, k: number) => string | null} moduleType a module's type (EXE-Y…), null until its data came
  * @property {(id: string) => number} moduleCount how many modules an operator has (0 until its data came)
  * @property {() => number} version a number that changes when lazily loaded data (skill ids, module types) comes
@@ -198,11 +198,13 @@ const GOAL_RIGHT = 12;
 function fillDetail(d, pr, X) {
   const f = d.view();
   d.text(f.stageCodeTxt, pr.code);
-  d.text(f.modeNameCodeTxt, `${MODE.name}·${pr.name}`);
+  // the code and the mode only, as the original's recording shows the title (IG-1 常规项目, without the stage's name)
+  d.text(f.modeNameCodeTxt, MODE.name);
   classIcon(d, f.diffIconViewContainer, f.diffIconViewPrefab, pr, f.diffScale ?? 1);
-  d.picture(f.titleModeIconImg, X.modeIcon());
-  d.show(f.titleModeIconImg, !!X.modeIcon());
-  d.showAll([f.seasonIcon, f.pnlSeasonIcon], false);
+  // the title's mode icon: the mode's coloured tile (the slot's own size; the original's recording shows it red)
+  d.picture(f.titleModeIconImg, X.modeIcon(true));
+  d.show(f.titleModeIconImg, !!X.modeIcon(true));
+  seasonLogo(d, f.seasonIcon, 'detail');
   // the stage's description as the game writes it (its markup as rich text), else the stages' titles
   d.text(f.stageDetailTxt, pr.detail || pr.stages.map((s, i) => `阶段${i + 1}：${s.title}`).join('\n'));
   d.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
@@ -272,8 +274,12 @@ export async function playEntrance(p, X, v) {
   p.show('@multi_v3_stage_confirm', false);
   p.show(f.entranceShowRoot, true);
   p.showAll(f.invertObjs, false);
-  // the season's icon and the assist illustrations are filled at run time from art the packs do not have
-  for (const r of [f.selfAssitIllustContainer, f.partnerAssitIllustContainer, f.seasonIconImg2]) p.show(r, false);
+  // the season's logo in the corner and both players' assists (房间-3), which the game fills at run time (INF-0018)
+  seasonLogo(p, f.seasonIconImg2, 'start');
+  for (const [seat, at] of /** @type {[number, string][]} */ ([[v.you, f.selfAssitIllustContainer], [1 - v.you, f.partnerAssitIllustContainer]])) {
+    const a = v.assists?.[seat];
+    placeIllust(p, at, a ? X.cards.illust(a.id, a.elite) : null);
+  }
   if (f.bottomBarContainer) placeBottomBar(p, f.bottomBarContainer);
   for (const [seat, icon, name, card] of /** @type {[number, string, string, string][]} */ ([[v.you, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer],
     [1 - v.you, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]])) {

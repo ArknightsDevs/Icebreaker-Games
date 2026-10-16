@@ -1,5 +1,6 @@
 /* The room page: one column of cards — the room and its step, then the box and the 常规队. */
 :root { color-scheme: dark; --bg: #1b1d21; --card: #24272d; --fg: #e8eaee; --muted: #9aa1ab; --accent: #2f86e8; --ok: #3f9b5c; --bad: #e06c5a; }
+@font-face { font-family: "Noto Sans SC"; src: url(/assets/skeleton/fonts/noto-sans-sc.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 html, body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
 #room-app { max-width: 960px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

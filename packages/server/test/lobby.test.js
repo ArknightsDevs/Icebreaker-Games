@@ -12,6 +12,11 @@ test('[房间-1] lobby messages: a known type with exactly its fields, each of i
   assert.equal(lobbyMessageProblem({ t: 'create' }), null);
   assert.equal(lobbyMessageProblem({ t: 'ping', at: 12.5 }), null);
   assert.match(String(lobbyMessageProblem({ t: 'ping', at: 'now' })), /malformed/);
+  assert.equal(lobbyMessageProblem({ t: 'profile', tag: '0420', avatar: '', assist: null }), null);
+  assert.equal(lobbyMessageProblem({ t: 'profile', tag: '9414', avatar: 'char_002_amiya', assist: { id: 'char_1044_hsgma2', art: 2 } }), null);
+  for (const bad of [{ tag: '941' }, { tag: 'abcd' }, { avatar: 'amiya' }, { assist: { id: 'char_002_amiya', art: 3 } }, { assist: { id: 'char_002_amiya' } }]) {
+    assert.match(String(lobbyMessageProblem({ t: 'profile', tag: '0001', avatar: '', assist: null, ...bad })), /malformed|fields/);
+  }
   assert.match(String(lobbyMessageProblem({ t: 'create', x: 1 })), /fields/);
   assert.match(String(lobbyMessageProblem({ t: 'hello', key: 'k', name: '   ' })), /malformed/);
   assert.match(String(lobbyMessageProblem({ t: 'shout' })), /not a lobby message/);

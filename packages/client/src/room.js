@@ -6,7 +6,7 @@
 import { ROSTER, loadTraining } from '@aue/content';
 import { squadProblem, MODE } from '@icebreaker/mode-regular';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
-import { readSave, writeSave, squadOf } from './save.js';
+import { readSave, writeSave, squadOf, profileOf, newTag } from './save.js';
 import { createBoxView } from './boxview.js';
 import { renderRoom, entryIn } from './roomview.js';
 import { CLOSED, clock, startingLineup, inviteText } from './roomtext.js';
@@ -21,6 +21,8 @@ const MATCH_KEY = 'ice.match', RESULT_KEY = 'ice.result';
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const store = localStore(), key = tabKey(LOBBY_KEY);
 let save = readSave(store);
+// a 代号 of its own from the first visit on (房间-1), kept with the save
+if (!save.tag) { save = { ...save, tag: newTag() }; writeSave(store, save); }
 const ASSETS = new URL('/assets/skeleton/', location.href), ART = new URL('ui/room/', ASSETS).href;
 /** @type {import('./roomart.js').RoomAtlas | null} */
 let atlas = null;
@@ -59,6 +61,15 @@ function toast(text) {
 const playerName = () => save.name || '博士';
 /** @param {Record<string, unknown>} m */
 const send = (m) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m)); else toast('还没有连上服务器'); };
+/** The name card last sent, so a save that does not change it sends nothing. */
+let sentCard = '';
+/** The save's name card to the lobby (房间-1): after hello, and whenever it changes. @param {boolean} [again] */
+function sendCard(again = false) {
+  const card = JSON.stringify(profileOf(save));
+  if (ws?.readyState !== WebSocket.OPEN || (card === sentCard && !again)) return;
+  sentCard = card;
+  ws.send(JSON.stringify({ t: 'profile', ...profileOf(save) }));
+}
 
 /** @type {import('./roomview.js').RoomActions} */
 const A = {
@@ -77,6 +88,7 @@ const box = createBoxView($('boxbody'), {
     save = s;
     if (!writeSave(store, s)) toast('这个浏览器不让保存，关闭页面后 box 会丢失');
     if (renamed && ws?.readyState === WebSocket.OPEN) send({ t: 'hello', key, name: playerName() });
+    sendCard();
     box.render();
     draw();
   },
@@ -112,8 +124,8 @@ function takeResult() {
 /** The lobby screens when the assets have them; else the HTML room stays. */
 async function lobbyMode() {
   lobby = await startLobby($('lobby'), {
-    S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, editBox: () => boxOpen(true), invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? ''),
-    setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); box.render(); draw(); },
+    S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, editBox: () => boxOpen(true), invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
+    setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
     backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx,
   }).catch((e) => { console.error(e); return null; });
   if (!lobby) return;
@@ -158,7 +170,7 @@ function onMessage(m) {
 function connect() {
   const sock = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/lobby`);
   ws = sock;
-  sock.onopen = () => { retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); ping(); draw(); };
+  sock.onopen = () => { retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); sendCard(true); ping(); draw(); };
   sock.onmessage = (e) => onMessage(JSON.parse(String(e.data)));
   sock.onclose = (e) => {
     S.conn = '重连中';

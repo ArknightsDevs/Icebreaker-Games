@@ -35,7 +35,7 @@ test('[页面-2] training as the game writes it', () => {
 
 test('[房间-1] [房间-4] the room page\'s words: countdowns, the invitation with the code in brackets, whose turn, why a room closed', () => {
   assert.deepEqual([clock(900_000), clock(29_001), clock(0), clock(-5)], ['15:00', '0:30', '0:00', '0:00']);
-  assert.match(inviteText('012345', 'A'), /^房间编号\[012345\]/);
+  assert.equal(inviteText('012345', 'A', '9414'), '房间编号[012345],Dr.A#9414邀请您加入赛事，【粘贴到输入框可自动识别】', "the activity's text");
   assert.equal(turnText({ by: 1, yielded: true }, 1), '轮到你选择（对方让出了这次选择）');
   assert.equal(turnText({ by: 0, yielded: false }, 1), '等待对方选择');
   assert.equal(PHASE_TITLES['pick'], '高顺位干员协调');

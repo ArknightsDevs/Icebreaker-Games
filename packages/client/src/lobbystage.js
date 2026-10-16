@@ -5,6 +5,7 @@
 import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
 import { STYLES, MODE, TOASTS, PLAYER_TITLE } from '@icebreaker/mode-regular';
+import { cardName } from './roomtext.js';
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./roomview.js').ProjectView} ProjectView */
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
@@ -285,25 +286,25 @@ export async function playEntrance(p, X, v) {
 }
 
 /**
- * One player's side of the entrance show: its assist's illustration (房间-3, INF-0018), its style's icon and name, its
- * name card.
+ * One player's side of the entrance show: its assistant's illustration at its chosen art (房间-1), its style's icon and
+ * name, its name card.
  * @param {Part} p @param {Record<string, any>} f @param {StepCtx} X @param {any} v
  * @param {[number, string, string, string, string]} side the seat; its illust loader, its style's icon and name, its name card's container
  */
 function showPlayer(p, f, X, v, [seat, illust, icon, name, card]) {
-  const a = v.assists?.[seat], st = STYLES.find((s) => s.id === v.styles[seat]);
-  placePicture(p, illust, a ? X.cards.illust(a.id, a.elite) : null);
+  const m = v.members[seat], a = m?.assist, st = STYLES.find((s) => s.id === v.styles[seat]);
+  placePicture(p, illust, a ? X.cards.illust(a.id, a.art) : null);
   p.picture(icon, st ? X.styleIcon(st.id, '') : null);
   p.text(name, st?.name ?? '');
   const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
-  if (c) nameCard(c, v.members[seat]?.name ?? '', X.art().namecard, a ? X.cards.avatar(a.id) : null);
+  if (c) nameCard(c, cardName(m), X.art().namecard, m?.avatar ? X.cards.avatar(m.avatar) : null);
 }
 
 /**
- * A player's short name card (INF-0014): its name and the title of a player who chose none (平凡的博士) on the default
- * card skin — the skin at its sprite's own size in the card's skin holder (the holder's scale makes it the card's
- * size, as the original's recording shows it) — and its assist's avatar in its avatar loader; no id, level, mentor
- * mark or early-quit mask (the platform has none).
+ * A player's short name card (INF-0014): its 昵称#代号 and the title of a player who chose none (平凡的博士) on the
+ * default card skin — the skin at its sprite's own size in the card's skin holder (the holder's scale makes it the
+ * card's size, as the original's recording shows it) — and its avatar in its avatar loader; no id, level, mentor mark
+ * or early-quit mask (the platform has none).
  * @param {Part} c @param {string} name @param {string | undefined} skin the default skin's sprite @param {string | null} avatar
  */
 function nameCard(c, name, skin, avatar) {

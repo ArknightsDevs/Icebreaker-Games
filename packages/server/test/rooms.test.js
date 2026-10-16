@@ -338,15 +338,19 @@ test('[房间-6] a match that cannot start sends them back to 项目调整 with 
   assert.equal(g.last(1, 'room').phase, 'setup');
 });
 
-test("[房间-3] each seat's assist is its 常规队's first operator (high priority first, else low), the other seat's shown once both have confirmed", () => {
+test("[房间-1] each player's name card — 代号, avatar, assistant and its art — shows in the room as its page last sent it; a new hello keeps it", () => {
   const g = rig();
-  twoConfirming(g);
-  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
-  assert.deepEqual(g.last(1, 'room').assists, [{ id: 'char_100_op0', elite: 2 }, null], "the own seat's at once");
-  assert.deepEqual(g.last(2, 'room').assists, [null, null], "not the other seat's yet");
-  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: { high: [], low: squadOf(0, 20, 30).low.map((e, i) => (i ? e : { ...e, elite: 1 })) } });
-  assert.deepEqual(g.last(1, 'room').assists, [{ id: 'char_100_op0', elite: 2 }, { id: 'char_130_op30', elite: 1 }], 'no high priority: the first low');
-  assert.deepEqual(g.last(2, 'room').assists, g.last(1, 'room').assists);
+  g.rooms.hello(1, 'ka', 'A');
+  g.rooms.profile(1, { tag: '9414', avatar: 'char_102_texas', assist: { id: 'char_1044_hsgma2', art: 1 } });
+  g.rooms.message(1, { t: 'create' });
+  assert.deepEqual(g.last(1, 'room').members, [{ name: 'A', online: true, tag: '9414', avatar: 'char_102_texas', assist: { id: 'char_1044_hsgma2', art: 1 } }]);
+  g.rooms.hello(2, 'kb', 'B');
+  g.rooms.message(2, { t: 'join', code: g.last(1, 'room').code });
+  assert.deepEqual(g.last(1, 'room').members[1], { name: 'B', online: true, tag: '', avatar: '', assist: null }, 'none sent yet');
+  g.rooms.profile(2, { tag: '0007', avatar: '', assist: { id: 'char_002_amiya', art: 2 } });
+  assert.deepEqual(g.last(1, 'room').members[1], { name: 'B', online: true, tag: '0007', avatar: '', assist: { id: 'char_002_amiya', art: 2 } }, 'the other seat sees it at once');
+  g.rooms.hello(3, 'kb', 'B2');
+  assert.deepEqual(g.last(3, 'room').members[1], { name: 'B2', online: true, tag: '0007', avatar: '', assist: { id: 'char_002_amiya', art: 2 } }, 'the same key again: the card stays');
 });
 
 test('[房间-1] a session that says hello again with a new name keeps its seat under that name', () => {

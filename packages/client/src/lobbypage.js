@@ -43,7 +43,7 @@ function lobbyArt(lobby, kind, i) {
  * are the deploy cards' glows), skill icons from the skill icon index, the operators' half-length portraits from the
  * portrait index (by elite phase: the elite-2 one from elite 2 when there is one), the modules' type icons and marks
  * from the module icon index (a type's icon is named by it in lower case, a few in its own case), the illustrations
- * from the art index (by elite phase as the portraits; each with its rect in an illust loader).
+ * from the art index (the elite-2 art when asked and there is one; each with its rect in an illust loader).
  * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack
  * @param {{ portraits: any, equips: any, illusts: any }} indexes the portrait index, the module icon index and the art index
  * @returns {import('./lobbycards.js').CardArt}
@@ -64,8 +64,8 @@ function cardArt(battle, manifest, skills, lobby, { portraits, equips, illusts }
     skill: (id) => (skills?.icons?.[id] ? new URL(skills.icons[id], new URL('skills/', UI)).href : null),
     equip: (type) => equipUrl(equips?.type?.[type.toLowerCase()] ?? equips?.type?.[type]),
     equipMark: (mark) => equipUrl(equips?.extra?.[mark.toLowerCase()]),
-    illust: (id, elite) => {
-      const p = illusts?.illusts?.[id], a = p ? (elite >= 2 && p['2']) || p['1'] : null;
+    illust: (id, art) => {
+      const p = illusts?.illusts?.[id], a = p ? (art >= 2 && p['2']) || p['1'] : null;
       return a ? { url: new URL(`charillust/${a.file}`, ASSETS).href, pos: a.pos, size: a.size } : null;
     },
   };

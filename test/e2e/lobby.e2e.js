@@ -32,8 +32,8 @@ describe('two players through a room into a match', () => {
     // the page's own HTML room (页面-6: the fallback, also with the assets' lobby screens)
     await page.goto(`http://127.0.0.1:${stack.port}/?html`);
     await page.locator('#conn', { hasText: '已连接' }).waitFor();
-    await page.getByLabel('你的名字').fill(name);
-    await page.getByLabel('你的名字').press('Tab');
+    await page.getByLabel('昵称').fill(name);
+    await page.getByLabel('昵称').press('Tab');
     await page.getByRole('button', { name: '随机填满常规队' }).click();
     await page.locator('.squad.ok').waitFor({ timeout: 30000 });
     if (HAS_ART) {

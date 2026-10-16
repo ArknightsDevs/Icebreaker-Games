@@ -1,7 +1,7 @@
 // What the room page says about a room (docs/spec/room.md): the steps' names, the countdowns, the invitation text, whose
 // turn it is, and the lineup a player starts from. Pure; roomview.js draws it.
 
-import { STYLES, PINGS } from '@icebreaker/mode-regular';
+import { STYLES, PINGS, INVITE } from '@icebreaker/mode-regular';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
 /** @typedef {{ kept: string[], drawn: string[], extra: string[] }} Options */
@@ -35,8 +35,14 @@ export function pingText(ms) {
   return p ? p.text.replace('{0}', String(v)) : '';
 }
 
-/** The text a host sends to invite (房间-1: the code in brackets, so the whole text can be pasted). @param {string} code @param {string} name */
-export const inviteText = (code, name) => `房间编号[${code}]，${name} 邀请你加入促融共竞的比赛`;
+/**
+ * The text a host sends to invite (房间-1): the activity's, the code in brackets (so the whole text can be pasted).
+ * @param {string} code @param {string} name @param {string} tag
+ */
+export const inviteText = (code, name, tag) => INVITE.replace('{0}', code).replace('{1}', name).replace('{2}', tag);
+
+/** A player as its name card writes it (房间-1): 昵称#代号, the name alone without a 代号. @param {{ name: string, tag?: string } | null | undefined} m */
+export const cardName = (m) => (m ? (m.tag ? `${m.name}#${m.tag}` : m.name) : '');
 
 /** Who picks now (房间-4). @param {{ by: number, yielded: boolean }} p @param {number} you */
 export const turnText = (p, you) => (p.by === you ? `轮到你选择${p.yielded ? '（对方让出了这次选择）' : ''}` : '等待对方选择');

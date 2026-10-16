@@ -37,8 +37,8 @@ describe('two players through the original lobby screens', { skip: HAS_LOBBY ? f
     await page.locator('#conn', { hasText: '已连接' }).waitFor();
     await until('the lobby screens', async () => ((await lobby(page))?.page === 'entry' ? true : undefined), 30000);
     await page.locator('#boxbtn').click();
-    await page.getByLabel('你的名字').fill(name);
-    await page.getByLabel('你的名字').press('Tab');
+    await page.getByLabel('昵称').fill(name);
+    await page.getByLabel('昵称').press('Tab');
     await page.getByRole('button', { name: '随机填满常规队' }).click();
     await page.locator('.squad.ok').waitFor({ timeout: 30000 });
     await page.locator('#boxclose').click();

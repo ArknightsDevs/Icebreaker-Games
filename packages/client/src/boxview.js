@@ -1,10 +1,11 @@
-// The box and the 常规队 on the room page (docs/spec/room.md 房间-3): the player's name, operators entered by hand with
-// their training (kept within each operator's limits, training.js), each placed in the high-priority or the
-// low-priority list, the play style (房间-3; with the activity's icons when the assets have them, 页面-5), and the save
-// copied out or in as text (save.js). The save changes only through `setSave`.
+// The box and the 常规队 on the room page (docs/spec/room.md 房间-3): the player's name card — nickname, 代号, assistant
+// and its art, avatar (房间-1) —, operators entered by hand with their training (kept within each operator's limits,
+// training.js), each placed in the high-priority or the low-priority list, the play style (房间-3; with the activity's
+// icons when the assets have them, 页面-5), and the save copied out or in as text (save.js). The save changes only
+// through `setSave`.
 import { squadProblem, SQUAD, STYLES } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
-import { putEntry, removeEntry, place, squadOf, exportSave, importSave } from './save.js';
+import { putEntry, removeEntry, place, squadOf, exportSave, importSave, profileOf } from './save.js';
 import { plain } from './roomtext.js';
 import { fullEntry, clampEntry, openSkills, skillCap, moduleOpen, maxPotential, skillLevelText, trainingText } from './training.js';
 
@@ -149,13 +150,47 @@ function saveTools(B) {
     h('div', { class: 'row' }, h('button', { onclick: () => { area.value = exportSave(B.o.getSave()); area.select(); } }, '导出到文本框'), h('button', { onclick: load }, '从文本框导入')));
 }
 
+/**
+ * A select of the box's operators after a first choice of none.
+ * @param {Box} B @param {Save} s @param {[string, string, string]} choice the first choice's text, the value, the label @param {(id: string) => void} on
+ */
+const operatorSelect = (B, s, [none, value, label], on) =>
+  h('select', { 'aria-label': label, onchange: (/** @type {Event} */ e) => on(/** @type {HTMLSelectElement} */ (e.target).value) },
+    h('option', { value: '', selected: value === '' }, none), s.box.map((e) => h('option', { value: e.id, selected: e.id === value }, nameOf(B, e.id))));
+
+/**
+ * The name card (房间-1): the nickname and its 代号 (four digits, shown as 昵称#代号), the assistant — the operator the
+ * start show draws — and its art, the avatar; the room shows them as they are now (profileOf).
+ * @param {Box} B @param {Save} s
+ */
+function nameCard(B, s) {
+  const set = (/** @type {Partial<Save>} */ p) => B.o.setSave({ ...B.o.getSave(), ...p }), now = profileOf(s);
+  const e = s.box.find((x) => x.id === now.assist?.id), art = s.assist?.art ?? now.assist?.art ?? 1;
+  const tag = /** @type {HTMLInputElement} */ (h('input', { value: s.tag, inputMode: 'numeric', maxLength: 4, size: 4, pattern: '[0-9]{4}',
+    onchange: (/** @type {Event} */ ev) => {
+      const v = /** @type {HTMLInputElement} */ (ev.target).value.trim();
+      if (/^\d{4}$/.test(v)) set({ tag: v }); else { B.o.toast('代号是 4 位数字'); tag.value = s.tag; }
+    } }));
+  return h('div', { class: 'namecard' },
+    h('div', { class: 'row' },
+      field('昵称', h('input', { value: s.name, maxLength: 16, onchange: (/** @type {Event} */ ev) => set({ name: /** @type {HTMLInputElement} */ (ev.target).value.trim().slice(0, 16) }) })),
+      field('代号', tag)),
+    h('div', { class: 'row' },
+      field('助理干员', operatorSelect(B, s, ['常规队第一名', s.assist?.id ?? '', '助理干员'], (id) => set({ assist: id ? { id, art: 1 } : null }))),
+      field('立绘', numberSelect(art, e && e.elite >= 2 ? [1, 2] : [1], (v) => (v === 2 ? '精英二' : '精英一'),
+        (v) => { if (now.assist) set({ assist: { id: now.assist.id, art: /** @type {1 | 2} */ (v) } }); }, !now.assist)),
+      field('头像', operatorSelect(B, s, ['同助理干员', s.avatar, '头像'], (id) => set({ avatar: id })))),
+    h('p', { class: 'muted' }, `房间里显示为 ${s.name || '博士'}#${s.tag}；`, now.assist ? `助理干员 ${nameOf(B, now.assist.id)}（${now.assist.art === 2 ? '精英二' : '精英一'}立绘）` : '还没有助理干员（box 里没有干员）',
+      now.avatar ? `，头像 ${nameOf(B, now.avatar)}` : ''));
+}
+
 /** @param {Box} B */
 function render(B) {
   const s = B.o.getSave(), why = squadProblem(squadOf(s)), q = s.squad;
   const input = /** @type {HTMLInputElement} */ (h('input', { list: 'roster-names', placeholder: '输入干员名', 'aria-label': '干员名' }));
   B.host.replaceChildren(
     h('h2', {}, '干员 box 与常规队'),
-    field('你的名字', h('input', { value: s.name, maxLength: 16, onchange: (/** @type {Event} */ e) => B.o.setSave({ ...B.o.getSave(), name: /** @type {HTMLInputElement} */ (e.target).value.trim().slice(0, 16) }) })),
+    h('h3', {}, '名片'), nameCard(B, s),
     h('p', { class: why ? 'squad bad' : 'squad ok' }, `常规队：高顺位 ${q.high.length}/${SQUAD.high} · 低顺位 ${q.low.length}/${SQUAD.low} · 合计 ${q.high.length + q.low.length}（至少 ${SQUAD.min}）`, why ? ` · ${why}` : ' · 可以参赛'),
     h('h3', {}, '比赛风格'), stylePicker(B, s),
     h('div', { class: 'row' }, input, h('button', { onclick: () => add(B, input.value) }, '加入 box'),

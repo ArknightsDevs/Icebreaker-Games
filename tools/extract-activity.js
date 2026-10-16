@@ -75,6 +75,8 @@ export function extract(root) {
     toasts: Object.fromEntries(TOASTS.map((k) => [k, a.constToastData[k]])),
     // the name cards' title of a player who chose none, and the latency texts from each threshold in ms (页面-6)
     title: defaultTitle(a.titleDataDict),
+    // the invitation a host copies (房间-1): the room code, the host's name and 代号
+    invite: a.constData.noMapRoomNumCopyDesc,
     pings: a.constData.pingConds.map((/** @type {any} */ p) => ({ from: p.cond, text: richText(p.txt, styles) })),
     recruits: a.tempCharDataList.map((/** @type {any} */ c) => ({
       id: c.charId, elite: ELITE[/** @type {keyof typeof ELITE} */ (c.evolvePhase)], level: c.level, potential: c.potentialRank + 1, trust: trustOf(favor, c.favorPoint),

@@ -4,7 +4,7 @@
 // the styles carry the activity's icons when the assets have them (页面-5).
 import { MODE, STYLES } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
-import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText } from './roomtext.js';
+import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText, cardName } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
@@ -63,9 +63,9 @@ function header(S, A) {
   return h('div', { class: 'card head' },
     h('h2', {}, `${PHASE_TITLES[v.phase]}`, v.step ? h('span', { class: 'step' }, ' 剩余 ', countdown(S, v.step)) : null),
     h('p', {}, '房间编号 ', h('strong', { class: 'code' }, v.code), v.phase !== 'battle' ? h('span', { class: 'muted' }, '　房间剩余 ', countdown(S, v.left)) : null),
-    h('input', { class: 'invite', readOnly: true, value: inviteText(v.code, v.members[0]?.name ?? ''), 'aria-label': '邀请文字', onfocus: (/** @type {Event} */ e) => /** @type {HTMLInputElement} */ (e.target).select() }),
+    h('input', { class: 'invite', readOnly: true, value: inviteText(v.code, v.members[0]?.name ?? '', v.members[0]?.tag ?? ''), 'aria-label': '邀请文字', onfocus: (/** @type {Event} */ e) => /** @type {HTMLInputElement} */ (e.target).select() }),
     h('ul', { class: 'members' }, v.members.map((/** @type {any} */ m, /** @type {number} */ i) =>
-      h('li', { class: m.online ? '' : 'offline' }, `${i === 0 ? '房主' : '参加者'} · ${m.name}${i === v.you ? '（你）' : ''}${m.online ? '' : ' · 掉线'}`))),
+      h('li', { class: m.online ? '' : 'offline' }, `${i === 0 ? '房主' : '参加者'} · ${cardName(m)}${i === v.you ? '（你）' : ''}${m.online ? '' : ' · 掉线'}`))),
     h('div', { class: 'row' },
       h('button', { onclick: () => A.send({ t: 'leave' }) }, host ? '解散房间' : '离开房间'),
       host && v.phase === 'setup' && v.members.length > 1 ? h('button', { onclick: () => A.send({ t: 'kick' }) }, '请离房间') : null));

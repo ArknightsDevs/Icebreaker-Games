@@ -11,7 +11,12 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
 /** @typedef {import('@icebreaker/mode-regular').Squad} Squad @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
 /** @typedef {import('./allocation.js').Picking} Picking @typedef {import('./allocation.js').Coordination} Coordination */
 /** @typedef {{ level: string, difficulty: 'NORMAL' | 'FOUR_STAR' }} Project */
-/** @typedef {{ id: number, key: string, name: string, online: boolean }} Member */
+/**
+ * A player's name card (房间-1): its 代号 (four digits after its name), its avatar (an operator's; '' none) and its
+ * assistant — the operator its start show draws, at an art (1: elite 1, 2: elite 2), or none.
+ * @typedef {{ tag: string, avatar: string, assist: { id: string, art: 1 | 2 } | null }} Profile
+ */
+/** @typedef {{ id: number, key: string, name: string, online: boolean, profile: Profile }} Member */
 /** @typedef {{ kept: string[], drawn: string[], extra: string[] }} Options */
 /** @typedef {{ id: string, skill: number, module: number }} Pick */
 /**
@@ -33,7 +38,9 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {(match: import('@aue/schema').Match, keys: string[]) => Promise<string> | string} startMatch the match's id
  * @property {Project[]} projects @property {BoxEntry[]} recruits the temporary recruits (房间-5)
  */
-/** @typedef {{ key: string, name: string, room: string | null }} Session */
+/** @typedef {{ key: string, name: string, room: string | null, profile: Profile }} Session */
+/** A name card before the page sent its own. @type {Profile} */
+const NO_PROFILE = Object.freeze({ tag: '', avatar: '', assist: null });
 /** @typedef {{ o: RoomsOptions, rooms: Map<string, Room>, sessions: Map<number, Session>, recruitIds: string[] }} Lobby */
 
 /** @param {Room} r @param {number} id */
@@ -46,26 +53,19 @@ const fail = (L, id, msg) => L.o.send(id, { t: 'error', msg });
 const until = (L, at) => Math.max(0, at - L.o.now());
 
 /**
- * A seat's assist (房间-3): its 常规队's first operator — the first of the high priority, else of the low — by its
- * id and elite phase (INF-0018). @param {Squad | null} s
- */
-const assistOf = (s) => { const e = s ? s.high[0] ?? s.low[0] : null; return e ? { id: e.id, elite: e.elite } : null; };
-
-/**
- * A room as a seat sees it: the other seat's style and assist once both have confirmed (房间-3), the squads and
- * options only once the lineups are being set (房间-5).
+ * A room as a seat sees it: both players' names and name cards (房间-1), the other seat's style once both have
+ * confirmed (房间-3), the squads and options only once the lineups are being set (房间-5).
  * @param {Lobby} L @param {Room} r @param {number} seat
  */
 function view(L, r, seat) {
   const p = r.phase === 'pick' ? r.coord?.picking ?? null : null, shown = r.phase === 'pick' || r.phase === 'lineup' || r.phase === 'battle';
   return {
     t: 'room', code: r.code, you: seat, phase: r.phase, project: r.project, prepared: r.prepared,
-    members: r.members.map((m) => ({ name: m.name, online: m.online })), left: until(L, r.expires), step: r.due ? until(L, r.due) : 0,
+    members: r.members.map((m) => ({ name: m.name, online: m.online, ...m.profile })), left: until(L, r.expires), step: r.due ? until(L, r.due) : 0,
     confirmed: r.squads.map((s) => s !== null),
     picking: p ? { left: p.left, by: p.by, yielded: p.yielded, won: p.won } : null,
     options: r.phase === 'lineup' ? r.options : null, squads: r.phase === 'lineup' ? r.squads : null,
     styles: shown ? r.styles : r.styles.map((s, i) => (i === seat ? s : '')),
-    assists: r.squads.map((s, i) => (shown || i === seat ? assistOf(s) : null)),
     lineups: r.lineups.map((l) => (l ? l.map((x) => x.id) : null)), ready: r.ready,
     // each seat's skill and module for its lineup's operators, in their order (房间-6: both lineups shown in full)
     choices: r.lineups.map((l) => (l ? l.map((x) => ({ skill: x.skill, module: x.module })) : null)),
@@ -95,7 +95,7 @@ function create(L, id) {
   if (s.room) leave(L, id);
   let code;
   do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
-  const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true }], project: 0, expires: L.o.now() + TIMES.room });
+  const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true, profile: s.profile }], project: 0, expires: L.o.now() + TIMES.room });
   toSetup(r);
   L.rooms.set(code, r);
   s.room = code;
@@ -110,7 +110,7 @@ function join(L, id, text) {
   if (r.members.length >= 2) { fail(L, id, '房间已满'); return; }
   if (r.phase !== 'setup') { fail(L, id, '房间已经开始分配干员'); return; }
   if (s.room) leave(L, id);
-  r.members.push({ id, key: s.key, name: s.name, online: true });
+  r.members.push({ id, key: s.key, name: s.name, online: true, profile: s.profile });
   s.room = r.code;
   push(L, r);
 }
@@ -279,12 +279,24 @@ const IN_ROOM = {
  * its name (said again: the new name). @param {Lobby} L @param {number} id @param {string} key @param {string} name
  */
 function hello(L, id, key, name) {
-  const old = [...L.sessions.entries()].find(([sid, s]) => s.key === key && sid !== id);
-  L.sessions.set(id, { key, name, room: (old?.[1] ?? L.sessions.get(id))?.room ?? null });
+  const old = [...L.sessions.entries()].find(([sid, s]) => s.key === key && sid !== id), was = old?.[1] ?? L.sessions.get(id);
+  L.sessions.set(id, { key, name, room: was?.room ?? null, profile: was?.profile ?? NO_PROFILE });
   if (old) L.sessions.delete(old[0]);
   const r = roomOf(L, id), m = r?.members.find((x) => x.key === key);
   if (r && m) { Object.assign(m, { id, name, online: true }); push(L, r); }
   L.o.send(id, { t: 'lobby', name, projects: L.o.projects, recruits: L.o.recruits });
+}
+
+/**
+ * A session's name card (房间-1), as its page sends it after hello and when it changes; the room it is in shows it.
+ * @param {Lobby} L @param {number} id @param {Profile} p
+ */
+function profile(L, id, p) {
+  const s = L.sessions.get(id);
+  if (!s) return;
+  s.profile = { tag: p.tag, avatar: p.avatar, assist: p.assist ? { id: p.assist.id, art: p.assist.art } : null };
+  const r = roomOf(L, id), m = r?.members.find((x) => x.id === id);
+  if (r && m) { m.profile = s.profile; push(L, r); }
 }
 
 /** A checked message of a session that said hello. @param {Lobby} L @param {number} id @param {Record<string, any>} m */
@@ -324,6 +336,8 @@ export function createRooms(o) {
     rooms: L.rooms,
     /** @param {number} id @param {string} key @param {string} name */
     hello: (id, key, name) => hello(L, id, key, name),
+    /** @param {number} id @param {Profile} p */
+    profile: (id, p) => profile(L, id, p),
     /** @param {number} id @param {Record<string, any>} m */
     message: (id, m) => { if (L.sessions.has(id)) message(L, id, m); },
     /** A session's connection closed: its seat waits for it (房间-1). @param {number} id */

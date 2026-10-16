@@ -314,6 +314,7 @@
   "matchPrepareRoomClose": "房间已解散"
  },
  "title": "平凡的博士",
+ "invite": "房间编号[{0}],Dr.{1}#{2}邀请您加入赛事，【粘贴到输入框可自动识别】",
  "pings": [
   {
    "from": 1,

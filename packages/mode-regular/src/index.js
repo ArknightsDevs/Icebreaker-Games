@@ -42,6 +42,9 @@ export const TOASTS = Object.freeze({ ...data.toasts });
 /** The name cards' title of a player who chose none (页面-6). */
 export const PLAYER_TITLE = data.title;
 
+/** The invitation a host copies (房间-1): `{0}` the room code, `{1}` the host's name, `{2}` its 代号. */
+export const INVITE = data.invite;
+
 /** The latency texts (页面-6): each from its threshold in ms, `{0}` the latency, in the game's colours as rich text. */
 export const PINGS = Object.freeze(data.pings.map((p) => Object.freeze({ ...p })));
 

@@ -1,7 +1,7 @@
 // The local save (docs/spec/page.md 页面-2): the box, the 常规队, reading and writing, copying out and in.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emptySave, saveProblem, readSave, writeSave, importSave, exportSave, putEntry, removeEntry, place, squadOf, SAVE_KEY, BAD_SAVE_KEY } from '../src/save.js';
+import { emptySave, saveProblem, readSave, writeSave, importSave, exportSave, putEntry, removeEntry, place, squadOf, profileOf, newTag, SAVE_KEY, BAD_SAVE_KEY } from '../src/save.js';
 
 /** @param {number} n */
 const entry = (n) => ({ id: `char_${String(100 + n).padStart(3, '0')}_op${n}`, elite: 2, level: 60, potential: 1, trust: 100, skills: [7], modules: [] });
@@ -61,4 +61,23 @@ test('[页面-2] a save copies out as text and back in; text that is not a save 
   assert.match(String(saveProblem({ ...s, style: 'buff_9' })), /比赛风格/);
   const { style: _style, ...old } = s;
   assert.deepEqual(importSave(JSON.stringify(old)), { save: { ...s, style: 'buff_1' } }, 'a save from before the styles: 基础');
+});
+
+test('[房间-1] [页面-2] the name card: a 代号 of four digits, an avatar and an assistant from the box; a save from before them gets none', () => {
+  const s = place(putEntry(putEntry({ ...emptySave(), tag: '9414' }, entry(1)), { ...entry(2), elite: 1 }), entry(2).id, 'high');
+  const card = /** @type {NonNullable<typeof s>} */ (s);
+  assert.deepEqual(profileOf(card), { tag: '9414', avatar: entry(2).id, assist: { id: entry(2).id, art: 1 } }, 'none chosen: the 常规队\'s first at its highest art, its avatar');
+  const chosen = { ...card, assist: /** @type {const} */ ({ id: entry(1).id, art: 2 }), avatar: entry(2).id };
+  assert.deepEqual(profileOf(chosen), { tag: '9414', avatar: entry(2).id, assist: { id: entry(1).id, art: 2 } });
+  assert.deepEqual(profileOf({ ...chosen, assist: { id: entry(2).id, art: 2 } }).assist, { id: entry(2).id, art: 1 }, 'the elite-2 art only at elite 2');
+  assert.deepEqual(profileOf(emptySave()), { tag: '', avatar: '', assist: null });
+  const gone = removeEntry(chosen, entry(1).id);
+  assert.deepEqual([gone.assist, gone.avatar], [null, entry(2).id], 'an operator leaving the box leaves the name card');
+  assert.match(String(saveProblem({ ...card, tag: '94' })), /代号/);
+  assert.match(String(saveProblem({ ...card, avatar: 'char_999_none' })), /头像/);
+  assert.match(String(saveProblem({ ...card, assist: { id: entry(1).id, art: 3 } })), /助理/);
+  const { tag: _t, avatar: _a, assist: _s, ...old } = card;
+  assert.deepEqual(importSave(JSON.stringify(old)), { save: { ...card, tag: '', avatar: '', assist: null } });
+  assert.match(newTag(() => 0.0042), /^0042$/);
+  assert.match(newTag(), /^\d{4}$/);
 });

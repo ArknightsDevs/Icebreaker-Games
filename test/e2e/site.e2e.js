@@ -38,11 +38,16 @@ describe('the site under a sub-path', () => {
     try {
       const context = await browser.newContext(), page = await context.newPage(), errors = /** @type {string[]} */ ([]);
       collectErrors(page, errors);
+      const assets = /** @type {string[]} */ ([]);
+      page.on('request', (q) => { const p = new URL(q.url()).pathname; if (p.includes('/assets/')) assets.push(p); });
       await page.goto(`http://127.0.0.1:${proxy.port}${PREFIX}`);
       await until('the lobby screens', () => page.evaluate(() => /** @type {any} */ (globalThis).__room.lobby() ?? undefined), 60000);
       await page.locator('#conn', { hasText: '已连接' }).waitFor({ timeout: 15000 });
       assert.deepEqual(errors, []);
       assert.deepEqual(proxy.outside, []);
+      // 站点-3: the assets come from the versioned base, except the fonts the style sheet names
+      assert.ok(assets.length > 10, `assets loaded: ${assets.length}`);
+      assert.deepEqual(assets.filter((p) => !/^\/icebreaker\/assets\/~[0-9a-f]{12}\/skeleton\//.test(p) && !p.includes('/fonts/')), []);
       await context.close();
     } finally {
       await proxy.stop();

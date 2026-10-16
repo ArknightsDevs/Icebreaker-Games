@@ -11,9 +11,9 @@ import { fileURLToPath } from 'node:url';
 const ACTIVITY = 'act1multi';
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'mode-regular', 'data', `${ACTIVITY}.json`);
 const ELITE = Object.freeze({ PHASE_0: 0, PHASE_1: 1, PHASE_2: 2 });
-/** The toasts of the activity's room flow the lobby screens show (页面-6). */
+/** The toasts of the activity's room flow the lobby screens show (页面-6), and the server's refusals (站点-2). */
 const TOASTS = Object.freeze(['noRoom', 'fullRoom', 'roomIdFormatError', 'roomIdCopySuccess', 'roomCollaboratorJoinRoom', 'roomCollaboratorExitRoom',
-  'roomOwnerReviseMap', 'roomCollaboratorReviseMap', 'matchPrepareRoomClose']);
+  'roomOwnerReviseMap', 'roomCollaboratorReviseMap', 'matchPrepareRoomClose', 'continuousClicks', 'serverOverload']);
 
 /** @param {string} file @returns {any} */
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));

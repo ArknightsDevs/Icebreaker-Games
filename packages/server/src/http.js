@@ -1,7 +1,9 @@
 // The HTTP server: the pages, their static files, the modules, the pinned kits, the asset directory and a health check.
 // The pages: the battle at /play, the lobby and its rooms at /room (docs/spec/room.md), and one of them at / .
 import { createServer } from 'node:http';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { assetBase, assetVersion, createAssetHandler } from './assets.js';
 import { createModuleHandler } from './modules.js';
 import { createKitHandler, kitDir } from './kits.js';
 import { rawPathname } from './paths.js';
@@ -24,11 +26,19 @@ import { readWorkspace } from './workspace.js';
 
 /** @typedef {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => boolean} Handler */
 
-/** @param {string} rootDir @param {string | undefined} assetsDir @returns {Handler[]} */
+/** The pages' meta naming the asset base (站点-3), as the page files have it. */
+const ASSET_META = '<meta name="ig-assets" content="assets/skeleton/">';
+
+/**
+ * The page files' handler, and the asset directory's with its version (站点-3) when there is one.
+ * @param {string} rootDir @param {string | undefined} assetsDir @returns {{ handlers: Handler[], version: string | null }}
+ */
 function staticHandlers(rootDir, assetsDir) {
   const handlers = [createStaticHandler(join(publicDir(rootDir)), '/static/')];
-  if (assetsDir !== undefined && assetsDir !== '') handlers.push(createStaticHandler(assetsDir, '/assets/'));
-  return handlers;
+  if (assetsDir === undefined || assetsDir === '' || !existsSync(assetsDir)) return { handlers, version: null };
+  const version = assetVersion(assetsDir);
+  handlers.push(createAssetHandler(assetsDir, version));
+  return { handlers, version };
 }
 
 /**
@@ -41,7 +51,8 @@ export function createHttpServer(options) {
   const browserPackages = options.browserPackages ?? ['@icebreaker/client'];
   const modules = createModuleHandler({ workspace: readWorkspace(rootDir, browserPackages), browserPackages });
   const kits = createKitHandler(options.kitsDir === undefined ? kitDir(rootDir) : options.kitsDir);
-  const handlers = [modules, kits, ...staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR'])];
+  const files = staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR']), handlers = [modules, kits, ...files.handlers];
+  const meta = ASSET_META.replace('assets/skeleton/', assetBase(files.version)), withBase = (/** @type {string} */ html) => html.replace(ASSET_META, meta);
   const pages = { '/play': join(publicDir(rootDir), 'index.html'), '/room': join(publicDir(rootDir), 'room.html') };
   const home = pages[`/${options.home ?? 'play'}`];
 
@@ -49,7 +60,7 @@ export function createHttpServer(options) {
     const path = rawPathname(req.url);
     const page = path === '/' ? home : Object.hasOwn(pages, path) ? pages[/** @type {keyof typeof pages} */ (path)] : null;
     if (page) {
-      serveFixedFile(req, res, page, 'text/html; charset=utf-8').catch(() => sendText(res, 500, 'internal error'));
+      serveFixedFile(req, res, page, 'text/html; charset=utf-8', withBase).catch(() => sendText(res, 500, 'internal error'));
     } else if (path === '/healthz') {
       if (allowReadOnly(req, res)) sendBody(req, res, { body: Buffer.from('{"ok":true}'), type: 'application/json; charset=utf-8' });
     } else if (!handlers.some((h) => h(req, res))) {

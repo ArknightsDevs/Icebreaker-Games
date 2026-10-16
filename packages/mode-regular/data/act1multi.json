@@ -311,7 +311,9 @@
   "roomCollaboratorExitRoom": "协作者已退出",
   "roomOwnerReviseMap": "已更换项目，等待协作者确认",
   "roomCollaboratorReviseMap": "项目内容有变更，请确认后重新准备",
-  "matchPrepareRoomClose": "房间已解散"
+  "matchPrepareRoomClose": "房间已解散",
+  "continuousClicks": "操作过于频繁，请稍后再试",
+  "serverOverload": "当前服务繁忙，请稍后再试"
  },
  "title": "平凡的博士",
  "invite": "房间编号[{0}],Dr.{1}#{2}邀请您加入赛事，【粘贴到输入框可自动识别】",

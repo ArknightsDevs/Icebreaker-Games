@@ -2,7 +2,7 @@
 // squads, the coordination of shared operators, each seat's lineup, and the match they start. Pure state over the
 // lobby's sessions: messages come in already checked (lobby.js lobbyMessageProblem), what goes out goes through
 // `send`, time through `now`, chance through `random`, and a match is started through `startMatch`.
-import { STEP_MS, LINEUP, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
+import { STEP_MS, LINEUP, TOASTS, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
 import { coordinate, pick, handOver, offer } from './allocation.js';
 
 /** How long a room lives without starting a match (房间-1), and each step's time (房间-2, 房间-4, 房间-5), in ms. */
@@ -38,6 +38,8 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {(session: number, msg: Record<string, unknown>) => void} send
  * @property {(match: import('@aue/schema').Match, keys: string[]) => Promise<string> | string} startMatch the match's id
  * @property {Project[]} projects @property {BoxEntry[]} recruits the temporary recruits (房间-5)
+ * @property {number} [maxRooms] how many rooms the server holds at most (站点-2); none: no limit
+ * @property {(session: number) => void} [wrongCode] a session tried a room code no room has (站点-2)
  */
 /** @typedef {{ key: string, name: string, room: string | null, profile: Profile }} Session */
 /** A name card before the page sent its own. @type {Profile} */
@@ -94,6 +96,7 @@ function close(L, r, why) {
 /** A new room: a 6-digit code none uses (房间-1), the session its host. @param {Lobby} L @param {number} id */
 function create(L, id) {
   const s = /** @type {Session} */ (L.sessions.get(id));
+  if (L.rooms.size >= (L.o.maxRooms ?? Infinity)) { fail(L, id, TOASTS['serverOverload'] ?? ''); return; }
   if (s.room) leave(L, id);
   let code;
   do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
@@ -107,7 +110,7 @@ function create(L, id) {
 /** Joins the room whose code a player typed: the digits in [brackets] when there are any (房间-1). @param {Lobby} L @param {number} id @param {string} text */
 function join(L, id, text) {
   const r = L.rooms.get(/\[(\d{6})\]/.exec(text)?.[1] ?? text.trim()), s = /** @type {Session} */ (L.sessions.get(id));
-  if (!r) { fail(L, id, '没有这个房间编号'); return; }
+  if (!r) { L.o.wrongCode?.(id); fail(L, id, '没有这个房间编号'); return; }
   if (s.room === r.code) { push(L, r); return; }
   if (r.members.length >= 2) { fail(L, id, '房间已满'); return; }
   if (r.phase !== 'setup') { fail(L, id, '房间已经开始分配干员'); return; }

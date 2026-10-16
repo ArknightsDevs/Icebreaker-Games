@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { siteUrl, socketUrl } from '../src/site.js';
+import { assetsUrl, siteUrl, socketUrl } from '../src/site.js';
 
 test('[站点-1] site URLs and socket URLs follow the page, under a prefix or at the root', () => {
   for (const prefix of ['', '/icebreaker']) {
@@ -13,6 +13,14 @@ test('[站点-1] site URLs and socket URLs follow the page, under a prefix or at
     assert.equal(socketUrl('battle?seat=1', page), `wss://x.test${prefix}/battle?seat=1`);
     assert.equal(socketUrl('lobby', `http://192.168.1.2:8700${prefix}/`), `ws://192.168.1.2:8700${prefix}/lobby`);
   }
+});
+
+test('[站点-3] the asset base is the one the page names, else assets/skeleton/', () => {
+  const page = 'https://x.test/icebreaker/play?seat=0';
+  const doc = (/** @type {string | null} */ content) => ({ querySelector: () => (content === null ? null : { getAttribute: () => content }) });
+  assert.equal(assetsUrl(doc('assets/~0123456789ab/skeleton/'), page).href, 'https://x.test/icebreaker/assets/~0123456789ab/skeleton/');
+  assert.equal(assetsUrl(doc(null), page).href, 'https://x.test/icebreaker/assets/skeleton/');
+  assert.equal(assetsUrl(undefined, page).href, 'https://x.test/icebreaker/assets/skeleton/');
 });
 
 test('[站点-1] no page source, page or style sheet names a path from the root', () => {

@@ -1,8 +1,11 @@
 // The lobby socket (docs/spec/room.md): a browser connects to /lobby, says hello with its session key and name, then
 // creates or joins a room and goes through the allocation; rooms.js holds the state. Every message is checked with
-// lobbyMessageProblem first; a connection that sends too much, too fast or malformed is closed.
+// lobbyMessageProblem first; a connection that sends too much, too fast or malformed is closed. With a guard, an
+// address that tried too many wrong room codes is told to wait instead of having its code looked up (站点-2).
 import { WebSocketServer } from 'ws';
+import { TOASTS } from '@icebreaker/mode-regular';
 import { createRooms } from './rooms.js';
+import { addressOf } from './guard.js';
 
 /** Largest message a browser may send to the lobby, in bytes (a squad of 30 operators fits). */
 export const MAX_LOBBY_MESSAGE = 16384;
@@ -48,25 +51,30 @@ export function lobbyMessageProblem(m) {
 }
 
 /**
- * The lobby: its rooms and the upgrade of /lobby connections.
- * @param {Omit<import('./rooms.js').RoomsOptions, 'send' | 'now' | 'random'> & { now?: () => number, random?: () => number, log?: (line: string) => void }} o
+ * The lobby: its rooms and the upgrade of /lobby connections; `guard` and `trustProxy` as the server's (站点-2).
+ * @param {Omit<import('./rooms.js').RoomsOptions, 'send' | 'now' | 'random' | 'wrongCode'> & { now?: () => number, random?: () => number, log?: (line: string) => void,
+ *   guard?: ReturnType<typeof import('./guard.js').createGuard>, trustProxy?: boolean }} o
  */
 export function createLobby(o) {
   /** @type {Map<number, import('ws').WebSocket>} */
   const sockets = new Map();
+  /** Each connection's network address. @type {Map<number, string>} */
+  const addresses = new Map();
   let next = 1;
   const rooms = createRooms({
     ...o, now: o.now ?? (() => Date.now()), random: o.random ?? Math.random,
     send: (id, msg) => { const ws = sockets.get(id); if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); },
+    wrongCode: (id) => { const addr = addresses.get(id); if (addr !== undefined) o.guard?.wrongCode(addr); },
   });
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_LOBBY_MESSAGE });
   const timer = setInterval(() => rooms.tick(), 250);
 
-  /** @param {import('ws').WebSocket} ws */
-  function connect(ws) {
+  /** @param {import('ws').WebSocket} ws @param {string} addr */
+  function connect(ws, addr) {
     const id = next++, bucket = { n: BURST, at: Date.now() };
     let hello = false;
     sockets.set(id, ws);
+    addresses.set(id, addr);
     ws.on('message', (data, binary) => {
       const now = Date.now();
       bucket.n = Math.min(BURST, bucket.n + ((now - bucket.at) / 1000) * REFILL);
@@ -80,9 +88,10 @@ export function createLobby(o) {
       // the latency the page shows (页面-6): its own time sent straight back
       else if (m.t === 'ping') ws.send(JSON.stringify({ t: 'pong', at: m.at }));
       else if (m.t === 'profile') rooms.profile(id, { tag: m.tag, avatar: m.avatar, assist: m.assist });
+      else if (m.t === 'join' && o.guard && !o.guard.mayJoin(addr)) ws.send(JSON.stringify({ t: 'error', msg: TOASTS['continuousClicks'] }));
       else rooms.message(id, m);
     });
-    ws.on('close', () => { sockets.delete(id); if (hello) rooms.gone(id); });
+    ws.on('close', () => { sockets.delete(id); addresses.delete(id); if (hello) rooms.gone(id); });
   }
 
   return {
@@ -90,7 +99,7 @@ export function createLobby(o) {
     /** Takes over an upgrade for /lobby; false for any other path. @param {import('node:http').IncomingMessage} req @param {import('node:stream').Duplex} socket @param {Buffer} head */
     upgrade(req, socket, head) {
       if (new URL(req.url ?? '/', 'http://x').pathname !== '/lobby') return false;
-      wss.handleUpgrade(req, socket, head, connect);
+      wss.handleUpgrade(req, socket, head, (ws) => connect(ws, addressOf(req, !!o.trustProxy)));
       return true;
     },
     close() { clearInterval(timer); for (const ws of sockets.values()) ws.close(1001, 'server closing'); wss.close(); },

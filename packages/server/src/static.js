@@ -2,7 +2,19 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isRejection, locateFile, rawPathname, splitPath } from './paths.js';
-import { allowReadOnly, sendBody, sendRejection, sendText } from './respond.js';
+import { allowReadOnly, etagOf, sendBody, sendRejection, sendText } from './respond.js';
+
+/** Each served file's ETag while its modification time and size hold: a large asset is hashed once, not per request. @type {Map<string, { key: string, etag: string }>} */
+const ETAGS = new Map();
+
+/** @param {string} file @param {number} mtimeMs @param {Buffer} body */
+function etagOfFile(file, mtimeMs, body) {
+  const key = `${mtimeMs}:${body.length}`, hit = ETAGS.get(file);
+  if (hit?.key === key) return hit.etag;
+  const etag = etagOf(body);
+  ETAGS.set(file, { key, etag });
+  return etag;
+}
 
 /** @type {ReadonlyMap<string, string>} */
 export const STATIC_TYPES = new Map([
@@ -23,16 +35,18 @@ export const STATIC_TYPES = new Map([
 ]);
 
 /**
- * Serves one file the caller already trusts (a fixed path, not taken from the request).
+ * Serves one file the caller already trusts (a fixed path, not taken from the request), through `edit` when given.
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
  * @param {string} file
  * @param {string} type
+ * @param {(text: string) => string} [edit]
  */
-export async function serveFixedFile(req, res, file, type) {
+export async function serveFixedFile(req, res, file, type, edit) {
   if (!allowReadOnly(req, res)) return;
   try {
-    sendBody(req, res, { body: await readFile(file), type });
+    const raw = await readFile(file);
+    sendBody(req, res, { body: edit ? Buffer.from(edit(raw.toString('utf8'))) : raw, type });
   } catch {
     sendText(res, 404, 'not found');
   }
@@ -43,27 +57,30 @@ export async function serveFixedFile(req, res, file, type) {
  * @param {import('node:http').ServerResponse} res
  * @param {string} dir
  * @param {string} rest
+ * @param {string} [cache] the Cache-Control (default no-cache)
  */
-async function serveFrom(req, res, dir, rest) {
+async function serveFrom(req, res, dir, rest, cache) {
   if (!allowReadOnly(req, res)) return;
   const segments = splitPath(rest);
   if (isRejection(segments)) return sendRejection(res, segments);
   const found = await locateFile(dir, segments, STATIC_TYPES);
   if (isRejection(found)) return sendRejection(res, found);
-  sendBody(req, res, { body: await readFile(found.file), type: found.type });
+  const body = await readFile(found.file);
+  sendBody(req, res, { body, type: found.type, etag: etagOfFile(found.file, found.mtimeMs, body), ...(cache ? { cache } : {}) });
 }
 
 /**
  * Handler for the URLs under `prefix` (for example "/static/"), serving files from dir.
  * @param {string} dir
  * @param {string} prefix
+ * @param {string} [cache] the Cache-Control of what it serves (default no-cache)
  * @returns {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => boolean}
  */
-export function createStaticHandler(dir, prefix) {
+export function createStaticHandler(dir, prefix, cache) {
   return (req, res) => {
     const path = rawPathname(req.url);
     if (!path.startsWith(prefix)) return false;
-    serveFrom(req, res, dir, path.slice(prefix.length)).catch(() => {
+    serveFrom(req, res, dir, path.slice(prefix.length), cache).catch(() => {
       if (!res.headersSent) sendText(res, 500, 'internal error');
       else res.destroy();
     });

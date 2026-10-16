@@ -1,7 +1,8 @@
 // Starts the server of a release bundle (docs/deploy.md; start-windows.bat and start.sh run this): checks Node, links
 // the workspace packages into node_modules (a zip holds no links, so the bundle makes them on its first start and again
 // after the folder moved), points the server at the bundle's assets and kits, says the addresses players open, then
-// runs the server. The arguments go to the server; it listens on every address unless --host says otherwise.
+// runs the server. The arguments go to the server; it listens on every address unless --host says otherwise. With
+// --link-only it makes the links and stops (an install whose folder the server may not write: docs/deploy.md §4).
 import { existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -57,6 +58,7 @@ function addresses(port) {
 
 /** Starts the server with the arguments (every address unless --host). @param {string[]} argv */
 async function start(argv) {
+  if (argv.includes('--link-only')) { linkWorkspace(); console.log('node_modules 的链接已建立'); return; }
   const args = argv.includes('--host') ? argv : ['--host', '0.0.0.0', ...argv];
   const port = argv.includes('--port') ? Number(argv[argv.indexOf('--port') + 1]) : 8700;
   linkWorkspace();

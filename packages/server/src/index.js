@@ -9,3 +9,4 @@ export { createRooms, TIMES } from './rooms.js';
 export { coordinate, pick, handOver, offer, shuffle } from './allocation.js';
 export { projectViews, recruits } from './catalog.js';
 export { kitDir, nodeKits, KIT_PREFIX } from './kits.js';
+export { createGuard, guardUpgrades, addressOf, countOption, LIMITS } from './guard.js';

@@ -49,12 +49,12 @@ function matches(header, etag) {
  * 200 with the body (no body for HEAD), or 304 when If-None-Match has the ETag.
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
- * @param {{ body: Buffer, type: string, etag?: string }} o
+ * @param {{ body: Buffer, type: string, etag?: string, cache?: string }} o `cache`: the Cache-Control (default no-cache)
  */
 export function sendBody(req, res, o) {
   const etag = o.etag ?? etagOf(o.body);
   /** @type {import('node:http').OutgoingHttpHeaders} */
-  const headers = { ETag: etag, 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' };
+  const headers = { ETag: etag, 'Cache-Control': o.cache ?? 'no-cache', 'X-Content-Type-Options': 'nosniff' };
   if (matches(req.headers['if-none-match'], etag)) {
     res.writeHead(304, headers);
     res.end();

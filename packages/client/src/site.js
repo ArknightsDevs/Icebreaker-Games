@@ -12,5 +12,11 @@ export function socketUrl(path, page = location.href) {
   return u.href;
 }
 
-/** The asset directory's URL (a local directory the server serves, AUE_ASSETS_DIR). */
-export const assetsUrl = () => siteUrl('assets/skeleton/');
+/**
+ * The asset directory's URL (a local directory the server serves, AUE_ASSETS_DIR): the page's <meta name="ig-assets">
+ * names it with the directory's version (站点-3), else assets/skeleton/.
+ * @param {{ querySelector: (s: string) => { getAttribute: (n: string) => string | null } | null } | undefined} [doc] @param {string} [page]
+ */
+export function assetsUrl(doc = globalThis.document, page = location.href) {
+  return siteUrl(doc?.querySelector('meta[name="ig-assets"]')?.getAttribute('content') || 'assets/skeleton/', page);
+}

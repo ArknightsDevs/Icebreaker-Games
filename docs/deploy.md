@@ -76,3 +76,36 @@ node tools/package.js --version <版本> --assets <素材仓库> --kits <Strongh
   - 只差大小写的同名路径；
   - 个人信息：本机的用户目录和盘符路径、本机账号名、noreply 以外的电子邮件地址。
 - **输出**：默认写到系统临时目录下的 `icebreaker-games-release/`，`--out` 必须在仓库外面。发布时把两个 zip 上传到 Release。
+
+## 4. 公网部署（反向代理之后）
+
+把服务器放在 nginx 这类反向代理后面，对外提供 https。平台可以挂在域名的根目录，也可以挂在一个子路径下，比如 `https://example.org/icebreaker/`。相关规则见 [站点规范](spec/site.md)。
+
+1. 照第 1 节装好完整包。如果程序目录对运行服务的用户是只读的，先用有写权限的用户在包的目录里运行一次 `node scripts/launch.js --link-only`，建立 `node_modules` 的链接。
+2. 服务器只监听本机，并信任代理转来的地址：
+
+   ```sh
+   node scripts/launch.js --host 127.0.0.1 --port 8700 --trust-proxy --max-rooms 60 --max-battles 12
+   ```
+
+   `--max-rooms`、`--max-battles` 是同时存在的房间数和对局数的上限，默认 500 和 100，机器小就调低。
+3. 代理（nginx）：
+
+   ```nginx
+   map $http_upgrade $ig_upgrade { default upgrade; '' ""; }
+
+   location = /icebreaker { return 301 /icebreaker/; }
+   location /icebreaker/ {
+       proxy_pass http://127.0.0.1:8700/;           # 结尾的 / 让 nginx 去掉前缀
+       proxy_http_version 1.1;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;       # 改写成代理看到的地址，不要原样转发
+       proxy_set_header Upgrade $http_upgrade;        # 大厅和对局是 WebSocket
+       proxy_set_header Connection $ig_upgrade;
+       proxy_read_timeout 1h;
+   }
+   ```
+
+   挂在根目录时把 `/icebreaker/` 换成 `/`。前面还有一层 CDN 时，`$remote_addr` 要先按 CDN 给的真实地址还原（nginx 的 `real_ip` 模块），否则所有玩家都算成 CDN 的地址。
+4. 缓存：`assets/~<版本号>/` 下的素材回复允许保存一年，可以交给 CDN 长期缓存；页面、脚本、kit 每次都会校验，CDN 缓存它们的话，每次部署后清一次。
+5. 限制：每个地址同时最多 24 条连接，一分钟内最多输错 10 次房间编号，超过的请求会被拒绝。

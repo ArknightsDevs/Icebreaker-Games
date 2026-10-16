@@ -40,5 +40,12 @@ tr.in td:first-child { color: var(--ok); }
 .field > span { color: var(--muted); font-size: 12px; }
 .field input[type="number"] { width: 5em; }
 details.save { margin-top: 12px; }
+.style-tiny { width: 24px; height: 28px; vertical-align: middle; margin-right: 6px; }
+.style-chosen { display: flex; gap: 12px; align-items: center; }
+.style-card { width: 96px; height: 100px; flex: none; }
+.style-line { display: inline-flex; align-items: center; }
+.mode { font-weight: bold; display: inline-flex; align-items: center; }
+.mode-icon { width: 24px; height: 23px; margin-right: 4px; }
+.tools { display: inline-flex; gap: 8px; align-items: baseline; }
 #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgb(0 0 0 / 0.85); padding: 10px 16px; max-width: 90vw; }
 @media (max-width: 640px) { td { display: block; border: 0; } tr { display: block; border-top: 1px solid #333840; padding: 4px 0; } }

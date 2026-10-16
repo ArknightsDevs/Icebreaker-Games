@@ -1,6 +1,8 @@
 // The room on the room page (docs/spec/room.md): making or joining a room, then each step as the server's room view
 // says — 项目调整, 项目确认, 高顺位干员协调, 组建上场阵容 — and the match. Countdowns carry `data-until` (a
-// performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`.
+// performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`. The mode and
+// the styles carry the activity's icons when the assets have them (页面-5).
+import { MODE, STYLES } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
@@ -21,7 +23,21 @@ import { skillLevelText, trainingText } from './training.js';
  * @property {(id: string) => string} nameOf
  * @property {(draft: Pick[]) => void} setDraft
  * @property {() => string} style the play style of the save
+ * @property {(icon: string, variant: '' | '_tiny') => string | null} icon a style icon's URL (页面-5), null without it
+ * @property {() => string | null} modeIcon the mode's icon URL (页面-5), null without it
  */
+
+/** A style as the room shows it: its small icon (页面-5) and its text. @param {RoomActions} A @param {string} id */
+const styleLine = (A, id) => {
+  const s = STYLES.find((x) => x.id === id), src = s ? A.icon(s.icon, '_tiny') : null;
+  return h('span', { class: 'style-line' }, src ? h('img', { class: 'style-tiny', src, alt: '' }) : null, styleText(id));
+};
+
+/** The mode of the projects, with its icon and colour (页面-5). @param {RoomActions} A */
+const modeTag = (A) => {
+  const src = A.modeIcon();
+  return h('span', { class: 'mode', style: `color: ${MODE.color}` }, src ? h('img', { class: 'mode-icon', src, alt: '' }) : null, MODE.name);
+};
 
 /** A countdown to `ms` after the view came. @param {RoomState} S @param {number} ms */
 const countdown = (S, ms) => h('span', { class: 'clock', 'data-until': String(S.at + ms) }, clock(ms));
@@ -55,9 +71,9 @@ function header(S, A) {
       host && v.phase === 'setup' && v.members.length > 1 ? h('button', { onclick: () => A.send({ t: 'kick' }) }, '请离房间') : null));
 }
 
-/** A project's code, name, class and its stages' tasks (房间-2). @param {ProjectView} p */
-const projectInfo = (p) => h('div', { class: 'project' },
-  h('h3', {}, `${p.code} ${p.name}`, h('small', {}, ` ${p.className}`)),
+/** A project's mode (页面-5), code, name, class and its stages' tasks (房间-2). @param {ProjectView} p @param {RoomActions} A */
+const projectInfo = (p, A) => h('div', { class: 'project' },
+  h('h3', {}, modeTag(A), ` ${p.code} ${p.name}`, h('small', {}, ` ${p.className}`)),
   h('ol', {}, p.stages.map((s) => h('li', {}, `${s.title}：${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''} · ${s.seconds} 秒`))));
 
 /** 项目调整 (房间-2). @param {RoomState} S @param {RoomActions} A */
@@ -65,7 +81,7 @@ function setup(S, A) {
   const v = S.view, projects = S.lobby?.projects ?? [], host = v.you === 0;
   return h('div', { class: 'card' },
     h('div', { class: 'projects' }, projects.map((p, i) => h('button', { 'aria-pressed': String(v.project === i), disabled: !host, onclick: () => A.send({ t: 'project', index: i }) }, `${p.code} ${p.name}`))),
-    projects[v.project] ? projectInfo(projects[v.project]) : null,
+    projects[v.project] ? projectInfo(projects[v.project], A) : null,
     host
       ? h('button', { class: 'primary', disabled: v.members.length < 2 || !v.prepared, onclick: () => A.send({ t: 'go' }) }, v.members.length < 2 ? '等待参加者加入' : v.prepared ? '前往' : '等待参加者准备')
       : h('button', { class: 'primary', 'aria-pressed': String(v.prepared), onclick: () => A.send({ t: 'prepare', on: !v.prepared }) }, v.prepared ? '取消准备' : '准备参赛'));
@@ -75,10 +91,10 @@ function setup(S, A) {
 function confirm(S, A) {
   const v = S.view, p = S.lobby?.projects[v.project], why = A.squadProblem(), mine = v.confirmed[v.you];
   return h('div', { class: 'card' },
-    p ? projectInfo(p) : null,
+    p ? projectInfo(p, A) : null,
     h('p', {}, v.confirmed.map((/** @type {boolean} */ c, /** @type {number} */ i) => `${i === v.you ? '你' : '对方'}${c ? '已确认' : '未确认'}`).join(' · ')),
     why ? h('p', { class: 'bad' }, `常规队不能参赛：${why}`) : null,
-    h('p', {}, `比赛风格：${styleText(A.style())}`),
+    h('p', {}, '比赛风格：', styleLine(A, A.style())),
     h('button', { class: 'primary', disabled: mine || !!why, onclick: () => A.send({ t: 'confirm', squad: A.squad(), style: A.style() }) }, mine ? '已确认参赛' : '确认参赛'));
 }
 
@@ -121,7 +137,7 @@ function lineup(S, A) {
     h('div', { class: 'row' },
       h('button', { disabled: !!why, onclick: () => A.send({ t: 'lineup', lineup: draft }) }, set ? '重新提交阵容' : '提交阵容'),
       h('button', { class: 'primary', disabled: !set, 'aria-pressed': String(ready), onclick: () => A.send({ t: 'ready', on: !ready }) }, ready ? '取消准备' : '准备就绪')),
-    h('p', { class: 'muted' }, `你的比赛风格：${styleText(v.styles[v.you])} · 对方：${styleText(v.styles[1 - v.you])}`),
+    h('p', { class: 'muted' }, '你的比赛风格：', styleLine(A, v.styles[v.you]), ' · 对方：', styleLine(A, v.styles[1 - v.you])),
     h('p', { class: 'muted' }, `对方编队：${other.kept.map(A.nameOf).join('、') || '—'}`),
     h('p', { class: 'muted' }, `对方${v.ready[1 - v.you] ? '已准备就绪' : v.lineups[1 - v.you] ? '已提交阵容' : '正在组建阵容'}`));
 }

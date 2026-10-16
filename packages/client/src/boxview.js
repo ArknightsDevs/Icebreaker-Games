@@ -1,7 +1,7 @@
 // The box and the 常规队 on the room page (docs/spec/room.md 房间-3): the player's name, operators entered by hand with
 // their training (kept within each operator's limits, training.js), each placed in the high-priority or the
-// low-priority list, the play style (房间-3), and the save copied out or in as text (save.js). The save changes only
-// through `setSave`.
+// low-priority list, the play style (房间-3; with the activity's icons when the assets have them, 页面-5), and the save
+// copied out or in as text (save.js). The save changes only through `setSave`.
 import { squadProblem, SQUAD, STYLES } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { putEntry, removeEntry, place, squadOf, exportSave, importSave } from './save.js';
@@ -16,6 +16,7 @@ import { fullEntry, clampEntry, openSkills, skillCap, moduleOpen, maxPotential, 
  * @property {(id: string) => Promise<Training>} training an operator's training data
  * @property {() => Save} getSave @property {(s: Save) => void} setSave
  * @property {(text: string) => void} toast
+ * @property {(icon: string, variant: '' | '_tiny') => string | null} [icon] a style icon's URL (页面-5), null without it
  */
 /**
  * The view's state: the host, the options, the operators' training once loaded, the entry being edited.
@@ -120,13 +121,24 @@ function row(B, s, e) {
     h('td', {}, h('button', { onclick: () => edit(B, e.id) }, '编辑'), h('button', { onclick: () => B.o.setSave(removeEntry(B.o.getSave(), e.id)) }, '删除')));
 }
 
-/** The play style to bring (房间-3): one button a style, what the chosen one gives, costs and carries. @param {Box} B @param {Save} s */
+/** An icon of a style (页面-5), or nothing without it. @param {Box} B @param {string} icon @param {'' | '_tiny'} variant @param {string} cls */
+const iconOf = (B, icon, variant, cls) => {
+  const src = B.o.icon?.(icon, variant);
+  return src ? h('img', { class: cls, src, alt: '' }) : null;
+};
+
+/**
+ * The play style to bring (房间-3): one button a style (its small icon, 页面-5), what the chosen one gives, costs and
+ * carries, beside its full icon. @param {Box} B @param {Save} s
+ */
 function stylePicker(B, s) {
   const chosen = STYLES.find((x) => x.id === s.style) ?? STYLES[0];
   return h('div', { class: 'styles' },
     h('div', { class: 'row', role: 'group', 'aria-label': '比赛风格' }, STYLES.map((x) =>
-      h('button', { 'aria-pressed': String(x.id === chosen.id), style: `border-left: 4px solid ${x.color}`, onclick: () => B.o.setSave({ ...B.o.getSave(), style: x.id }) }, x.name))),
-    h('p', { class: 'muted' }, `${chosen.name}：${plain(chosen.buff)}${chosen.debuff === '无' ? '' : `；${plain(chosen.debuff)}`}。携带物 ${chosen.device.name}：${plain(chosen.device.desc)}`));
+      h('button', { 'aria-pressed': String(x.id === chosen.id), 'data-style': x.id, style: `border-left: 4px solid ${x.color}`, onclick: () => B.o.setSave({ ...B.o.getSave(), style: x.id }) },
+        iconOf(B, x.icon, '_tiny', 'style-tiny'), x.name))),
+    h('div', { class: 'style-chosen' }, iconOf(B, chosen.icon, '', 'style-card'),
+      h('p', { class: 'muted' }, `${chosen.name}：${plain(chosen.buff)}${chosen.debuff === '无' ? '' : `；${plain(chosen.debuff)}`}。携带物 ${chosen.device.name}：${plain(chosen.device.desc)}`)));
 }
 
 /** Copying the save out and in. @param {Box} B */

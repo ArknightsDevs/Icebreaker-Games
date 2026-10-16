@@ -57,3 +57,22 @@
 - 配音由画面设置里的「配音」决定：「默认」是每名干员自己的默认配音，选了语言而这名干员没有时也用默认配音（引擎 音频-4）。
 
 - 来源：设计决定（引擎 ADR 0024、ADR 0061，规划问答 Q69）；配音的选项和名字：数据 charword_table.json `voiceLangTypeDict`；语音的时机为推断，同引擎 INF-0172；浏览器的自动播放限制见 [MDN「Autoplay guide for media and Web Audio APIs」](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay)；协作者申请时的提示音为推断，同引擎 INF-0169
+
+### 页面-5 房间页的图标和音乐
+
+素材里有房间页的图集（`ui/room/index.json`）时，房间页用活动的图标；没有时只显示文字，其余照常：
+
+- **比赛风格**：每种风格的图标按活动表里它的图标编号取（基础 `buff_icon_basic`、驻场 `buff_icon_anchoring`、游走 `buff_icon_roaming`、攻坚 `buff_icon_offensive`、支援 `buff_icon_supportive`），颜色用它的主题色。
+  - 选风格的按钮带小图标（`_tiny`）。
+  - 选中的风格在说明旁边显示完整的图标。
+  - 项目确认时自己的风格，组建上场阵容时双方的风格，前面都带小图标。
+- **项目的模式**：项目说明前显示模式名「常规项目」，用活动表里模式的颜色，前面是这种模式的图标。
+
+素材的音频索引里有音乐库 `sys.ON_MULTIV3_LOADED`（「促融共竞」主界面的《罗德行进曲》）时，房间页播放它：
+
+- 先播前奏，前奏结束时接上循环段，一直循环。音量是这个库的音量乘以玩家的音乐音量。
+- 浏览器要等玩家第一次点按或按键后才让页面出声，所以音乐从那时开始。
+- 页面右上角的「音乐」按钮在 100%、50%、关 之间切换。它就是画面设置里的「音乐」（页面-1），两个页面共用这一项。
+- 比赛开始、页面转到对局页时，音乐按库的交叉淡化秒数淡出，然后才转页面。
+
+- 来源：数据：activity_table.json `MULTIPLAY_V3/act1multi` 的 `squadEffectList[]`（iconId、themeColor）、`mapModeDataDict.NORMAL`（name「常规项目」、color d2284b）；audio_data.json `bgmBanks` 的 `sys.ON_MULTIV3_LOADED`（m_sys_act1multi_intro、m_sys_act1multi_loop、volume 1、crossfade 1）；[PRTS「音乐鉴赏/游戏内音乐一览」oldid=440958](https://prts.wiki/index.php?title=%E9%9F%B3%E4%B9%90%E9%89%B4%E8%B5%8F/%E6%B8%B8%E6%88%8F%E5%86%85%E9%9F%B3%E4%B9%90%E4%B8%80%E8%A7%88&oldid=440958)：sys_act1multi 为「促融共竞#1 OST - 罗德行进曲」「「促融共竞」主界面BGM」；图标取自素材的图集；模式图标的对应、各种图标用在哪里为推断 INF-0005；音乐在房间页播放、离开时淡出再转页面为推断 INF-0006

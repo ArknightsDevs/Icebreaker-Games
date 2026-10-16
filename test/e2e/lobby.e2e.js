@@ -1,13 +1,18 @@
 // Two players through the room page (docs/spec/room.md): each fills a 常规队 in its box, one makes a room and the other
 // joins it by its code, they confirm the project, coordinate shared operators, set their lineups and get ready; both
 // pages go to the battle of their match, in step with its arbiter. With E2E_FULL=1 the bots play the match to its end
-// at 2× (a few minutes): both pages say it ended and lead back to the room, which is at 项目调整 again (房间-6).
+// at 2× (a few minutes): both pages say it ended and lead back to the room, which is at 项目调整 again (房间-6). With the
+// assets' room atlas the styles carry the activity's icons (docs/spec/page.md 页面-5).
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { collectErrors, command, launch, sleep, startLobby, until } from './helpers.js';
 import { botCommands } from '../../packages/server/test/bots.js';
 
 const FULL = process.env['E2E_FULL'] === '1';
+const ASSETS = process.env['AUE_ASSETS_DIR'] ?? '';
+const HAS_ART = ASSETS !== '' && existsSync(join(ASSETS, 'skeleton', 'ui', 'room', 'index.json'));
 
 describe('two players through a room into a match', () => {
   /** @type {Awaited<ReturnType<typeof startLobby>>} */ let stack;
@@ -30,6 +35,12 @@ describe('two players through a room into a match', () => {
     await page.getByLabel('你的名字').press('Tab');
     await page.getByRole('button', { name: '随机填满常规队' }).click();
     await page.locator('.squad.ok').waitFor({ timeout: 30000 });
+    if (HAS_ART) {
+      // the styles' icons (页面-5): a small one on each style's button, the chosen one's full card
+      await until('the room atlas', () => page.evaluate(() => (/** @type {any} */ (globalThis).__room.art() ? true : undefined)), 10000);
+      assert.equal(await page.locator('.styles button img.style-tiny').count(), 5);
+      assert.equal(await page.locator('.style-chosen img.style-card').count(), 1);
+    }
     return { page, errors };
   }
 

@@ -1,5 +1,6 @@
-// Extracts what 常规项目 takes from the game's activity table (docs/spec/room.md, mode.md): the steps' times and the
-// lineup's size, the temporary recruits and the playing styles of the co-op activity act1multi.
+// Extracts what 常规项目 takes from the game's activity table (docs/spec/room.md, page.md): the steps' times and the
+// lineup's size, the temporary recruits, the playing styles (with their icons, 页面-5) and the mode of the co-op
+// activity act1multi.
 // Usage: node tools/extract-activity.js --gamedata <ArknightsGameData checkout>
 // Writes packages/mode-regular/data/act1multi.json (the same input gives byte-identical output).
 import { execFileSync } from 'node:child_process';
@@ -38,6 +39,7 @@ export function extract(root) {
     source: { repo: 'Kengxxiao/ArknightsGameData', commit: commitOf(root), file: 'zh_CN/gamedata/excel/activity_table.json', activity: `MULTIPLAY_V3/${ACTIVITY}` },
     lineup: { min: a.constData.squadMinNum, max: a.constData.squadMaxNum },
     steps,
+    mode: { type: a.mapModeDataDict.NORMAL.modeType, name: a.mapModeDataDict.NORMAL.name, icon: a.mapModeDataDict.NORMAL.iconId, color: `#${a.mapModeDataDict.NORMAL.color}` },
     classes: Object.fromEntries(Object.values(a.mapDiffDataDict).map((/** @type {any} */ d) => [d.diffType, d.name])),
     stages: Object.fromEntries(Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'NORMAL')
       .flatMap((/** @type {any} */ t) => t.stageIdInModeList.map((/** @type {string} */ id) => [id, t.difficulty])).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
@@ -46,7 +48,7 @@ export function extract(root) {
       skillLevel: c.mainSkillLevel + c.specializeLevel,
     })),
     styles: a.squadEffectList.map((/** @type {any} */ s) => ({
-      id: s.id, name: s.name, color: s.themeColor, buff: s.buffDesc, debuff: s.debuffDesc,
+      id: s.id, name: s.name, icon: s.iconId, color: s.themeColor, buff: s.buffDesc, debuff: s.debuffDesc,
       device: { name: s.token.name, desc: s.token.desc },
       runes: s.runeData.runes.map((/** @type {any} */ r) => ({ key: r.key, professions: r.selector.professionMask, board: board(r.blackboard) })),
     })),

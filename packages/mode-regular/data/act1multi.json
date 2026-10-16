@@ -23,6 +23,12 @@
    "seconds": 60
   }
  },
+ "mode": {
+  "type": "NORMAL",
+  "name": "常规项目",
+  "icon": "normal",
+  "color": "#d2284b"
+ },
  "classes": {
   "TRAINING": "训练场",
   "ORDINARY": "初级赛",
@@ -109,6 +115,7 @@
   {
    "id": "buff_1",
    "name": "基础",
+   "icon": "buff_icon_basic",
    "color": "#9A72FF",
    "buff": "我方干员的攻击力<@multiv3.teamBuff>+10%</>",
    "debuff": "无",
@@ -158,6 +165,7 @@
   {
    "id": "buff_2",
    "name": "驻场",
+   "icon": "buff_icon_anchoring",
    "color": "#3E64F6",
    "buff": "我方干员在场时攻击力与最大生命值逐渐提升，最多<@multiv3.teamBuff>+60%</>",
    "debuff": "我方干员再部署时间增加<@multiv3.teamBuff>15%</>",
@@ -233,6 +241,7 @@
   {
    "id": "buff_3",
    "name": "游走",
+   "icon": "buff_icon_roaming",
    "color": "#37CDB2",
    "buff": "我方干员再部署时间减少<@multiv3.teamBuff>20%</>，初始技力提升<@multiv3.teamBuff>10</>",
    "debuff": "我方干员可部署人数减少<@multiv3.teamBuff>1</>",
@@ -320,6 +329,7 @@
   {
    "id": "buff_4",
    "name": "攻坚",
+   "icon": "buff_icon_offensive",
    "color": "#DE4A27",
    "buff": "我方干员攻击速度<@multiv3.teamBuff>+20</>，且造成伤害有<@multiv3.teamBuff>10%</>概率回复<@multiv3.teamBuff>1</>技力",
    "debuff": "我方干员受到伤害增加<@multiv3.teamBuff>20%</>",
@@ -411,6 +421,7 @@
   {
    "id": "buff_5",
    "name": "支援",
+   "icon": "buff_icon_supportive",
    "color": "#ACCE44",
    "buff": "我方干员治疗效果提升<@multiv3.teamBuff>40%</>，且攻击范围内的所有干员每秒技力额外回复<@multiv3.teamBuff>1</>（不叠加）",
    "debuff": "我方干员造成伤害降低<@multiv3.teamBuff>10%</>",

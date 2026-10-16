@@ -36,9 +36,9 @@ export const recruitEntries = (skillCount) => data.recruits.map((r) => ({
 
 /** @typedef {{ key: string, professions: number, board: [string, number | string][] }} SeatRune */
 /**
- * A play style (房间-3): its id, name, colour, what it gives and costs, its carried unit (name, what it does, its unit id)
- * and its runes as a match carries them (engine 符文-1…6).
- * @typedef {{ id: string, name: string, color: string, buff: string, debuff: string, device: { name: string, desc: string, key: string }, runes: SeatRune[] }} Style
+ * A play style (房间-3): its id, name, icon (the atlas sprite's name, 页面-5), colour, what it gives and costs, its
+ * carried unit (name, what it does, its unit id) and its runes as a match carries them (engine 符文-1…6).
+ * @typedef {{ id: string, name: string, icon: string, color: string, buff: string, debuff: string, device: { name: string, desc: string, key: string }, runes: SeatRune[] }} Style
  */
 
 /** The play styles of team play, in the activity's order (房间-3). @type {readonly Style[]} */
@@ -46,6 +46,9 @@ export const STYLES = Object.freeze(data.styles.map((s) => {
   const card = s.runes.find((r) => r.key === 'insert_token_card'), key = card?.board.find(([k]) => k === 'token_key')?.[1];
   return Object.freeze({ ...s, device: { ...s.device, key: String(key ?? '') }, runes: /** @type {SeatRune[]} */ (s.runes) });
 }));
+
+/** The mode of team play's projects (页面-5): its type, name, icon id and colour, as the activity has them. */
+export const MODE = Object.freeze({ ...data.mode });
 
 /** The style a player brings when it has chosen none (房间-3): the first, 基础. */
 export const DEFAULT_STYLE = STYLES[0].id;

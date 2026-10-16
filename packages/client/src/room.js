@@ -1,20 +1,27 @@
 // The room page (docs/spec/room.md): the lobby connection, the room as the server tells it, and the box and 常规队 of
 // the local save. When the room's match starts the page goes to the battle page with the match and the seat; the
 // battle page comes back here when it ends. The lobby key stays in this tab (session.js), so a reload or the way back
-// takes the same seat.
+// takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5).
 import { ROSTER, loadTraining } from '@aue/content';
-import { squadProblem } from '@icebreaker/mode-regular';
+import { squadProblem, MODE } from '@icebreaker/mode-regular';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf } from './save.js';
 import { createBoxView } from './boxview.js';
 import { renderRoom, entryIn } from './roomview.js';
 import { CLOSED, clock, startingLineup } from './roomtext.js';
+import { loadRoomAtlas, styleIcon, modeIcon } from './roomart.js';
+import { createRoomMusic } from './roommusic.js';
+import { readSettings, writeSettings, VOLUMES } from './settings.js';
 
 /** Where this tab's last match is kept, for a way back into it. */
 const MATCH_KEY = 'ice.match';
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const store = localStore(), key = tabKey(LOBBY_KEY);
 let save = readSave(store);
+const ASSETS = new URL('/assets/skeleton/', location.href), ART = new URL('ui/room/', ASSETS).href;
+/** @type {import('./roomart.js').RoomAtlas | null} */
+let atlas = null;
+const music = createRoomMusic(new URL('audio/', ASSETS).href, readSettings(store).music);
 /** @type {import('./roomview.js').RoomState} */
 const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted() };
 /** @type {WebSocket | null} */
@@ -51,10 +58,12 @@ const A = {
   nameOf: (id) => ROSTER[id]?.name ?? id,
   setDraft: (d) => { S.draft = d; draw(); },
   style: () => save.style,
+  icon: (icon, variant) => styleIcon(atlas, ART, icon, variant),
+  modeIcon: () => modeIcon(atlas, ART, MODE.type),
 };
 
 const box = createBoxView($('box'), {
-  roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, toast,
+  roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, toast, icon: A.icon,
   setSave: (s) => {
     const renamed = s.name !== save.name;
     save = s;
@@ -65,9 +74,16 @@ const box = createBoxView($('box'), {
   },
 });
 
+/** The music button (页面-5): the music volume of the settings, 100% → 50% → 关 → 100%, saved for both pages. */
+function drawMusic() {
+  const v = readSettings(store).music;
+  $('music').textContent = `音乐 ${v === 0 ? '关' : `${v * 100}%`}`;
+}
+
 function draw() {
   renderRoom($('screen'), S, A);
   $('conn').textContent = S.conn;
+  drawMusic();
   $('box').hidden = !!S.view && !['setup', 'confirm'].includes(S.view.phase);
 }
 
@@ -89,7 +105,8 @@ function onMessage(m) {
   else if (m.t === 'start') {
     S.started = { match: m.match, seat: m.seat };
     writeStarted(S.started);
-    location.assign(`/play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`);
+    const to = `/play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
+    void music.leave().then(() => location.assign(to));
     return;
   }
   draw();
@@ -111,8 +128,18 @@ function connect() {
 setInterval(() => {
   for (const el of document.querySelectorAll('[data-until]')) el.textContent = clock(Number(/** @type {HTMLElement} */ (el).dataset['until']) - performance.now());
 }, 250);
+$('music').addEventListener('click', () => {
+  const s = readSettings(store), next = VOLUMES[(VOLUMES.indexOf(s.music) + 1) % VOLUMES.length];
+  writeSettings(store, { ...s, music: next });
+  music.volume(next);
+  drawMusic();
+});
+// a page may sound only after a gesture: the music starts on the first touch or key
+addEventListener('pointerdown', () => music.start());
+addEventListener('keydown', () => music.start());
+void loadRoomAtlas(ART).then((a) => { atlas = a; box.render(); draw(); });
 box.render();
 draw();
 connect();
 // for end-to-end tests and the console
-Object.assign(globalThis, { __room: { state: () => S, save: () => save } });
+Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null } });

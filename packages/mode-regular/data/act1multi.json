@@ -1,0 +1,497 @@
+{
+ "source": {
+  "repo": "Kengxxiao/ArknightsGameData",
+  "commit": "17759cc8cdf37388414145d16262a3a06f3ab25e",
+  "file": "zh_CN/gamedata/excel/activity_table.json",
+  "activity": "MULTIPLAY_V3/act1multi"
+ },
+ "lineup": {
+  "min": 6,
+  "max": 10
+ },
+ "steps": {
+  "ENTRANCE": {
+   "title": "正在确认比赛项目",
+   "seconds": 30
+  },
+  "CHAR_PICK": {
+   "title": "高顺位干员协调",
+   "seconds": 20
+  },
+  "SQUAD_CHECK": {
+   "title": "确认上场阵容",
+   "seconds": 60
+  }
+ },
+ "classes": {
+  "TRAINING": "训练场",
+  "ORDINARY": "初级赛",
+  "DIFFICULTY": "高级赛",
+  "EXTREMELY": "特级赛"
+ },
+ "stages": {
+  "act1multi_01": "ORDINARY",
+  "act1multi_02": "ORDINARY",
+  "act1multi_03": "ORDINARY",
+  "act1multi_04": "ORDINARY",
+  "act1multi_05": "ORDINARY",
+  "act1multi_06": "ORDINARY",
+  "act1multi_07": "ORDINARY",
+  "act1multi_ex01": "DIFFICULTY",
+  "act1multi_ex02": "DIFFICULTY",
+  "act1multi_ex03": "DIFFICULTY",
+  "act1multi_ex04": "DIFFICULTY",
+  "act1multi_ex05": "DIFFICULTY",
+  "act1multi_ex06": "DIFFICULTY",
+  "act1multi_ex07": "DIFFICULTY",
+  "act1multi_hard-01": "EXTREMELY",
+  "act1multi_hard-02": "EXTREMELY",
+  "act1multi_hard-03": "EXTREMELY",
+  "act1multi_rm-ex01": "DIFFICULTY",
+  "act1multi_rm-ex02": "DIFFICULTY",
+  "act1multi_rm-ex03": "DIFFICULTY",
+  "act1multi_rm-ex04": "DIFFICULTY",
+  "act1multi_rm-ex05": "DIFFICULTY",
+  "act1multi_rm-ex06": "DIFFICULTY",
+  "act1multi_rm-ex07": "DIFFICULTY",
+  "act1multi_rm01": "ORDINARY",
+  "act1multi_rm02": "ORDINARY",
+  "act1multi_rm03": "ORDINARY",
+  "act1multi_rm04": "ORDINARY",
+  "act1multi_rm05": "ORDINARY",
+  "act1multi_rm06": "ORDINARY",
+  "act1multi_rm07": "ORDINARY",
+  "act1multi_tr01": "TRAINING"
+ },
+ "recruits": [
+  {
+   "id": "char_508_aguard",
+   "elite": 2,
+   "level": 80,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_511_asnipe",
+   "elite": 2,
+   "level": 80,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_509_acast",
+   "elite": 2,
+   "level": 80,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_510_amedic",
+   "elite": 2,
+   "level": 80,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_513_apionr",
+   "elite": 2,
+   "level": 80,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  }
+ ],
+ "styles": [
+  {
+   "id": "buff_1",
+   "name": "基础",
+   "color": "#9A72FF",
+   "buff": "我方干员的攻击力<@multiv3.teamBuff>+10%</>",
+   "debuff": "无",
+   "device": {
+    "name": "赛场啦啦队",
+    "desc": "部署后一段时间内，双方干员的攻击力<@multiv3.teamBuff>+20%</>"
+   },
+   "runes": [
+    {
+     "key": "char_attribute_mul",
+     "professions": 639,
+     "board": [
+      [
+       "atk",
+       1.1
+      ]
+     ]
+    },
+    {
+     "key": "insert_token_card",
+     "professions": 384,
+     "board": [
+      [
+       "token_key",
+       "trap_201_muulco"
+      ],
+      [
+       "level",
+       1
+      ],
+      [
+       "skill",
+       0
+      ],
+      [
+       "count",
+       1
+      ],
+      [
+       "skill_level",
+       1
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "buff_2",
+   "name": "驻场",
+   "color": "#3E64F6",
+   "buff": "我方干员在场时攻击力与最大生命值逐渐提升，最多<@multiv3.teamBuff>+60%</>",
+   "debuff": "我方干员再部署时间增加<@multiv3.teamBuff>15%</>",
+   "device": {
+    "name": "护具分发员",
+    "desc": "部署后一段时间内，为在场的双方干员提供<@multiv3.teamBuff>6000</>屏障"
+   },
+   "runes": [
+    {
+     "key": "char_respawntime_mul",
+     "professions": 639,
+     "board": [
+      [
+       "scale",
+       1.15
+      ]
+     ]
+    },
+    {
+     "key": "insert_token_card",
+     "professions": 384,
+     "board": [
+      [
+       "token_key",
+       "trap_197_muulwr"
+      ],
+      [
+       "level",
+       1
+      ],
+      [
+       "skill",
+       0
+      ],
+      [
+       "count",
+       1
+      ],
+      [
+       "skill_level",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "attr_up_on_trigger[atk][max_hp]"
+      ],
+      [
+       "atk",
+       0.03
+      ],
+      [
+       "max_hp",
+       0.03
+      ],
+      [
+       "max_stack_cnt",
+       20
+      ],
+      [
+       "interval",
+       5
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "buff_3",
+   "name": "游走",
+   "color": "#37CDB2",
+   "buff": "我方干员再部署时间减少<@multiv3.teamBuff>20%</>，初始技力提升<@multiv3.teamBuff>10</>",
+   "debuff": "我方干员可部署人数减少<@multiv3.teamBuff>1</>",
+   "device": {
+    "name": "混乱烟花箱",
+    "desc": "部署后对所有敌人造成伤害，并减少再部署中双方干员的再部署时间至<@multiv3.teamBuff>0</>"
+   },
+   "runes": [
+    {
+     "key": "char_respawntime_mul",
+     "professions": 639,
+     "board": [
+      [
+       "scale",
+       0.8
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "modify_sp[born]"
+      ],
+      [
+       "sp",
+       10
+      ]
+     ]
+    },
+    {
+     "key": "insert_token_card",
+     "professions": 384,
+     "board": [
+      [
+       "token_key",
+       "trap_198_muulas"
+      ],
+      [
+       "level",
+       1
+      ],
+      [
+       "skill",
+       0
+      ],
+      [
+       "count",
+       1
+      ],
+      [
+       "skill_level",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "sp_recovery_reduction"
+      ],
+      [
+       "sp_recovery_per_sec",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "global_deck_placeable_char_num_add",
+     "professions": 639,
+     "board": [
+      [
+       "value",
+       -1
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "buff_4",
+   "name": "攻坚",
+   "color": "#DE4A27",
+   "buff": "我方干员攻击速度<@multiv3.teamBuff>+20</>，且造成伤害有<@multiv3.teamBuff>10%</>概率回复<@multiv3.teamBuff>1</>技力",
+   "debuff": "我方干员受到伤害增加<@multiv3.teamBuff>20%</>",
+   "device": {
+    "name": "猛兽能量饮料",
+    "desc": "部署后一段时间内，大幅增加双方干员的攻速，但使防御力和法术抗性减少至<@multiv3.teamBuff>0</>"
+   },
+   "runes": [
+    {
+     "key": "insert_token_card",
+     "professions": 639,
+     "board": [
+      [
+       "token_key",
+       "trap_199_muulrg"
+      ],
+      [
+       "level",
+       1
+      ],
+      [
+       "skill",
+       0
+      ],
+      [
+       "count",
+       1
+      ],
+      [
+       "skill_level",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "char_attribute_mul",
+     "professions": 639,
+     "board": [
+      [
+       "attack_speed",
+       1.2
+      ]
+     ]
+    },
+    {
+     "key": "char_blockcnt_add",
+     "professions": 639,
+     "board": [
+      [
+       "value",
+       0
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "attack_prob_get[sp][char]"
+      ],
+      [
+       "prob",
+       0.1
+      ],
+      [
+       "sp",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "damage_scale[input][char]"
+      ],
+      [
+       "damage_scale",
+       1.2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "buff_5",
+   "name": "支援",
+   "color": "#ACCE44",
+   "buff": "我方干员治疗效果提升<@multiv3.teamBuff>40%</>，且攻击范围内的所有干员每秒技力额外回复<@multiv3.teamBuff>1</>（不叠加）",
+   "debuff": "我方干员造成伤害降低<@multiv3.teamBuff>10%</>",
+   "device": {
+    "name": "喷射汽水机",
+    "desc": "部署后一段时间内，不断喷出汽水瓶砸到随机双方干员，使其获得<@multiv3.teamBuff>+3</>技力"
+   },
+   "runes": [
+    {
+     "key": "insert_token_card",
+     "professions": 639,
+     "board": [
+      [
+       "token_key",
+       "trap_200_muulcl"
+      ],
+      [
+       "level",
+       1
+      ],
+      [
+       "skill",
+       0
+      ],
+      [
+       "count",
+       1
+      ],
+      [
+       "skill_level",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "char_dynamic_ability_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "dyn_attr_get_in_attack_range[modify_sp]"
+      ],
+      [
+       "sp",
+       1
+      ],
+      [
+       "interval",
+       1
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "damage_scale[out]"
+      ],
+      [
+       "damage_scale",
+       0.9
+      ]
+     ]
+    },
+    {
+     "key": "env_gbuff_new",
+     "professions": 639,
+     "board": [
+      [
+       "key",
+       "heal_scale[advanced][out]"
+      ],
+      [
+       "heal_scale",
+       1.4
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

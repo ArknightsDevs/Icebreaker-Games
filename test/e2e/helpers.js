@@ -2,7 +2,7 @@
 // collect their errors, and polling.
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { createMatchRoom, createHttpServer, DEFAULT_MATCH, kitDir, nodeKits } from '@icebreaker/server';
+import { createMatchRoom, createHttpServer, DEFAULT_MATCH, kitDir, nodeKits, createBattles, createLobby, projectViews, recruits } from '@icebreaker/server';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -54,6 +54,29 @@ export async function startStack(match = DEFAULT_MATCH) {
   return { room, port, lines, stop };
 }
 
+/**
+ * The server of the lobby and its rooms' battles (docs/spec/room.md), the room page at /, on a free port of 127.0.0.1;
+ * with the pinned kits when they are installed.
+ */
+export async function startLobby() {
+  /** @type {string[]} */
+  const lines = [];
+  const kitsDir = kitDir(ROOT), kits = kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {};
+  const battles = createBattles({ ...kits, log: (l) => lines.push(l), onEnd: (id) => lobby.rooms.ended(id) });
+  const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys) });
+  const onUpgrade = (/** @type {any} */ req, /** @type {any} */ socket, /** @type {Buffer} */ head) => { if (!lobby.upgrade(req, socket, head) && !battles.upgrade(req, socket, head)) socket.destroy(); };
+  const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade, kitsDir, home: 'room' });
+  await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
+  const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
+  const stop = async () => {
+    lobby.close();
+    battles.close();
+    server.closeAllConnections();
+    await new Promise((r) => server.close(r));
+  };
+  return { lobby, battles, port, lines, stop };
+}
+
 /** Chromium: E2E_CHROME when set, else Playwright's own. */
 export function launch() {
   const executablePath = process.env['E2E_CHROME'];
@@ -61,7 +84,7 @@ export function launch() {
 }
 
 /** Collects page errors and console errors, except the 404 of the optional assets. @param {import('playwright').Page} page @param {string[]} errors */
-function collectErrors(page, errors) {
+export function collectErrors(page, errors) {
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
     if (m.type() !== 'error') return;

@@ -33,6 +33,7 @@ export const DEFAULT_MATCH = Object.freeze({
  * @property {(line: string) => void} [log]
  * @property {(charIds: string[]) => Promise<{ kits: Record<string, any>, failed: string[] }>} [kits] loads the pinned kits of a match's
  *   operators (kits.js nodeKits); none: the operators fight on the engine's own (engine ADR 0058)
+ * @property {string[]} [keys] each seat's key set beforehand (a room's members, room.md 房间-6): only it takes the seat
  */
 
 /**
@@ -53,7 +54,7 @@ export function createBattleRoom(o = {}) {
   /** @type {Map<number, import('ws').WebSocket>} */
   const sockets = new Map();
   /** @type {Map<number, string>} */
-  const keys = new Map();
+  const keys = new Map((o.keys ?? []).map((k, seat) => [seat, k]));
   const host = new LockstepHost({
     content: o.content ?? skeletonContent, seats, seed: o.seed ?? 1, match: o.match ?? null,
     send: (seat, msg) => { const ws = sockets.get(seat); if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); },
@@ -99,6 +100,10 @@ export function createBattleRoom(o = {}) {
 
   return {
     host,
+    /** Whether the match has ended (won or lost: the arbiter's world has a result). */
+    ended: () => host.world.result >= 0,
+    /** How many seats are connected. */
+    online: () => sockets.size,
     /** Takes over an HTTP upgrade for /battle?seat=N. @param {import('node:http').IncomingMessage} req @param {import('node:stream').Duplex} socket @param {Buffer} head */
     upgrade(req, socket, head) {
       const url = new URL(req.url ?? '/', 'http://x'), seat = Number(url.searchParams.get('seat'));

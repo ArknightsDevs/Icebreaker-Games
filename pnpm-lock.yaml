@@ -190,8 +190,15 @@ importers:
       '@aue/worker':
         specifier: workspace:*
         version: link:../../engine/packages/worker
+      '@icebreaker/mode-regular':
+        specifier: workspace:*
+        version: link:../mode-regular
 
-  packages/mode-regular: {}
+  packages/mode-regular:
+    dependencies:
+      '@aue/schema':
+        specifier: workspace:*
+        version: link:../../engine/packages/schema
 
   packages/server:
     dependencies:
@@ -207,6 +214,9 @@ importers:
       '@aue/schema':
         specifier: workspace:*
         version: link:../../engine/packages/schema
+      '@icebreaker/mode-regular':
+        specifier: workspace:*
+        version: link:../mode-regular
       es-module-lexer:
         specifier: 3.0.2
         version: 3.0.2

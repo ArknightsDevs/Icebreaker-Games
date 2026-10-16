@@ -1,0 +1,44 @@
+/* The room page: one column of cards — the room and its step, then the box and the 常规队. */
+:root { color-scheme: dark; --bg: #1b1d21; --card: #24272d; --fg: #e8eaee; --muted: #9aa1ab; --accent: #2f86e8; --ok: #3f9b5c; --bad: #e06c5a; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
+#room-app { max-width: 960px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 8px; }
+h3 { font-size: 15px; margin: 8px 0 4px; }
+#conn, .muted, small { color: var(--muted); }
+.card, #box { background: var(--card); padding: 12px 16px; }
+#screen { display: flex; flex-direction: column; gap: 12px; }
+#box[hidden], #toast[hidden] { display: none; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+button, .button { background: #30343b; color: var(--fg); border: 2px solid transparent; padding: 4px 12px; cursor: pointer; font: inherit; text-decoration: none; display: inline-block; }
+button.primary, .button.primary { border-color: var(--accent); }
+button[aria-pressed="true"] { border-color: var(--ok); }
+button:disabled { color: var(--muted); cursor: default; border-color: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible, .button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+input, select, textarea { background: #15171a; color: var(--fg); border: 1px solid #444a53; padding: 4px 6px; font: inherit; }
+textarea { width: 100%; box-sizing: border-box; }
+.code { font-size: 20px; letter-spacing: 2px; }
+.invite { width: 100%; box-sizing: border-box; }
+.members { list-style: none; padding: 0; margin: 8px 0; display: flex; gap: 16px; flex-wrap: wrap; }
+.members .offline { color: var(--muted); }
+.projects { display: flex; gap: 8px; flex-wrap: wrap; }
+.project ol { margin: 4px 0; padding-left: 20px; }
+.ops { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.turn { color: var(--ok); font-weight: bold; }
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+.squad.ok { color: var(--ok); }
+.squad.bad { color: var(--bad); }
+table { border-collapse: collapse; width: 100%; }
+td { padding: 4px 6px; border-top: 1px solid #333840; vertical-align: middle; }
+td.place button { padding: 2px 8px; }
+tr.in td:first-child { color: var(--ok); }
+.editor { border: 1px solid var(--accent); padding: 8px 12px; margin: 8px 0; }
+.fields { display: flex; gap: 12px; flex-wrap: wrap; }
+.field { display: inline-flex; flex-direction: column; gap: 2px; }
+.field > span { color: var(--muted); font-size: 12px; }
+.field input[type="number"] { width: 5em; }
+details.save { margin-top: 12px; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgb(0 0 0 / 0.85); padding: 10px 16px; max-width: 90vw; }
+@media (max-width: 640px) { td { display: block; border: 0; } tr { display: block; border-top: 1px solid #333840; padding: 4px 0; } }

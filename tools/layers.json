@@ -37,9 +37,10 @@
     "mode-regular": {
       "allow": [
         "@aue/math",
+        "@aue/schema",
         "@aue/sim"
       ],
-      "role": "常规项目: objectives, the two-stage flow, merit medals, playing styles"
+      "role": "常规项目: objectives, the two-stage flow, merit medals, playing styles, the squads and their rules"
     }
   }
 }

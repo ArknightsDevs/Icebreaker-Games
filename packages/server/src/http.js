@@ -1,4 +1,5 @@
-// The HTTP server: the page, its static files, the modules, the pinned kits, the asset directory and a health check.
+// The HTTP server: the pages, their static files, the modules, the pinned kits, the asset directory and a health check.
+// The pages: the battle at /play, the lobby and its rooms at /room (docs/spec/room.md), and one of them at / .
 import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { createModuleHandler } from './modules.js';
@@ -17,7 +18,8 @@ import { readWorkspace } from './workspace.js';
  * @property {string[]} [browserPackages] workspace packages the browser runs; default the client
  * @property {string | null} [kitsDir] the pinned kits' commit (engine ADR 0058); default kitDir(rootDir), null: /k/ is 404
  * @property {(req: import('node:http').IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => void} [onUpgrade]
- *   WEBSOCKET_UPGRADE_HOOK: the gateway attaches its WebSocket upgrade handler here later; nothing implements it yet
+ *   WEBSOCKET_UPGRADE_HOOK: the WebSocket upgrades (the lobby's /lobby, the battles' /battle)
+ * @property {'play' | 'room'} [home] the page at / : the battle (default: a server of one match) or the lobby
  */
 
 /** @typedef {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => boolean} Handler */
@@ -40,12 +42,14 @@ export function createHttpServer(options) {
   const modules = createModuleHandler({ workspace: readWorkspace(rootDir, browserPackages), browserPackages });
   const kits = createKitHandler(options.kitsDir === undefined ? kitDir(rootDir) : options.kitsDir);
   const handlers = [modules, kits, ...staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR'])];
-  const index = join(publicDir(rootDir), 'index.html');
+  const pages = { '/play': join(publicDir(rootDir), 'index.html'), '/room': join(publicDir(rootDir), 'room.html') };
+  const home = pages[`/${options.home ?? 'play'}`];
 
   const server = createServer((req, res) => {
     const path = rawPathname(req.url);
-    if (path === '/') {
-      serveFixedFile(req, res, index, 'text/html; charset=utf-8').catch(() => sendText(res, 500, 'internal error'));
+    const page = path === '/' ? home : Object.hasOwn(pages, path) ? pages[/** @type {keyof typeof pages} */ (path)] : null;
+    if (page) {
+      serveFixedFile(req, res, page, 'text/html; charset=utf-8').catch(() => sendText(res, 500, 'internal error'));
     } else if (path === '/healthz') {
       if (allowReadOnly(req, res)) sendBody(req, res, { body: Buffer.from('{"ok":true}'), type: 'application/json; charset=utf-8' });
     } else if (!handlers.some((h) => h(req, res))) {

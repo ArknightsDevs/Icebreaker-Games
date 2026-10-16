@@ -1,10 +1,15 @@
-// CLI: node packages/server/src/main.js [--port 8700] [--match <file.json>]   (env AUE_ASSETS_DIR: the local assets directory)
-// Without --match the room plays the default match (IG-1 at 初级赛 with two default decks).
+// CLI: node packages/server/src/main.js [--port 8700] [--host 127.0.0.1] [--match <file.json>]
+// (env AUE_ASSETS_DIR: the local assets directory; AUE_KITS_DIR: the pinned kits). Without --match the server holds the
+// lobby and its rooms (docs/spec/room.md) and their battles; with it, one battle room of that match. It listens on
+// 127.0.0.1 unless --host says otherwise (--host 0.0.0.0 for players on the local network).
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { startHttpServer } from './http.js';
 import { readFileSync } from 'node:fs';
-import { createMatchRoom, DEFAULT_MATCH } from './battle.js';
+import { startHttpServer } from './http.js';
+import { createMatchRoom } from './battle.js';
+import { createBattles } from './battles.js';
+import { createLobby } from './lobby.js';
+import { projectViews, recruits } from './catalog.js';
 import { kitDir, nodeKits } from './kits.js';
 
 /** @param {string[]} argv @returns {number} */
@@ -16,13 +21,24 @@ export function parsePort(argv) {
   return port;
 }
 
+/** @param {string[]} argv @param {string} name */
+const option = (argv, name) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : null);
+
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const args = process.argv.slice(2), file = args.includes('--match') ? args[args.indexOf('--match') + 1] : null;
-const kitsDir = kitDir(rootDir);
+const args = process.argv.slice(2), file = option(args, '--match');
+const kitsDir = kitDir(rootDir), log = (/** @type {string} */ line) => console.log(line);
 console.log(kitsDir ? `kits: ${kitsDir}` : 'kits: none (operators fight on the engine’s own)');
-const room = await createMatchRoom(file ? JSON.parse(readFileSync(file, 'utf8')) : DEFAULT_MATCH, {
-  log: (line) => console.log(line), ...(kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {}),
-});
-const server = await startHttpServer({ rootDir, port: parsePort(args), onUpgrade: room.upgrade, kitsDir });
+const kits = kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {};
+
+/** @type {(req: import('node:http').IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => void} */
+let onUpgrade;
+if (file) {
+  onUpgrade = (await createMatchRoom(JSON.parse(readFileSync(file, 'utf8')), { log, ...kits })).upgrade;
+} else {
+  const battles = createBattles({ ...kits, log, onEnd: (id) => lobby.rooms.ended(id) });
+  const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys), log });
+  onUpgrade = (req, socket, head) => { if (!lobby.upgrade(req, socket, head) && !battles.upgrade(req, socket, head)) socket.destroy(); };
+}
+const server = await startHttpServer({ rootDir, port: parsePort(args), host: option(args, '--host') ?? '127.0.0.1', onUpgrade, kitsDir, home: file ? 'play' : 'room' });
 const addr = server.address();
 if (addr !== null && typeof addr === 'object') console.log(`http://${addr.address}:${addr.port}/`);

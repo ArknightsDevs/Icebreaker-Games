@@ -1,5 +1,6 @@
 // The battle page: the battle worker, the three.js field, the HUD, the controls, the skill bar and the deploy bar. The
-// seat comes from ?seat=<n>; the session key stays in sessionStorage so a reload rejoins the same seat. The match
+// seat comes from ?seat=<n>, a room's match from ?match=<id> (docs/spec/room.md 房间-6: the seat key is the lobby key,
+// and the page leads back to the room); the keys stay in sessionStorage so a reload rejoins the same seat. The match
 // settings come with the server's welcome (engine spec 同步-9): the field and the decks are built once its content is
 // ready. Assets come from the host's /assets/skeleton/ (a local directory, AUE_ASSETS_DIR); without them the page says
 // so and draws nothing — the battle runs either way. Units are Spine figures when the assets have their models
@@ -16,32 +17,22 @@ import { createUi, createBattleHud, cardViews } from '@aue/ui';
 import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './battlehud.js';
 import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
+import { LOBBY_KEY, tabKey, localStore } from './session.js';
 
 const ASSETS = new URL('/assets/skeleton/', location.href);
 
-const seat = Math.max(0, Math.min(7, Number(new URLSearchParams(location.search).get('seat') ?? 0) || 0));
+const params = new URLSearchParams(location.search);
+const seat = Math.max(0, Math.min(7, Number(params.get('seat') ?? 0) || 0));
+/** A room's match (房间-6), or null on a server of one match. */
+const MATCH = params.get('match');
 /** ?bars: the page's own bars even when the assets have the original UI. */
-const BARS = new URLSearchParams(location.search).has('bars');
-const key = sessionKey(seat);
+const BARS = params.has('bars');
+const key = MATCH ? tabKey(LOBBY_KEY) : tabKey(`ice.key.${seat}`);
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
-/** This device's storage for the settings, or null where the page may not use it. @returns {Storage | null} */
-function localStore() {
-  try { return globalThis.localStorage ?? null; } catch { return null; }
-}
 const store = localStore();
 /** The player's picture settings (页面-1). */
 let settings = readSettings(store);
-
-/** @param {number} s */
-function sessionKey(s) {
-  const name = `ice.key.${s}`;
-  try {
-    const k = sessionStorage.getItem(name) ?? crypto.randomUUID();
-    sessionStorage.setItem(name, k);
-    return k;
-  } catch { return crypto.randomUUID(); }
-}
 
 /** @param {string} text */
 function notice(text) { const n = $('notice'); n.textContent = text; n.hidden = false; }
@@ -196,7 +187,7 @@ async function main() {
   P.bar = () => controls({ control: P.control, costAsker: P.costAsker, seat, mate: P.players === 2 ? 1 - seat : -1 });
   P.battle = startBattle({
     workerUrl: new URL('/m/@aue/worker/src/worker.js', location.href),
-    wsUrl: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/battle?seat=${seat}`,
+    wsUrl: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`,
     seat, key, kits: new URL('/k/', location.href),
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
@@ -217,6 +208,8 @@ async function main() {
  */
 function onFrame(P, f) {
   const { view, events, status } = f, game = P.game;
+  const end = events.find((e) => e['type'] === 'end');
+  if (end && MATCH) ended(Number(end['result']));
   for (const [id, k] of Object.entries(f.keys)) P.unitKeys.set(Number(id), k);
   P.players = view.players.length;
   P.costAsker = costAskerAfter(P.costAsker, events);
@@ -239,6 +232,16 @@ function onFrame(P, f) {
   }
   P.bar();
   P.lastView = view;
+}
+
+/** A room's match ended (房间-6): the result and the way back to the room. @param {number} result 1: won, 0: lost */
+function ended(result) {
+  notice(`比赛结束：${result === 1 ? '胜利' : '失败'}。`);
+  const back = document.createElement('a');
+  back.href = '/room';
+  back.className = 'back';
+  back.textContent = '返回房间';
+  $('notice').append(' ', back);
 }
 
 /** The match's side is ready: its input, its resize, its render loop. @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g */

@@ -50,6 +50,7 @@ const A = {
   send, squad: () => squadOf(save), squadProblem: () => squadProblem(squadOf(save)),
   nameOf: (id) => ROSTER[id]?.name ?? id,
   setDraft: (d) => { S.draft = d; draw(); },
+  style: () => save.style,
 };
 
 const box = createBoxView($('box'), {

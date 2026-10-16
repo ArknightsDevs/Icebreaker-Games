@@ -80,8 +80,8 @@ test('[房间-2] [房间-5] [房间-6] two players: a room, its project confirme
     await b.next('room');
     await b.next('room');
     a.send({ t: 'go' });
-    a.send({ t: 'confirm', squad: realSquad(0) });
-    b.send({ t: 'confirm', squad: realSquad(20) });
+    a.send({ t: 'confirm', style: 'buff_1', squad: realSquad(0) });
+    b.send({ t: 'confirm', style: 'buff_1', squad: realSquad(20) });
     let v;
     do v = await a.next('room'); while (v.phase !== 'lineup');
     const lineup = (/** @type {number} */ seat) => v.options[seat].kept.slice(0, 6).map((/** @type {string} */ id) => ({ id, skill: 0, module: -1 }));

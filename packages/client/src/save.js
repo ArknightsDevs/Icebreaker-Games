@@ -1,7 +1,7 @@
-// The player's local save (docs/spec/room.md 房间-3): a name, the box — operators with their training, entered by
-// hand — and the 常规队: box operators in a high-priority and a low-priority list. It lives in this browser's
+// The player's local save (docs/spec/page.md 页面-2, room.md 房间-3): a name, the box — operators with their training,
+// entered by hand —, the 常规队: box operators in a high-priority and a low-priority list, and the play style. It lives in this browser's
 // localStorage and copies out and back in as text. Every change makes a new save; nothing here touches the page.
-import { entryProblem, SQUAD } from '@icebreaker/mode-regular';
+import { entryProblem, SQUAD, STYLES, DEFAULT_STYLE } from '@icebreaker/mode-regular';
 
 /** The save's name in localStorage, and where an unreadable one is kept rather than lost. */
 export const SAVE_KEY = 'ice.save', BAD_SAVE_KEY = 'ice.save.unreadable';
@@ -9,10 +9,10 @@ export const SAVE_KEY = 'ice.save', BAD_SAVE_KEY = 'ice.save.unreadable';
 const MAX_BOX = 600;
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
-/** @typedef {{ v: 1, name: string, box: BoxEntry[], squad: { high: string[], low: string[] } }} Save */
+/** @typedef {{ v: 1, name: string, box: BoxEntry[], squad: { high: string[], low: string[] }, style: string }} Save */
 
 /** @returns {Save} */
-export const emptySave = () => ({ v: 1, name: '', box: [], squad: { high: [], low: [] } });
+export const emptySave = () => ({ v: 1, name: '', box: [], squad: { high: [], low: [] }, style: DEFAULT_STYLE });
 
 /** @param {unknown} x @returns {x is Record<string, any>} */
 const isRecord = (x) => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -29,6 +29,7 @@ function squadIdsProblem(q, ids) {
 export function saveProblem(x) {
   if (!isRecord(x) || x.v !== 1) return '不是促融共竞的存档';
   if (typeof x.name !== 'string' || x.name.length > 16) return '名字不能超过 16 个字';
+  if (!STYLES.some((s) => s.id === x.style)) return '没有这种比赛风格';
   if (!Array.isArray(x.box) || x.box.length > MAX_BOX) return `box 最多 ${MAX_BOX} 名干员`;
   const ids = new Set();
   for (const e of x.box) {
@@ -64,6 +65,7 @@ export function writeSave(store, s) {
 export function importSave(text) {
   let x;
   try { x = JSON.parse(text); } catch { return { error: '不是存档的文本' }; }
+  if (isRecord(x) && x.style === undefined) x.style = DEFAULT_STYLE;
   const why = saveProblem(x);
   return why ? { error: why } : { save: /** @type {Save} */ (x) };
 }

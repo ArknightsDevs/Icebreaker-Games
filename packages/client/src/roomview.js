@@ -2,7 +2,7 @@
 // says — 项目调整, 项目确认, 高顺位干员协调, 组建上场阵容 — and the match. Countdowns carry `data-until` (a
 // performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`.
 import { h } from './dom.js';
-import { PHASE_TITLES, clock, inviteText, turnText, lineupCount } from './roomtext.js';
+import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
@@ -20,6 +20,7 @@ import { skillLevelText, trainingText } from './training.js';
  * @property {() => string | null} squadProblem why the save's 常规队 cannot be confirmed
  * @property {(id: string) => string} nameOf
  * @property {(draft: Pick[]) => void} setDraft
+ * @property {() => string} style the play style of the save
  */
 
 /** A countdown to `ms` after the view came. @param {RoomState} S @param {number} ms */
@@ -77,7 +78,8 @@ function confirm(S, A) {
     p ? projectInfo(p) : null,
     h('p', {}, v.confirmed.map((/** @type {boolean} */ c, /** @type {number} */ i) => `${i === v.you ? '你' : '对方'}${c ? '已确认' : '未确认'}`).join(' · ')),
     why ? h('p', { class: 'bad' }, `常规队不能参赛：${why}`) : null,
-    h('button', { class: 'primary', disabled: mine || !!why, onclick: () => A.send({ t: 'confirm', squad: A.squad() }) }, mine ? '已确认参赛' : '确认参赛'));
+    h('p', {}, `比赛风格：${styleText(A.style())}`),
+    h('button', { class: 'primary', disabled: mine || !!why, onclick: () => A.send({ t: 'confirm', squad: A.squad(), style: A.style() }) }, mine ? '已确认参赛' : '确认参赛'));
 }
 
 /** 高顺位干员协调 (房间-4). @param {RoomState} S @param {RoomActions} A */
@@ -119,6 +121,7 @@ function lineup(S, A) {
     h('div', { class: 'row' },
       h('button', { disabled: !!why, onclick: () => A.send({ t: 'lineup', lineup: draft }) }, set ? '重新提交阵容' : '提交阵容'),
       h('button', { class: 'primary', disabled: !set, 'aria-pressed': String(ready), onclick: () => A.send({ t: 'ready', on: !ready }) }, ready ? '取消准备' : '准备就绪')),
+    h('p', { class: 'muted' }, `你的比赛风格：${styleText(v.styles[v.you])} · 对方：${styleText(v.styles[1 - v.you])}`),
     h('p', { class: 'muted' }, `对方编队：${other.kept.map(A.nameOf).join('、') || '—'}`),
     h('p', { class: 'muted' }, `对方${v.ready[1 - v.you] ? '已准备就绪' : v.lineups[1 - v.you] ? '已提交阵容' : '正在组建阵容'}`));
 }

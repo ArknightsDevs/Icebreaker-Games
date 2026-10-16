@@ -1,9 +1,11 @@
 // The box and the 常规队 on the room page (docs/spec/room.md 房间-3): the player's name, operators entered by hand with
 // their training (kept within each operator's limits, training.js), each placed in the high-priority or the
-// low-priority list, and the save copied out or in as text (save.js). The save changes only through `setSave`.
-import { squadProblem, SQUAD } from '@icebreaker/mode-regular';
+// low-priority list, the play style (房间-3), and the save copied out or in as text (save.js). The save changes only
+// through `setSave`.
+import { squadProblem, SQUAD, STYLES } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { putEntry, removeEntry, place, squadOf, exportSave, importSave } from './save.js';
+import { plain } from './roomtext.js';
 import { fullEntry, clampEntry, openSkills, skillCap, moduleOpen, maxPotential, skillLevelText, trainingText } from './training.js';
 
 /** @typedef {import('./save.js').Save} Save @typedef {import('./save.js').BoxEntry} BoxEntry @typedef {import('./training.js').Training} Training */
@@ -118,6 +120,15 @@ function row(B, s, e) {
     h('td', {}, h('button', { onclick: () => edit(B, e.id) }, '编辑'), h('button', { onclick: () => B.o.setSave(removeEntry(B.o.getSave(), e.id)) }, '删除')));
 }
 
+/** The play style to bring (房间-3): one button a style, what the chosen one gives, costs and carries. @param {Box} B @param {Save} s */
+function stylePicker(B, s) {
+  const chosen = STYLES.find((x) => x.id === s.style) ?? STYLES[0];
+  return h('div', { class: 'styles' },
+    h('div', { class: 'row', role: 'group', 'aria-label': '比赛风格' }, STYLES.map((x) =>
+      h('button', { 'aria-pressed': String(x.id === chosen.id), style: `border-left: 4px solid ${x.color}`, onclick: () => B.o.setSave({ ...B.o.getSave(), style: x.id }) }, x.name))),
+    h('p', { class: 'muted' }, `${chosen.name}：${plain(chosen.buff)}${chosen.debuff === '无' ? '' : `；${plain(chosen.debuff)}`}。携带物 ${chosen.device.name}：${plain(chosen.device.desc)}`));
+}
+
 /** Copying the save out and in. @param {Box} B */
 function saveTools(B) {
   const area = /** @type {HTMLTextAreaElement} */ (h('textarea', { rows: 4, 'aria-label': '存档文本' }));
@@ -134,6 +145,7 @@ function render(B) {
     h('h2', {}, '干员 box 与常规队'),
     field('你的名字', h('input', { value: s.name, maxLength: 16, onchange: (/** @type {Event} */ e) => B.o.setSave({ ...B.o.getSave(), name: /** @type {HTMLInputElement} */ (e.target).value.trim().slice(0, 16) }) })),
     h('p', { class: why ? 'squad bad' : 'squad ok' }, `常规队：高顺位 ${q.high.length}/${SQUAD.high} · 低顺位 ${q.low.length}/${SQUAD.low} · 合计 ${q.high.length + q.low.length}（至少 ${SQUAD.min}）`, why ? ` · ${why}` : ' · 可以参赛'),
+    h('h3', {}, '比赛风格'), stylePicker(B, s),
     h('div', { class: 'row' }, input, h('button', { onclick: () => add(B, input.value) }, '加入 box'),
       h('button', { onclick: () => fill(B).catch((e) => B.o.toast(`填充失败：${e.message}`)) }, '随机填满常规队')),
     h('datalist', { id: 'roster-names' }, Object.values(B.o.roster).map((r) => h('option', { value: r.name }))),

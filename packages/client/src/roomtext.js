@@ -1,9 +1,21 @@
 // What the room page says about a room (docs/spec/room.md): the steps' names, the countdowns, the invitation text, whose
 // turn it is, and the lineup a player starts from. Pure; roomview.js draws it.
 
+import { STYLES } from '@icebreaker/mode-regular';
+
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
 /** @typedef {{ kept: string[], drawn: string[], extra: string[] }} Options */
 /** @typedef {{ id: string, skill: number, module: number }} Pick */
+
+/** A text of the activity table without its markup (<@…>…</>). @param {string} s */
+export const plain = (s) => s.replace(/<[^>]*>/g, '');
+
+/** A play style as the page names it (房间-3): its name, what it gives and costs, its carried unit. @param {string} id */
+export function styleText(id) {
+  const s = STYLES.find((x) => x.id === id);
+  if (!s) return '—';
+  return `${s.name}（${plain(s.buff)}${s.debuff === '无' ? '' : `；${plain(s.debuff)}`}；携带物：${s.device.name}）`;
+}
 
 /** Each phase's name as the game shows it. @type {Record<string, string>} */
 export const PHASE_TITLES = { setup: '项目调整', confirm: '项目确认', pick: '高顺位干员协调', lineup: '组建上场阵容', battle: '比赛进行中' };

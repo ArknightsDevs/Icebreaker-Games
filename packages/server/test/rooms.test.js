@@ -113,10 +113,10 @@ test('[房间-2] 项目调整: the host sets the project, the guest prepares (un
 test('[房间-3] [房间-5] confirming takes a 常规队 that keeps the rules; with both, no shared high-priority operator: straight to the lineups', () => {
   const g = rig();
   twoConfirming(g);
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 9) });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 9) });
   assert.match(g.last(1, 'error').msg, /at least 20/);
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', squad: squadOf(10, 10, 20) });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 20) });
   const v = g.last(1, 'room');
   assert.equal(v.phase, 'lineup');
   assert.equal(v.options[0].kept.length, 10, 'its high-priority operators');
@@ -127,8 +127,8 @@ test('[房间-3] [房间-5] confirming takes a 常规队 that keeps the rules; w
 test('[房间-4] shared high-priority operators are picked in turns before the lineups; a pick out of turn does nothing; one runs out: the first left', () => {
   const g = rig();
   twoConfirming(g);
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', squad: { high: squadOf(10, 10, 0).high.slice(0, 2).concat(squadOf(8, 0, 30).high), low: squadOf(0, 10, 50).low } });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: { high: squadOf(10, 10, 0).high.slice(0, 2).concat(squadOf(8, 0, 30).high), low: squadOf(0, 10, 50).low } });
   const p = g.last(1, 'room').picking;
   assert.equal(g.last(1, 'room').phase, 'pick');
   assert.equal(p.left.length, 2);
@@ -145,8 +145,8 @@ test('[房间-4] shared high-priority operators are picked in turns before the l
 test('[房间-5] [房间-6] a lineup of 6–10 from the seat\'s options, then 准备就绪 by both: the match of both lineups, the host seat 0', async () => {
   const g = rig();
   twoConfirming(g);
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', squad: squadOf(10, 10, 20) });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 20) });
   const opts = g.last(1, 'room').options;
   const lineup = (/** @type {number} */ seat, /** @type {number} */ n) => opts[seat].kept.slice(0, n).map((/** @type {string} */ id) => ({ id, skill: 1, module: 1 }));
   g.rooms.message(1, { t: 'lineup', lineup: lineup(0, 5) });
@@ -169,8 +169,8 @@ test('[房间-5] [房间-6] a lineup of 6–10 from the seat\'s options, then �
 test('[房间-5] [房间-6] the lineup step runs out: a seat without a lineup gets its kept operators and the match starts; it ends: back to 项目调整 with 15 minutes', async () => {
   const g = rig();
   twoConfirming(g);
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', squad: squadOf(10, 10, 20) });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 20) });
   g.t.now += TIMES.lineup;
   g.rooms.tick();
   await settle();
@@ -205,8 +205,8 @@ test('[房间-1] joining: a full room or one past 项目调整 takes nobody; the
 
   const h = rig();
   twoConfirming(h);
-  h.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  h.rooms.message(2, { t: 'confirm', squad: squadOf(10, 10, 20) });
+  h.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  h.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 20) });
   h.t.now += TIMES.lineup;
   h.rooms.tick();
   await settle();
@@ -234,7 +234,7 @@ test('[房间-1] what is not the host\'s or the guest\'s to do does nothing; mes
   g.rooms.message(1, { t: 'prepare', on: true });
   g.rooms.message(1, { t: 'project', index: 5 });
   g.rooms.message(1, { t: 'project', index: -1 });
-  g.rooms.message(2, { t: 'confirm', squad: squadOf() });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf() });
   g.rooms.message(1, { t: 'pick', id: 'x' });
   g.rooms.message(1, { t: 'handover' });
   g.rooms.message(1, { t: 'lineup', lineup: [] });
@@ -256,8 +256,8 @@ test('[房间-4] a turn handed over is the other seat\'s; the lineups follow the
   const g = rig();
   twoConfirming(g);
   const shared = squadOf(3, 0, 0).high, own = squadOf(7, 10, 40);
-  g.rooms.message(1, { t: 'confirm', squad: { high: shared.concat(own.high), low: own.low } });
-  g.rooms.message(2, { t: 'confirm', squad: { high: shared, low: squadOf(0, 17, 70).low } });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: { high: shared.concat(own.high), low: own.low } });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: { high: shared, low: squadOf(0, 17, 70).low } });
   const by = g.last(1, 'room').picking.by;
   g.rooms.message(by + 1, { t: 'handover' });
   assert.deepEqual([g.last(1, 'room').picking.by, g.last(1, 'room').picking.yielded], [1 - by, true]);
@@ -272,8 +272,8 @@ test('[房间-5] a lineup names skills and modules the entry has; one set again 
   twoConfirming(g);
   const a = squadOf(10, 10, 0);
   a.high[0] = { ...a.high[0], modules: [0] };
-  g.rooms.message(1, { t: 'confirm', squad: a });
-  g.rooms.message(2, { t: 'confirm', squad: squadOf(10, 10, 20) });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: a });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 20) });
   const kept = g.last(1, 'room').options[0].kept;
   assert.equal(kept[0], a.high[0].id);
   const six = (/** @type {any} */ first) => [first, ...kept.slice(1, 6).map((/** @type {string} */ id) => ({ id, skill: 0, module: -1 }))];
@@ -304,8 +304,8 @@ test('[房间-5] the lineup step runs out: a seat that set its lineup fields it;
   twoConfirming(g);
   const b = squadOf(2, 18, 20);
   b.high[0] = { ...b.high[0], skills: [] };
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', squad: b });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: b });
   const kept = g.last(1, 'room').options[0].kept;
   g.rooms.message(1, { t: 'lineup', lineup: kept.slice(0, 7).map((/** @type {string} */ id) => ({ id, skill: 1, module: -1 })) });
   g.t.now += TIMES.lineup;
@@ -324,8 +324,8 @@ test('[房间-6] a match that cannot start sends them back to 项目调整 with 
     projects: [{ level: 'act1multi_01', difficulty: 'NORMAL' }], recruits: RECRUITS,
   });
   twoConfirming(g);
-  g.rooms.message(1, { t: 'confirm', squad: squadOf(10, 10, 0) });
-  g.rooms.message(2, { t: 'confirm', squad: squadOf(10, 10, 20) });
+  g.rooms.message(1, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 0) });
+  g.rooms.message(2, { t: 'confirm', style: 'buff_1', squad: squadOf(10, 10, 20) });
   g.rooms.gone(2);
   g.t.now += TIMES.lineup;
   g.rooms.tick();
@@ -342,4 +342,24 @@ test('[房间-1] a session that says hello again with a new name keeps its seat 
   g.rooms.hello(1, 'ka', 'A2');
   assert.deepEqual(g.last(1, 'room').members.map((/** @type {any} */ m) => m.name), ['A2']);
   assert.equal(g.rooms.rooms.size, 1);
+});
+
+test('[房间-3] [房间-6] each seat confirms with a play style, hidden from the other seat until the lineups; the match carries each seat\'s style runes', async () => {
+  const g = rig();
+  twoConfirming(g);
+  g.rooms.message(1, { t: 'confirm', style: 'nope', squad: squadOf(10, 10, 0) });
+  assert.match(g.last(1, 'error').msg, /没有这种比赛风格/);
+  g.rooms.message(1, { t: 'confirm', style: 'buff_5', squad: squadOf(10, 10, 0) });
+  assert.deepEqual(g.last(2, 'room').styles, ['', ''], 'not shown to the other seat yet');
+  assert.deepEqual(g.last(1, 'room').styles, ['buff_5', '']);
+  g.rooms.message(2, { t: 'confirm', style: 'buff_3', squad: squadOf(10, 10, 20) });
+  assert.deepEqual(g.last(2, 'room').styles, ['buff_5', 'buff_3'], 'public with the lineups');
+  g.t.now += TIMES.lineup;
+  g.rooms.tick();
+  await settle();
+  const runes = g.started[0].match.runes;
+  assert.deepEqual(runes.map((/** @type {any[]} */ l) => l.map((x) => x.key).join()), [
+    'insert_token_card,char_dynamic_ability_new,env_gbuff_new,env_gbuff_new',
+    'char_respawntime_mul,env_gbuff_new,insert_token_card,env_gbuff_new,global_deck_placeable_char_num_add',
+  ]);
 });

@@ -58,4 +58,7 @@ test('[页面-2] a save copies out as text and back in; text that is not a save 
   assert.match(String(saveProblem({ ...s, squad: { high: ['char_999_none'], low: [] } })), /box 之外/);
   assert.match(String(saveProblem({ ...s, squad: { high: [] } })), /格式/);
   assert.match(String(saveProblem({ ...s, box: 'x' })), /box/);
+  assert.match(String(saveProblem({ ...s, style: 'buff_9' })), /比赛风格/);
+  const { style: _style, ...old } = s;
+  assert.deepEqual(importSave(JSON.stringify(old)), { save: { ...s, style: 'buff_1' } }, 'a save from before the styles: 基础');
 });

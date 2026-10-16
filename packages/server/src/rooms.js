@@ -2,7 +2,7 @@
 // squads, the coordination of shared operators, each seat's lineup, and the match they start. Pure state over the
 // lobby's sessions: messages come in already checked (lobby.js lobbyMessageProblem), what goes out goes through
 // `send`, time through `now`, chance through `random`, and a match is started through `startMatch`.
-import { STEP_MS, LINEUP, squadProblem, buildOf } from '@icebreaker/mode-regular';
+import { STEP_MS, LINEUP, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
 import { coordinate, pick, handOver, offer } from './allocation.js';
 
 /** How long a room lives without starting a match (房间-1), and each step's time (房间-2, 房间-4, 房间-5), in ms. */
@@ -22,7 +22,7 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {number} project the project's index
  * @property {boolean} prepared the guest's 准备参赛
  * @property {number} expires @property {number} due the current step's end (0: none)
- * @property {(Squad | null)[]} squads @property {Coordination | null} coord
+ * @property {(Squad | null)[]} squads @property {string[]} styles each seat's play style (房间-3) @property {Coordination | null} coord
  * @property {Options[]} options @property {(Pick[] | null)[]} lineups @property {boolean[]} ready
  * @property {string | null} match
  */
@@ -47,13 +47,14 @@ const until = (L, at) => Math.max(0, at - L.o.now());
 
 /** A room as a seat sees it: the squads and options only once the lineups are being set (房间-5). @param {Lobby} L @param {Room} r @param {number} seat */
 function view(L, r, seat) {
-  const p = r.phase === 'pick' ? r.coord?.picking ?? null : null, lineup = r.phase === 'lineup';
+  const p = r.phase === 'pick' ? r.coord?.picking ?? null : null, lineup = r.phase === 'lineup' || r.phase === 'battle';
   return {
     t: 'room', code: r.code, you: seat, phase: r.phase, project: r.project, prepared: r.prepared,
     members: r.members.map((m) => ({ name: m.name, online: m.online })), left: until(L, r.expires), step: r.due ? until(L, r.due) : 0,
     confirmed: r.squads.map((s) => s !== null),
     picking: p ? { left: p.left, by: p.by, yielded: p.yielded, won: p.won } : null,
-    options: lineup ? r.options : null, squads: lineup ? r.squads : null,
+    options: r.phase === 'lineup' ? r.options : null, squads: r.phase === 'lineup' ? r.squads : null,
+    styles: lineup ? r.styles : r.styles.map((s, i) => (i === seat ? s : '')),
     lineups: r.lineups.map((l) => (l ? l.map((x) => x.id) : null)), ready: r.ready,
   };
 }
@@ -62,7 +63,7 @@ const push = (L, r) => r.members.forEach((m, i) => { if (m.online) L.o.send(m.id
 
 /** Back to 项目调整 with nothing of the allocation left (房间-2, 房间-6). @param {Room} r */
 function toSetup(r) {
-  Object.assign(r, { phase: 'setup', prepared: false, due: 0, squads: [null, null], coord: null, options: [], lineups: [null, null], ready: [false, false], match: null });
+  Object.assign(r, { phase: 'setup', prepared: false, due: 0, squads: [null, null], styles: ['', ''], coord: null, options: [], lineups: [null, null], ready: [false, false], match: null });
 }
 
 /** @param {Lobby} L @param {Room} r @param {string} why */
@@ -119,12 +120,16 @@ function go(L, r, id) {
   push(L, r);
 }
 
-/** 确认参赛 with the seat's 常规队 (房间-2, 房间-3); both confirmed: the allocation (房间-4). @param {Lobby} L @param {Room} r @param {number} id @param {unknown} squad */
-function confirm(L, r, id, squad) {
+/**
+ * 确认参赛 with the seat's 常规队 and play style (房间-2, 房间-3); both confirmed: the allocation (房间-4).
+ * @param {Lobby} L @param {Room} r @param {number} id @param {unknown} squad @param {string} style
+ */
+function confirm(L, r, id, squad, style) {
   if (r.phase !== 'confirm') return;
-  const why = squadProblem(squad);
+  const why = squadProblem(squad) ?? (styleRunes(style) ? null : `没有这种比赛风格 ${style}`);
   if (why) { fail(L, id, `常规队不符合要求：${why}`); return; }
   r.squads[seatOf(r, id)] = /** @type {Squad} */ (squad);
+  r.styles[seatOf(r, id)] = style;
   if (r.squads[0] && r.squads[1]) {
     r.coord = coordinate(/** @type {[Squad, Squad]} */ (r.squads), L.o.random);
     if (r.coord.picking) Object.assign(r, { phase: 'pick', due: L.o.now() + TIMES.pick });
@@ -208,7 +213,8 @@ function autoLineup(L, r, seat) {
 async function start(L, r) {
   const project = L.o.projects[r.project];
   const decks = r.lineups.map((l, seat) => /** @type {Pick[]} */ (l).map((x) => ({ id: x.id, build: buildOf(/** @type {BoxEntry} */ (entryOf(L, r, seat, x.id)), x.skill, x.module) })));
-  const match = { level: project.level, difficulty: project.difficulty, seed: Math.floor(L.o.random() * 0x7fffffff), decks };
+  const runes = r.styles.map((s) => /** @type {NonNullable<ReturnType<typeof styleRunes>>} */ (styleRunes(s)));
+  const match = { level: project.level, difficulty: project.difficulty, seed: Math.floor(L.o.random() * 0x7fffffff), decks, runes };
   Object.assign(r, { phase: 'battle', due: 0 });
   push(L, r);
   try {
@@ -248,7 +254,7 @@ const IN_ROOM = {
   },
   prepare: (L, r, id, m) => { if (seatOf(r, id) === 1 && r.phase === 'setup') { r.prepared = m.on; push(L, r); } },
   go: (L, r, id) => go(L, r, id),
-  confirm: (L, r, id, m) => confirm(L, r, id, m.squad),
+  confirm: (L, r, id, m) => confirm(L, r, id, m.squad, m.style),
   pick: (L, r, id, m) => { if (r.phase === 'pick') afterPick(L, r, pick(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id), m.id)); },
   handover: (L, r, id) => { if (r.phase === 'pick') afterPick(L, r, handOver(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id))); },
   lineup: (L, r, id, m) => setLineup(L, r, id, m.lineup),

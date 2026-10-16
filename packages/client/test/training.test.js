@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { entryProblem } from '@icebreaker/mode-regular';
 import { loadTraining } from '@aue/content';
 import { fullEntry, clampEntry, skillCap, skillLevelText, trainingText, maxPotential } from '../src/training.js';
-import { clock, inviteText, turnText, startingLineup, lineupCount, PHASE_TITLES, CLOSED } from '../src/roomtext.js';
+import { clock, inviteText, turnText, startingLineup, lineupCount, PHASE_TITLES, CLOSED, styleText } from '../src/roomtext.js';
 
 test('[页面-2] a new six-star: E2 at its top level, its 3 skills at mastery 3, potential 1, trust 100%, modules not unlocked', async () => {
   const t = await loadTraining('char_1035_wisdel'), e = fullEntry('char_1035_wisdel', t);
@@ -53,4 +53,10 @@ test('[房间-5] the lineup a player starts from: kept first (10 at most), fille
   assert.equal(lineupCount(few), null);
   assert.match(String(lineupCount(few.slice(0, 5))), /6–10.*5/);
   assert.match(String(lineupCount([...many, ...few])), /16/);
+});
+
+test('[房间-3] a play style as the page names it: name, what it gives and costs, its carried unit; markup left out', () => {
+  assert.equal(styleText('buff_1'), '基础（我方干员的攻击力+10%；携带物：赛场啦啦队）');
+  assert.equal(styleText('buff_3'), '游走（我方干员再部署时间减少20%，初始技力提升10；我方干员可部署人数减少1；携带物：混乱烟花箱）');
+  assert.equal(styleText(''), '—');
 });

@@ -5,12 +5,37 @@
 // asks for cost and to pause through its page; this page answers both. Run with `pnpm run e2e`.
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, openSeat, sleep, startStack, until } from './helpers.js';
 
 const ASSETS = process.env['AUE_ASSETS_DIR'] ?? '';
 const HAS_UI = ASSETS !== '' && existsSync(join(ASSETS, 'skeleton', 'ui', 'battle.json'));
+
+/** A voice the page said: a character's line of a type (页面-4). @param {import('playwright').Page} page @param {string} char @param {string} type */
+const said = async (page, char, type) => {
+  /** @type {{ char: string, type: string, file: string, length: number }[]} */
+  let s = [];
+  try {
+    return await until(`${char}'s ${type} line`, async () => {
+      s = await page.evaluate(() => /** @type {any} */ (globalThis).__battle.sound().said);
+      return s.find((v) => v.char === char && v.type === type);
+    }, 5000);
+  } catch (e) {
+    throw new Error(`${/** @type {Error} */ (e).message}; said: ${JSON.stringify(s)}`, { cause: e });
+  }
+};
+
+/**
+ * The battle's start said by the deck's leader, its first operator with the line (页面-4, the engine's 音频-5); waits
+ * until it has been said, since nothing of a lower priority takes over from it (音频-6). @param {import('playwright').Page} page @param {string[]} deck
+ */
+async function startSaid(page, deck) {
+  const voices = JSON.parse(readFileSync(join(ASSETS, 'skeleton', 'voice', 'index.json'), 'utf8'));
+  const leader = deck.map((k) => k.split('#')[0]).find((ch) => voices.chars[ch]?.lines.BATTLE_START?.length);
+  const start = /** @type {{ length: number }} */ (/** @type {unknown} */ (await said(page, /** @type {string} */ (leader), 'BATTLE_START')));
+  await sleep(start.length * 1000 + 300);
+}
 
 describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no battle UI pack in AUE_ASSETS_DIR' }, () => {
   /** @type {Awaited<ReturnType<typeof startStack>>} */ let stack;
@@ -51,6 +76,7 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
       return s.music ? s : undefined;
     }, 10000);
     assert.ok(sound.banks > 1000, `${sound.banks} sound banks`);
+    if (sound.voices > 0) await startSaid(page, deck);
     const op = deck.slice().sort((a, b) => c.operators[a].cost - c.operators[b].cost)[0], d = c.operators[op];
     const want = d.position === 'MELEE' ? ['MELEE', 'ALL'] : ['RANGED', 'ALL'];
     /** @type {{ row: number, col: number, h: number } | null} */
@@ -85,6 +111,8 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
     await sleep(200);
     await page.mouse.up();
     await until('deployed facing up', () => (stack.room.host.world.units.find((u) => u.key === op)?.dir === 'UP' ? true : undefined), 10000);
+    // its voice (页面-4, the engine's 音频-5): a deployment line in its dub, when the assets have voices
+    if (sound.voices > 0) assert.match((await said(page, op.split('#')[0], 'PLACE_CHAR')).file, new RegExp(`^(CN_MANDARIN|JP|EN|KR|LINKAGE)/${op.split('#')[0]}/cn_\\d{3}\\.mp3$`));
     await until('the selector gone', async () => ((await selector.isVisible()) ? undefined : true));
 
     // its bars at its feet (the engine's 界面-19), then its menu, then retreat

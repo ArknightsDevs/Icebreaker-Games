@@ -2,7 +2,7 @@
 // frame-rate cap's gate and the FPS readout.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULTS, sanitize, readSettings, writeSettings, frameGate, fpsMeter } from '../src/settings.js';
+import { DEFAULTS, sanitize, readSettings, writeSettings, frameGate, fpsMeter, dubChoices } from '../src/settings.js';
 
 /** A storage over a map; `broken` makes it throw. @param {boolean} [broken] */
 function storage(broken = false) {
@@ -15,10 +15,16 @@ function storage(broken = false) {
 }
 
 test('[页面-1] [页面-4] no limits by default, music and sounds full; a choice that is not one of the options takes the default', () => {
-  assert.deepEqual(DEFAULTS, { fpsCap: 0, scale: 1, attackEffects: true, showFps: false, music: 1, sfx: 1 });
-  assert.deepEqual(sanitize({ fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true, music: 0, sfx: 0.5 }), { fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true, music: 0, sfx: 0.5 });
-  assert.deepEqual(sanitize({ fpsCap: 59, scale: 2, attackEffects: 'no', music: 0.3, sfx: '1', extra: 1 }), DEFAULTS);
+  assert.deepEqual(DEFAULTS, { fpsCap: 0, scale: 1, attackEffects: true, showFps: false, music: 1, sfx: 1, voice: 1, dub: '' });
+  assert.deepEqual(sanitize({ fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true, music: 0, sfx: 0.5, voice: 0.5, dub: 'JP' }),
+    { fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true, music: 0, sfx: 0.5, voice: 0.5, dub: 'JP' });
+  assert.deepEqual(sanitize({ fpsCap: 59, scale: 2, attackEffects: 'no', music: 0.3, sfx: '1', voice: 2, dub: 'LINKAGE', extra: 1 }), DEFAULTS, 'LINKAGE is no choice: only a default');
   assert.deepEqual(sanitize(null), DEFAULTS);
+});
+
+test('[页面-4] the dubs offered: 默认 and those the voice index has, in the settings\' order; none it has not', () => {
+  assert.deepEqual(dubChoices([]), [['', '默认']]);
+  assert.deepEqual(dubChoices(['LINKAGE', 'JP', 'CN_MANDARIN']), [['', '默认'], ['CN_MANDARIN', '中文-普通话'], ['JP', '日语']], 'LINKAGE only as a default');
 });
 
 test('[页面-1] saved on the device; nothing saved, a broken record or a storage that refuses gives the defaults', () => {

@@ -1,17 +1,19 @@
 // The player's picture settings (docs/spec/page.md 页面-1; engine ADR 0059): a frame-rate cap, the 清晰度, attack effects,
-// an FPS readout, and the music and sound volumes (页面-4) — saved on this device, applied at once. Nothing here touches the battle: it runs 30 frames a second
+// an FPS readout, the music, sound and voice volumes and the dub (页面-4) — saved on this device, applied at once. Nothing here touches the battle: it runs 30 frames a second
 // whatever the picture does (the engine's 时间-1).
 
-/** @typedef {{ fpsCap: number, scale: number, attackEffects: boolean, showFps: boolean, music: number, sfx: number }} Settings */
+/** @typedef {{ fpsCap: number, scale: number, attackEffects: boolean, showFps: boolean, music: number, sfx: number, voice: number, dub: string }} Settings */
 
 /** The frame-rate caps; 0 follows the display (no cap of ours). */
 export const FPS_CAPS = Object.freeze([0, 144, 120, 60, 30]);
 /** The 清晰度 choices: the canvas's pixel ratio over the device's (the engine's 渲染-15). */
 export const SCALES = Object.freeze([1, 0.75, 0.5]);
-/** The volume choices of the music and the sounds (页面-4). */
+/** The volume choices of the music, the sounds and the voices (页面-4). */
 export const VOLUMES = Object.freeze([1, 0.5, 0]);
+/** The dub choices (页面-4, the engine's 音频-4): '' each operator's default, else a dub of the data with its name there. */
+export const DUBS = Object.freeze([['', '默认'], ['CN_MANDARIN', '中文-普通话'], ['JP', '日语'], ['EN', '英语'], ['KR', '韩语']]);
 /** No limits of ours by default. @type {Readonly<Settings>} */
-export const DEFAULTS = Object.freeze({ fpsCap: 0, scale: 1, attackEffects: true, showFps: false, music: 1, sfx: 1 });
+export const DEFAULTS = Object.freeze({ fpsCap: 0, scale: 1, attackEffects: true, showFps: false, music: 1, sfx: 1, voice: 1, dub: '' });
 
 const KEY = 'ice.settings.v1';
 
@@ -25,6 +27,8 @@ export function sanitize(v) {
     showFps: typeof o.showFps === 'boolean' ? o.showFps : DEFAULTS.showFps,
     music: VOLUMES.includes(/** @type {number} */ (o.music)) ? /** @type {number} */ (o.music) : DEFAULTS.music,
     sfx: VOLUMES.includes(/** @type {number} */ (o.sfx)) ? /** @type {number} */ (o.sfx) : DEFAULTS.sfx,
+    voice: VOLUMES.includes(/** @type {number} */ (o.voice)) ? /** @type {number} */ (o.voice) : DEFAULTS.voice,
+    dub: DUBS.some(([d]) => d === o.dub) ? /** @type {string} */ (o.dub) : DEFAULTS.dub,
   };
 }
 
@@ -80,14 +84,24 @@ const ROWS = Object.freeze([
   { field: 'showFps', label: '显示帧率', choices: [[false, '关'], [true, '开']] },
   { field: 'music', label: '音乐', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
   { field: 'sfx', label: '音效', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
+  { field: 'voice', label: '语音', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
+  { field: 'dub', label: '配音', choices: DUBS },
 ]);
 
 /**
- * The settings button and its panel (页面-1): a choice applies at once and is saved.
+ * The dub choices the assets have (页面-4): 默认 always, the others when the voice index has them.
+ * @param {readonly string[]} have the voice index's dubs @returns {(string)[][]}
+ */
+export const dubChoices = (have) => DUBS.filter(([d]) => d === '' || have.includes(d)).map((c) => [...c]);
+
+/**
+ * The settings button and its panel (页面-1): a choice applies at once and is saved. The dubs offered are those the
+ * assets have, told once the voices are loaded (页面-4); the 配音 row shows when there is a choice.
  * @param {HTMLElement} root @param {Settings} initial @param {(s: Settings) => void} onChange
+ * @returns {{ dubs: (have: readonly string[]) => void }}
  */
 export function createSettingsPanel(root, initial, onChange) {
-  let s = { ...initial };
+  let s = { ...initial }, dubs = dubChoices([]);
   const toggle = document.createElement('button'), panel = document.createElement('div');
   toggle.textContent = '画面';
   toggle.setAttribute('aria-expanded', 'false');
@@ -95,7 +109,7 @@ export function createSettingsPanel(root, initial, onChange) {
   panel.hidden = true;
   toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); });
   const draw = () => {
-    panel.replaceChildren(...ROWS.map((r) => {
+    panel.replaceChildren(...ROWS.flatMap((r) => (r.field !== 'dub' ? [r] : dubs.length > 1 ? [{ ...r, choices: dubs }] : [])).map((r) => {
       const row = document.createElement('div'), name = document.createElement('span');
       row.className = 'row';
       name.textContent = r.label;
@@ -111,4 +125,5 @@ export function createSettingsPanel(root, initial, onChange) {
   };
   draw();
   root.replaceChildren(toggle, panel);
+  return { dubs: (have) => { dubs = dubChoices(have); draw(); } };
 }

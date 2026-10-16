@@ -2,7 +2,8 @@
 // tile it may be deployed on — or pressed, then the tile tapped — opens the direction selector there; a drag from
 // anywhere points a facing (its range shows) and letting go deploys; the cancel button takes it back. While it is
 // placed the operator stands on its tile, its direction indicator at its feet while the facing is chosen (渲染-14). A
-// tap on one of this seat's operators opens its menu: start its skill, retreat it; a tap elsewhere closes it.
+// tap on one of this seat's operators opens its menu: start its skill, retreat it; a tap elsewhere closes it. A card
+// taken or an operator's menu opened is the player choosing it (its voice: the engine's 音频-5).
 import { DIR } from '@aue/schema';
 import { dragFacing } from '@aue/ui';
 import { ownUnitAt, menuSkill } from './battlehud.js';
@@ -12,7 +13,7 @@ import { ownUnitAt, menuSkill } from './battlehud.js';
 /**
  * @typedef {{ canvas: HTMLCanvasElement, renderer: any, hud: any, battle: any, level: any, seat: number, content: any,
  *   icons: Record<string, string>, iconBase: string, view: () => import('@aue/schema').View | null,
- *   usable: (id: string) => boolean, unitKey: (id: number) => string | undefined }} HandOptions
+ *   usable: (id: string) => boolean, unitKey: (id: number) => string | undefined, focus?: (key: string) => void }} HandOptions
  */
 
 /** Whether a pointer event is on a tappable part of the UI (the UI handles it). @param {Event} e */
@@ -84,6 +85,7 @@ export class Hand {
     if (!this.o.usable(id)) return;
     this.clear();
     Object.assign(this, { mode: 'drag', op: id });
+    this.o.focus?.(id);
     this.mark(null, 0);
   }
 
@@ -127,7 +129,11 @@ export class Hand {
       return;
     }
     const view = this.o.view(), u = t && view ? ownUnitAt(view, this.o.seat, t) : null;
-    if (u) { Object.assign(this, { mode: 'menu', unit: u.id }); this.showMenu(u); } else this.clear();
+    if (!u) { this.clear(); return; }
+    Object.assign(this, { mode: 'menu', unit: u.id });
+    this.showMenu(u);
+    const key = this.o.unitKey(u.id);
+    if (key) this.o.focus?.(key);
   }
 
   /** Deploys the selected operator facing the pointed facing. */

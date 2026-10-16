@@ -33,9 +33,9 @@ html, body { margin: 0; height: 100%; background: #000; color: var(--fg); font: 
 #controls button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 /* The original battle UI (the engine's @aue/ui) over the field when the assets have it: its faces, its layer; the
    page's own bars give way to it. */
-@font-face { font-family: "Montserrat"; src: url(/assets/skeleton/fonts/montserrat.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Chakra Petch"; src: url(/assets/skeleton/fonts/chakra-petch-regular.woff2) format("woff2"); font-display: swap; }
-@font-face { font-family: "Noto Sans SC"; src: url(/assets/skeleton/fonts/noto-sans-sc.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Montserrat"; src: url(../assets/skeleton/fonts/montserrat.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Chakra Petch"; src: url(../assets/skeleton/fonts/chakra-petch-regular.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Noto Sans SC"; src: url(../assets/skeleton/fonts/noto-sans-sc.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 :root { --aue-ui-latin: "Montserrat", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Chakra Petch", sans-serif; --aue-ui-arvo: "Arvo", serif; }
 #ui { position: absolute; inset: 0; pointer-events: none; }
 body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.original-ui #controls { display: none; }

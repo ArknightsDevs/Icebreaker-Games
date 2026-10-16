@@ -15,6 +15,7 @@ import { createRoomMusic } from './roommusic.js';
 import { readSettings, writeSettings, VOLUMES } from './settings.js';
 import { startLobby } from './lobbypage.js';
 import { resultOf } from './lobbymap.js';
+import { assetsUrl, socketUrl } from './site.js';
 
 /** Where this tab's last match is kept, for a way back into it; where the battle page leaves its result (页面-6). */
 const MATCH_KEY = 'ice.match', RESULT_KEY = 'ice.result';
@@ -23,7 +24,7 @@ const store = localStore(), key = tabKey(LOBBY_KEY);
 let save = readSave(store);
 // a 代号 of its own from the first visit on (房间-1), kept with the save
 if (!save.tag) { save = { ...save, tag: newTag() }; writeSave(store, save); }
-const ASSETS = new URL('/assets/skeleton/', location.href), ART = new URL('ui/room/', ASSETS).href;
+const ASSETS = assetsUrl(), ART = new URL('ui/room/', ASSETS).href;
 /** @type {import('./roomart.js').RoomAtlas | null} */
 let atlas = null;
 const music = createRoomMusic(new URL('audio/', ASSETS).href, readSettings(store).music);
@@ -165,7 +166,7 @@ function onMessage(m) {
     // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6)
     const pr = S.view ? S.lobby?.projects[S.view.project] : null;
     try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name })); } catch { /* the battle page waits for the match */ }
-    const to = `/play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
+    const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
     // with the lobby screens the countdown and the start play first (页面-6)
     void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));
     draw();
@@ -175,7 +176,7 @@ function onMessage(m) {
 }
 
 function connect() {
-  const sock = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/lobby`);
+  const sock = new WebSocket(socketUrl('lobby'));
   ws = sock;
   sock.onopen = () => { retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); sendCard(true); ping(); draw(); };
   sock.onmessage = (e) => onMessage(JSON.parse(String(e.data)));

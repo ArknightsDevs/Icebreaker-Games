@@ -17,6 +17,7 @@ import { AFTER_TICK } from './lobby3d.js';
 import { startLobbyFx } from './lobbyfx.js';
 import { entryIn } from './roomview.js';
 import { styleIcon, loadRoomAtlas, spriteUrl, MODE_ICONS } from './roomart.js';
+import { assetsUrl } from './site.js';
 
 /** @typedef {import('./roomview.js').RoomState} RoomState @typedef {import('./roomview.js').RoomActions} RoomActions */
 /**
@@ -26,7 +27,7 @@ import { styleIcon, loadRoomAtlas, spriteUrl, MODE_ICONS } from './roomart.js';
  *   editBox: () => void, backButton: (on: boolean) => void, invite: () => string, sfx: number, card: () => any }} LobbyHost
  */
 
-const ASSETS = new URL('/assets/skeleton/', location.href), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
+const ASSETS = assetsUrl(), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
 
 /** @param {URL | string} url */
 const fetchJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);

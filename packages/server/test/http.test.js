@@ -95,14 +95,14 @@ after(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-test('a module is served with its bare specifiers rewritten and relative ones kept', async () => {
+test('[站点-1] a module is served with its bare specifiers rewritten relative to it and relative ones kept', async () => {
   const r = await send(port, '/m/@aue/sim/src/index.js');
   assert.equal(r.status, 200);
   assert.equal(r.headers['content-type'], 'text/javascript; charset=utf-8');
-  assert.match(r.body, /from '\/m\/@aue\/data\/index\.js';/);
-  assert.match(r.body, /from '\/m\/@aue\/data\/table\.json' with \{ type: 'json' \}/);
+  assert.match(r.body, /from '\.\.\/\.\.\/data\/index\.js';/);
+  assert.match(r.body, /from '\.\.\/\.\.\/data\/table\.json' with \{ type: 'json' \}/);
   assert.match(r.body, /from '\.\/util\.js'/);
-  assert.match(r.body, /import\("\/m\/@aue\/data\/index\.js"\)/);
+  assert.match(r.body, /import\("\.\.\/\.\.\/data\/index\.js"\)/);
   assert.match(r.body, /\/\/ import nothing from 'nowhere'/);
 });
 

@@ -2,7 +2,7 @@
 // seat comes from ?seat=<n>, a room's match from ?match=<id> (docs/spec/room.md 房间-6: the seat key is the lobby key,
 // and the page leads back to the room); the keys stay in sessionStorage so a reload rejoins the same seat. The match
 // settings come with the server's welcome (engine spec 同步-9): the field and the decks are built once its content is
-// ready. Assets come from the host's /assets/skeleton/ (a local directory, AUE_ASSETS_DIR); without them the page says
+// ready. Assets come from the site's assets/skeleton/ (a local directory, AUE_ASSETS_DIR); without them the page says
 // so and draws nothing — the battle runs either way. Units are Spine figures when the assets have their models
 // (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles. The
 // player's picture settings (settings.js, 页面-1) shape the drawing only.
@@ -19,8 +19,9 @@ import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { controlSounds } from './sound.js';
+import { assetsUrl, siteUrl, socketUrl } from './site.js';
 
-const ASSETS = new URL('/assets/skeleton/', location.href);
+const ASSETS = assetsUrl();
 
 const params = new URLSearchParams(location.search);
 const seat = Math.max(0, Math.min(7, Number(params.get('seat') ?? 0) || 0));
@@ -241,9 +242,9 @@ async function main() {
   const controls = createControls($('controls'), (a) => acts[a]?.());
   P.bar = () => controls({ control: P.control, costAsker: P.costAsker, seat, mate: P.players === 2 ? 1 - seat : -1 });
   P.battle = startBattle({
-    workerUrl: new URL('/m/@aue/worker/src/worker.js', location.href),
-    wsUrl: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`,
-    seat, key, kits: new URL('/k/', location.href),
+    workerUrl: siteUrl('m/@aue/worker/src/worker.js'),
+    wsUrl: socketUrl(`battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`),
+    seat, key, kits: siteUrl('k/'),
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
       P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
@@ -368,7 +369,7 @@ function ended(result, P) {
   try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, stamps, at: Date.now() })); } catch { /* the room shows no result */ }
   try { if (bg) sessionStorage.setItem('ice.result.bg', bg); } catch { /* the result shows without it */ }
   const back = document.createElement('a');
-  back.href = '/room';
+  back.href = 'room';
   back.className = 'back';
   back.textContent = '返回房间';
   $('notice').append(' ', back);

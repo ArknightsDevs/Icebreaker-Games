@@ -147,7 +147,7 @@ function battle(S) {
   const s = S.started;
   return h('div', { class: 'card' },
     h('p', {}, '比赛进行中。比赛结束后，房间回到项目调整。'),
-    s ? h('a', { class: 'button primary', href: `/play?match=${encodeURIComponent(s.match)}&seat=${s.seat}` }, '回到比赛') : null);
+    s ? h('a', { class: 'button primary', href: `play?match=${encodeURIComponent(s.match)}&seat=${s.seat}` }, '回到比赛') : null);
 }
 
 /** Draws the room page's room part. @param {HTMLElement} host @param {RoomState} S @param {RoomActions} A */

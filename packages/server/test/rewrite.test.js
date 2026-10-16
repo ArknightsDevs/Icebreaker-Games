@@ -1,6 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isBare, rewriteImports } from '../src/rewrite.js';
+import { isBare, relativeUrl, rewriteImports } from '../src/rewrite.js';
+
+test('[站点-1] a site path relative to a module resolves back to the same path under any prefix', () => {
+  const cases = [
+    ['/m/@aue/sim/src/a.js', '/m/@aue/schema/src/index.js', '../../schema/src/index.js'],
+    ['/m/@aue/sim/src/a.js', '/m/@aue/sim/src/b.js', './b.js'],
+    ['/m/@aue/sim/src/deep/a.js', '/m/@aue/sim/src/b.js', '../b.js'],
+    ['/m/three/build/three.module.js', '/m/@aue/sim/src/index.js', '../../@aue/sim/src/index.js'],
+    ['/k/server/sim/content/kits/ops/op.js', '/m/@aue/content/src/compat/sh/x.js', '../../../../../../m/@aue/content/src/compat/sh/x.js'],
+  ];
+  for (const [from, to, want] of cases) {
+    const rel = relativeUrl(from, to);
+    assert.equal(rel, want);
+    for (const prefix of ['', '/icebreaker', '/a/b']) assert.equal(new URL(rel, `https://x.test${prefix}${from}`).pathname, `${prefix}${to}`);
+  }
+});
 
 /** @param {string} spec */
 const toUrl = (spec) => (spec.startsWith('@aue/') ? `/m/${spec}/src/index.js` : spec === 'three' ? '/m/three/build/three.module.js' : null);

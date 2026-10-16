@@ -11,6 +11,7 @@ import { init, parse } from 'es-module-lexer';
 import { KIT_SOURCE, loadKits, mappedUrl } from '@aue/content';
 import { isRejection, locateFile, rawPathname, splitPath } from './paths.js';
 import { allowReadOnly, etagOf, sendBody, sendRejection, sendText } from './respond.js';
+import { relativeUrl } from './rewrite.js';
 
 await init;
 
@@ -33,7 +34,7 @@ export function kitDir(rootDir) {
 
 /**
  * A content file's source with its imports of Stronghold engine modules pointed at the engine's compat modules under
- * /m/; imports of other content files stay as they are.
+ * /m/, relative to the file's own URL (站点-1); imports of other content files stay as they are.
  * @param {string} source @param {string} rel the file's path from the commit's root
  */
 export function rewriteKitImports(source, rel) {
@@ -45,7 +46,7 @@ export function rewriteKitImports(source, rel) {
     if (typeof spec !== 'string' || !(spec.startsWith('./') || spec.startsWith('../'))) continue;
     const to = mappedUrl(root, new URL(spec, root + rel).href, compat);
     if (to === null) continue;
-    const path = to.slice(ORIGIN.length);
+    const path = relativeUrl(KIT_PREFIX + rel, to.slice(ORIGIN.length));
     out = out.slice(0, imp.start) + (imp.type === 'dynamic' ? JSON.stringify(path) : path) + out.slice(imp.end);
   }
   return out;

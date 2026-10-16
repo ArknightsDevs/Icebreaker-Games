@@ -1,6 +1,6 @@
 /* The room page: one column of cards — the room and its step, then the box and the 常规队. */
 :root { color-scheme: dark; --bg: #1b1d21; --card: #24272d; --fg: #e8eaee; --muted: #9aa1ab; --accent: #2f86e8; --ok: #3f9b5c; --bad: #e06c5a; }
-@font-face { font-family: "Noto Sans SC"; src: url(/assets/skeleton/fonts/noto-sans-sc.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Noto Sans SC"; src: url(../assets/skeleton/fonts/noto-sans-sc.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 html, body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
 #room-app { max-width: 960px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -51,8 +51,8 @@ details.save { margin-top: 12px; }
 #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgb(0 0 0 / 0.85); padding: 10px 16px; max-width: 90vw; }
 @media (max-width: 640px) { td { display: block; border: 0; } tr { display: block; border-top: 1px solid #333840; padding: 4px 0; } }
 /* The original lobby screens over the whole page (页面-6): the page's own tools in a corner, the box editor over them. */
-@font-face { font-family: "Montserrat"; src: url(/assets/skeleton/fonts/montserrat.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Chakra Petch"; src: url(/assets/skeleton/fonts/chakra-petch-regular.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: "Montserrat"; src: url(../assets/skeleton/fonts/montserrat.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Chakra Petch"; src: url(../assets/skeleton/fonts/chakra-petch-regular.woff2) format("woff2"); font-display: swap; }
 :root { --aue-ui-latin: "Montserrat", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Chakra Petch", sans-serif; --aue-ui-arvo: "Arvo", serif; }
 #lobby { position: fixed; inset: 0; background: #1b1d21; }
 #lobby[hidden], #back[hidden], #boxbtn[hidden], #boxclose[hidden] { display: none; }

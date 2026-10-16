@@ -1,10 +1,10 @@
 // /m/<pkg>/<path>: files of the workspace and third-party packages for the page and its module Worker, with bare
-// import specifiers rewritten to /m/ URLs.
+// import specifiers rewritten to the /m/ URLs, relative to the importing module (站点-1).
 import { readFile } from 'node:fs/promises';
 import { isRejection, locateFile, rawPathname, splitPath } from './paths.js';
 import { resolveSpecifier, splitSpecifier } from './resolve.js';
 import { allowReadOnly, etagOf, sendBody, sendRejection, sendText } from './respond.js';
-import { rewriteImports } from './rewrite.js';
+import { relativeUrl, rewriteImports } from './rewrite.js';
 import { reachablePackages } from './workspace.js';
 
 const PREFIX = '/m/';
@@ -51,16 +51,17 @@ function splitPackage(segments) {
 export function createModuleHandler({ workspace, browserPackages }) {
   const servable = reachablePackages(new Map(workspace), browserPackages);
   const resolveUrl = urlResolver(workspace);
-  /** Rewritten bodies by real file path; valid while the mtime matches. @type {Map<string, { mtimeMs: number, body: Buffer, etag: string }>} */
+  /** Rewritten bodies by real file path; valid while the mtime and the module's URL match. @type {Map<string, { mtimeMs: number, from: string, body: Buffer, etag: string }>} */
   const cache = new Map();
 
-  /** @param {string} file @param {number} mtimeMs @param {string} type */
-  async function load(file, mtimeMs, type) {
+  /** @param {string} file @param {number} mtimeMs @param {string} type @param {string} from the module's URL path */
+  async function load(file, mtimeMs, type, from) {
     const hit = cache.get(file);
-    if (hit?.mtimeMs === mtimeMs) return hit;
+    if (hit?.mtimeMs === mtimeMs && hit.from === from) return hit;
     const raw = await readFile(file);
-    const body = type.startsWith('text/javascript') ? Buffer.from(rewriteImports(raw.toString('utf8'), resolveUrl)) : raw;
-    const entry = { mtimeMs, body, etag: etagOf(body) };
+    const toUrl = (/** @type {string} */ spec) => { const url = resolveUrl(spec); return url === null ? null : relativeUrl(from, url); };
+    const body = type.startsWith('text/javascript') ? Buffer.from(rewriteImports(raw.toString('utf8'), toUrl)) : raw;
+    const entry = { mtimeMs, from, body, etag: etagOf(body) };
     cache.set(file, entry);
     return entry;
   }
@@ -75,7 +76,7 @@ export function createModuleHandler({ workspace, browserPackages }) {
     if (target === null || dir === undefined || !servable.has(target.pkg)) return sendText(res, 404, 'not found');
     const found = await locateFile(dir, target.inner, MODULE_TYPES);
     if (isRejection(found)) return sendRejection(res, found);
-    const { body, etag } = await load(found.file, found.mtimeMs, found.type);
+    const { body, etag } = await load(found.file, found.mtimeMs, found.type, PREFIX + rest);
     sendBody(req, res, { body, type: found.type, etag });
   }
 

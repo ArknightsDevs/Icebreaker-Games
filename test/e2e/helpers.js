@@ -1,5 +1,7 @@
 // Shared pieces of the end-to-end tests: the in-process server with one battle room, the browser, seat pages that
 // collect their errors, and polling.
+import http from 'node:http';
+import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { createMatchRoom, createHttpServer, DEFAULT_MATCH, kitDir, nodeKits, createBattles, createLobby, projectViews, recruits } from '@icebreaker/server';
@@ -77,6 +79,57 @@ export async function startLobby() {
   return { lobby, battles, port, lines, stop };
 }
 
+/**
+ * A reverse proxy on a free port of 127.0.0.1 that serves the site at `port` under `prefix` (docs/spec/site.md
+ * 站点-1), as nginx's `location /icebreaker/ { proxy_pass http://app/; }` does: the prefix is cut off every request and
+ * WebSocket upgrade, `prefix` without its slash is redirected, and nothing outside it is served (`outside` lists what
+ * was asked for there).
+ * @param {number} port @param {string} prefix like "/icebreaker/"
+ */
+export async function startPrefixProxy(port, prefix) {
+  /** @type {string[]} */
+  const outside = [];
+  /** The upgraded connections, which closeAllConnections does not know. @type {Set<import('node:net').Socket | import('node:stream').Duplex>} */
+  const raw = new Set();
+  const strip = (/** @type {string} */ url) => {
+    if (url.startsWith(prefix)) return url.slice(prefix.length - 1);
+    outside.push(url);
+    return null;
+  };
+  const proxy = http.createServer((req, res) => {
+    const [bare, query] = (req.url ?? '').split(/(?=\?)/);
+    if (bare === prefix.slice(0, -1)) { res.writeHead(301, { Location: prefix + (query ?? '') }); res.end(); return; }
+    const path = strip(req.url ?? '');
+    if (path === null) { res.writeHead(404); res.end(); return; }
+    const up = http.request({ host: '127.0.0.1', port, path, method: req.method, headers: req.headers }, (r) => { res.writeHead(r.statusCode ?? 502, r.headers); r.pipe(res); });
+    up.on('error', () => res.destroy());
+    req.pipe(up);
+  });
+  proxy.on('upgrade', (req, socket, head) => {
+    const path = strip(req.url ?? '');
+    if (path === null) { socket.destroy(); return; }
+    const up = net.connect(port, '127.0.0.1', () => {
+      raw.add(up).add(socket);
+      const lines = [`${req.method} ${path} HTTP/1.1`];
+      for (let i = 0; i < req.rawHeaders.length; i += 2) lines.push(`${req.rawHeaders[i]}: ${req.rawHeaders[i + 1]}`);
+      up.write(`${lines.join('\r\n')}\r\n\r\n`);
+      if (head.length) up.write(head);
+      up.pipe(socket);
+      socket.pipe(up);
+    });
+    up.on('error', () => socket.destroy());
+    socket.on('error', () => up.destroy());
+  });
+  await new Promise((r) => proxy.listen(0, '127.0.0.1', () => r(undefined)));
+  const at = /** @type {import('node:net').AddressInfo} */ (proxy.address()).port;
+  const stop = () => {
+    for (const s of raw) s.destroy();
+    proxy.closeAllConnections();
+    return new Promise((r) => proxy.close(r));
+  };
+  return { port: at, outside, stop };
+}
+
 /** Chromium: E2E_CHROME when set, else Playwright's own. */
 export function launch() {
   const executablePath = process.env['E2E_CHROME'];
@@ -96,15 +149,17 @@ export function collectErrors(page, errors) {
 /**
  * A seat page in its own context (a fresh session key); `errors` fills as the page misbehaves. It waits until the
  * match's content is ready, or with `started` only until the page has started (a refused seat never gets a match);
- * `query` adds to the page's query (`bars`: the page's own bars even with the original UI's assets).
- * @param {import('playwright').Browser} browser @param {number} port @param {number} seat @param {{ started?: boolean, query?: string }} [o]
+ * `query` adds to the page's query (`bars`: the page's own bars even with the original UI's assets); `prefix` is the
+ * path the site is under (站点-1, default the root).
+ * @param {import('playwright').Browser} browser @param {number} port @param {number} seat @param {{ started?: boolean, query?: string, prefix?: string }} [o]
  */
 export async function openSeat(browser, port, seat, o = {}) {
+  const base = `http://127.0.0.1:${port}${o.prefix ?? '/'}`;
   const context = await browser.newContext(), page = await context.newPage();
   /** @type {string[]} */
   const errors = [];
   collectErrors(page, errors);
-  await page.goto(`http://127.0.0.1:${port}/?seat=${seat}${o.query ? `&${o.query}` : ''}`);
+  await page.goto(`${base}?seat=${seat}${o.query ? `&${o.query}` : ''}`);
   if (o.started) await page.waitForFunction(() => '__battle' in globalThis, null, { timeout: 15000 });
   else await page.waitForFunction(() => /** @type {any} */ (globalThis).__battle?.ready(), null, { timeout: 20000 });
   return { context, page, errors };

@@ -10,6 +10,20 @@ export function isBare(spec) {
 }
 
 /**
+ * A site path relative to the module at another site path (站点-1: the site may sit under any path, so what the
+ * server writes into a module never starts from the root): "./x.js", "../../y/z.js".
+ * @param {string} from the importing module's path, from the root ("/m/@aue/sim/src/a.js")
+ * @param {string} to the imported path, from the root
+ */
+export function relativeUrl(from, to) {
+  const a = from.split('/').slice(0, -1), b = to.split('/');
+  let i = 0;
+  while (i < a.length && i < b.length - 1 && a[i] === b[i]) i++;
+  const up = a.length - i;
+  return (up === 0 ? './' : '../'.repeat(up)) + b.slice(i).join('/');
+}
+
+/**
  * @param {string} source
  * @param {(spec: string) => string | null} resolveUrl the URL for a bare specifier, or null when it cannot be resolved
  * @returns {string} the source with every literal bare specifier replaced

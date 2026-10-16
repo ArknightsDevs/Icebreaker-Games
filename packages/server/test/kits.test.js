@@ -32,11 +32,11 @@ const SOURCE = [
   '',
 ].join('\n');
 
-test('engine modules a kit imports go to the compat modules; content files stay; an unknown engine module is an error', () => {
+test('[站点-1] engine modules a kit imports go to the compat modules, relative to the kit; content files stay; an unknown engine module is an error', () => {
   const out = rewriteKitImports(SOURCE, OP);
-  assert.match(out, /from '\/m\/@aue\/content\/src\/compat\/sh\/targeting\.js'/);
+  assert.match(out, /from '\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/m\/@aue\/content\/src\/compat\/sh\/targeting\.js'/);
   assert.match(out, /from '\.\.\/shared\/tier1\.js'/);
-  assert.match(out, /import\("\/m\/@aue\/content\/src\/compat\/sh\/dir\.js"\)/);
+  assert.match(out, /import\("\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/m\/@aue\/content\/src\/compat\/sh\/dir\.js"\)/);
   assert.throws(() => rewriteKitImports("import x from '../../../battle.js';\n", OP), /no mapping for the Stronghold module server\/sim\/battle\.js/);
 });
 

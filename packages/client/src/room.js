@@ -162,6 +162,9 @@ function onMessage(m) {
   else if (m.t === 'start') {
     S.started = { match: m.match, seat: m.seat };
     writeStarted(S.started);
+    // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6)
+    const pr = S.view ? S.lobby?.projects[S.view.project] : null;
+    try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name })); } catch { /* the battle page waits for the match */ }
     const to = `/play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
     // with the lobby screens the countdown and the start play first (页面-6)
     void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));

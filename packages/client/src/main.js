@@ -96,11 +96,13 @@ async function effectPack() {
  * @param {import('@aue/schema').Match} match @param {Awaited<ReturnType<typeof assets>>} art
  * @param {() => void} changed called when the deck's selection or facing changes
  * @param {number} joined the last frame sealed when the page joined (−1 before the battle began)
+ * @param {ReturnType<typeof openEarlyUi> | null} opening the original UI the page opened at once, if it did
  */
-async function setUp(match, art, changed, joined) {
+async function setUp(match, art, changed, joined, opening) {
   const content = await matchContent(match);
   // the original UI opens first: its start panel is the loading screen while the field, the models and the effects load
-  const early = art && !BARS ? openEarlyUi(match, content, joined < 0) : Promise.resolve(null);
+  // (opened already when the room page left the stage for it)
+  const early = opening ?? earlyUi(art, stageOf(match, content, joined));
   const models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
   const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
@@ -120,16 +122,28 @@ async function setUp(match, art, changed, joined) {
 }
 
 /**
- * The original battle UI opened before the rest loads (the engine's 界面-21), when the assets have its pack, else null:
- * in a match of two joined before it began, its start panel with the level's code and name over the page — the
- * original's loading screen — played on its own clock until the page's loop takes over.
- * @param {import('@aue/schema').Match} match @param {any} content @param {boolean} early joined before it began
+ * The stage a match's start panel shows (the engine's 界面-21): in a match of two joined before it began, the level's
+ * code and name; else none. @param {import('@aue/schema').Match} match @param {any} content @param {number} joined
  */
-async function openEarlyUi(match, content, early) {
+function stageOf(match, content, joined) {
+  const lv = content.level;
+  return joined < 0 && (match.decks?.length ?? 1) === 2 && lv.code ? { code: lv.code, name: lv.name ?? '' } : null;
+}
+
+/** The original UI to open with the assets and no pages' bars, else none. @param {Awaited<ReturnType<typeof assets>>} art @param {{ code: string, name: string } | null} stage */
+const earlyUi = (art, stage) => (art && !BARS ? openEarlyUi(stage) : Promise.resolve(null));
+
+/**
+ * The original battle UI opened before the rest loads (the engine's 界面-21), when the assets have its pack, else null:
+ * given a stage (a match of two joined before it began), its start panel with the stage's code and name over the page
+ * — the original's loading screen — played on its own clock until the page's loop takes over.
+ * @param {{ code: string, name: string } | null} stage
+ */
+async function openEarlyUi(stage) {
   const loaded = await loadUiPack(ASSETS);
   if (!loaded) return null;
-  const ui = createUi({ pack: loaded.pack, host: $('ui'), base: new URL('ui/', ASSETS).href }), lv = content.level;
-  const start = early && (match.decks?.length ?? 1) === 2 && lv.code ? createStart(ui, { code: lv.code, name: lv.name ?? '' }) : null;
+  const ui = createUi({ pack: loaded.pack, host: $('ui'), base: new URL('ui/', ASSETS).href });
+  const start = stage ? createStart(ui, stage) : null;
   const field = $('field');
   ui.resize(field.clientWidth, field.clientHeight);
   let at = performance.now(), on = true;
@@ -184,7 +198,22 @@ function markField(game, pointer, marks) {
  *   panel: ReturnType<typeof createSettingsPanel> | undefined }} Page
  */
 
+/** Where the room page leaves the stage of the match it sends the page to, for the loading screen at once (页面-6). */
+const LOADING_KEY = 'ice.loading';
+
+/** The stage the room page left for this match, once (a reload has none), or null. @returns {{ code: string, name: string } | null} */
+function takeLoading() {
+  try {
+    const raw = sessionStorage.getItem(LOADING_KEY);
+    sessionStorage.removeItem(LOADING_KEY);
+    const v = raw ? JSON.parse(raw) : null;
+    return v && v.match === MATCH && typeof v.code === 'string' && typeof v.name === 'string' ? { code: v.code, name: v.name } : null;
+  } catch { return null; }
+}
+
 async function main() {
+  // straight from the room: the loading screen opens before anything loads (页面-6, the engine's 界面-21)
+  const loading = BARS ? null : takeLoading(), opening = loading ? openEarlyUi(loading) : null;
   const art = await assets();
   /** @type {Page} */
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
@@ -220,7 +249,7 @@ async function main() {
       P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
       // loaded: the server may begin the battle (the engine's 同步-11)
       if (s.state === 'match' && s.match && !P.game) {
-        setUp(s.match, art, () => P.mark(), s.frame ?? -1).then((g) => { P.game = g; start(P, g); prepareVoices(P); P.battle.ready(); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
+        setUp(s.match, art, () => P.mark(), s.frame ?? -1, opening).then((g) => { P.game = g; start(P, g); prepareVoices(P); P.battle.ready(); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
       }
     },
     onControl: (c) => { for (const bank of controlSounds(P.control, c, seat)) void P.audio?.play(bank); P.control = c; P.bar(); },

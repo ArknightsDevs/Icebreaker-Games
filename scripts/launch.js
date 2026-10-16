@@ -61,7 +61,9 @@ async function start(argv) {
   const port = argv.includes('--port') ? Number(argv[argv.indexOf('--port') + 1]) : 8700;
   linkWorkspace();
   pointAtBundle();
-  console.log(['促融共竞 · Icebreaker-Games', ...addresses(port), '按 Ctrl+C 停止。'].join('\n'));
+  // a port the server will refuse: no addresses, the server says what is wrong
+  const valid = Number.isInteger(port) && port >= 0 && port <= 65535;
+  console.log(['促融共竞 · Icebreaker-Games', ...(valid ? addresses(port) : []), '按 Ctrl+C 停止。'].join('\n'));
   const main = join(ROOT, 'packages', 'server', 'src', 'main.js');
   process.argv = [process.argv[0] ?? 'node', main, ...args];
   await import(pathToFileURL(main).href);

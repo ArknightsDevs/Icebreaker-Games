@@ -58,7 +58,7 @@ export function createPick(p, X) {
         const id = items[i];
         setSwitch(item, '@', id !== '');
         if (!id) { item.tap('@panel_skip', () => X.send({ t: 'handover' })); return; }
-        holderCard(item, place, cardOf(X, S, S.view.you, id, 'kept'), X.cards);
+        bare(holderCard(item, place, cardOf(X, S, S.view.you, id, 'kept'), X.cards));
         item.show(item.view().disactiveFlag, !pv.mine);
         item.tap('@panel_card/click_hotspot', () => { if (pickView(S0.view).mine) X.send({ t: 'pick', id }); });
       });
@@ -67,11 +67,20 @@ export function createPick(p, X) {
   };
 }
 
+/**
+ * A large card without its skill and module panel: the pick's grid has rows of the card's own height (cell 118 × 216,
+ * spacing 22) and the panel hangs 47 below the card, so the pick shows the card only (INF-0011).
+ * @param {Part | null} card
+ */
+function bare(card) {
+  if (card) card.show(card.view().skillEquipPanelGO, false);
+}
+
 /** A kept operator shown as it comes: its card in the got view, its clip. @param {Part} p @param {Record<string, any>} gv @param {any} card @param {StepCtx} X */
 function got(p, gv, card, X) {
   const c = gv.cardContainer && gv.cardPrefab ? place(p, gv.cardContainer, gv.cardPrefab) : null;
   if (!c) return;
   setSwitch(c, '@', true);
-  holderCard(c, place, card, X.cards);
+  bare(holderCard(c, place, card, X.cards));
   void p.anim(gv.anim);
 }

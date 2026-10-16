@@ -14,6 +14,13 @@ import { clock } from './roomtext.js';
 const MAIN = '@state_engine/main_state';
 const TOP = 'prepare/mainviews/act_multi_v3_parepare_main_top_view', SIDE = 'prepare/mainviews/act_multi_v3_side_player_info_view';
 const COUNTDOWN = 'prepare/mainviews/act_multi_v3_countdown_view';
+/**
+ * Whether the side view shows its full panel on a step: in 项目调整, 项目确认 and the lineup's check; the coordination
+ * and the lineup's first two steps lay their cards out from the left edge, where only the small one fits (INF-0013).
+ * @param {string} step
+ */
+const fullSide = (step) => !['pick', 'sel', 'skill'].includes(step);
+
 /** The step controllers by step screen use (the three lineup steps share the squad check panel). */
 const CONTROL = Object.freeze({ stage: 'stage', confirm: 'confirm', start: 'start', pick: 'pick', sel: 'lineup', skill: 'lineup', check: 'lineup' });
 
@@ -63,7 +70,7 @@ export function createPrepare(ui, X) {
       cur.c?.update(S, L);
       stageList(S, L);
       if (top) topUpdate(top, tf, S, step, X);
-      if (side) sideUpdate(side, sf, S, X);
+      if (side) sideUpdate(side, sf, S, X, step);
       const b = bannerOf(phase, v);
       if (b) void banner(page, b);
       phase = v.phase;
@@ -100,8 +107,9 @@ function wireTop(t, f, X) {
 }
 
 /**
- * The top bar for a room (页面-6): the stage and its class, 上一步 in the lineup's later steps, leaving hidden while the
- * stage is confirmed and the match starts.
+ * The top bar for a room (页面-6): the stage and its class, leaving hidden while the stage is confirmed and the match
+ * starts. Beside the side view's full panel its own leaving and 上一步 give way to the panel's, and its space for the
+ * team keeps the stage clear of the panel (INF-0013).
  * @param {Part} t @param {Record<string, any>} f @param {any} S @param {string} step @param {StepCtx} X
  */
 function topUpdate(t, f, S, step, X) {
@@ -111,8 +119,11 @@ function topUpdate(t, f, S, step, X) {
     t.text(f.stageName, p.name);
     if (!t.node(f.diffIconContainer)?.kids.length) classIcon(t, f.diffIconContainer, f.diffIconPrefab, p, f.diffIconScale ?? 1);
   }
-  t.show(f.btnReturn, step === 'skill' || step === 'check');
+  const full = fullSide(step);
   for (const r of t.view('@hideInEntrance').gos ?? []) t.show(r, step !== 'confirm' && step !== 'start');
+  t.show(f.btnReturn, !full && step === 'skill');
+  t.show(f.space, full);
+  if (full) t.show('@bkg/btn_exit', false);
 }
 
 /**
@@ -130,9 +141,10 @@ function countdownTick(t, f, cd, was) {
   return cd.warn;
 }
 
-/** The side view's taps: leaving, 请离房间. @param {Part} s @param {Record<string, any>} f @param {StepCtx} X */
+/** The side view's taps: leaving, 上一步, 请离房间. @param {Part} s @param {Record<string, any>} f @param {StepCtx} X */
 function wireSide(s, f, X) {
   s.tap(f.backBtnRect ?? '@full_panel_bg/btn_exit/hot_spot', X.leave);
+  s.tap('@full_panel_bg/last_step_btn_toggle/group_return/btn_return/hotspot', X.back);
   s.tap('@full_panel_bg/group_player_top/btn_kick/layout/kick_img/hotspot', X.kick);
   s.showAll(f.chatObjs, false);
   s.showAll(f.chatNewPoints, false);
@@ -141,12 +153,12 @@ function wireSide(s, f, X) {
 
 /**
  * The two players (页面-6): the mate above, this player below — names, the style once the room shows it, the confirm
- * marks while the stage is confirmed, the mate offline, 请离房间 for the owner in 项目调整; the full view until the
- * coordination, the small one after.
- * @param {Part} s @param {Record<string, any>} f @param {any} S @param {StepCtx} X
+ * marks while the stage is confirmed, the mate offline, 请离房间 for the owner in 项目调整; the full view or the small
+ * one by the step (fullSide); on the full one 上一步 in the lineup's check, else the room's time left.
+ * @param {Part} s @param {Record<string, any>} f @param {any} S @param {StepCtx} X @param {string} step
  */
-function sideUpdate(s, f, S, X) {
-  const v = S.view, me = v.you, mate = 1 - me, other = v.members[mate] ?? null, small = v.phase !== 'setup';
+function sideUpdate(s, f, S, X, step) {
+  const v = S.view, me = v.you, mate = 1 - me, other = v.members[mate] ?? null, small = !fullSide(step);
   setSwitch(s, f.tinyToggle ?? '@', small);
   setSwitch(s, f.topPlayerToggle, !!other);
   for (const [g, i] of /** @type {[any, number][]} */ ([[f.topPlayerGroup, mate], [f.botPlayerGroup, me]])) if (g) player(s, g, v, i, X);
@@ -154,7 +166,7 @@ function sideUpdate(s, f, S, X) {
   s.showAll(f.stageCheckObjs, false);
   s.show(f.kickBtnObj, me === 0 && v.phase === 'setup' && !!other);
   s.show(f.partnerOfflineObj, !!other && !other.online);
-  setSwitch(s, f.lastStepBtnToggle, false);
+  setSwitch(s, f.lastStepBtnToggle, step === 'check');
   s.text(f.pingTxt, '');
 }
 

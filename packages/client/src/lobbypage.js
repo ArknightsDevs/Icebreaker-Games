@@ -31,18 +31,26 @@ const ASSETS = new URL('/assets/skeleton/', location.href), UI = new URL('ui/', 
 /** @param {URL | string} url */
 const fetchJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 
+/** A picture of the lobby pack's common art by its number (0–5), or null. @param {any} lobby @param {string} kind @param {number} i */
+function lobbyArt(lobby, kind, i) {
+  const key = lobby?.art?.[kind]?.[Math.max(0, Math.min(5, i))];
+  return key && lobby.sprites?.[key] ? new URL(lobby.sprites[key].uri, UI).href : null;
+}
+
 /**
- * The pictures cards take from the other packs (页面-6): avatars from the manifest, profession, elite and rarity icons
- * from the battle UI pack, skill icons from the skill icon index.
- * @param {any} battle @param {any} manifest @param {any} skills @returns {import('./lobbycards.js').CardArt}
+ * The pictures cards take (页面-6): avatars from the manifest, profession and elite icons from the battle UI pack, the
+ * rarity strips and potential marks the lobby pack carries (the game's common ones; the battle pack's rarity sprites
+ * are the deploy cards' glows), skill icons from the skill icon index.
+ * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack @returns {import('./lobbycards.js').CardArt}
  */
-function cardArt(battle, manifest, skills) {
+function cardArt(battle, manifest, skills, lobby) {
   const card = battle?.hud?.card, url = (/** @type {string | null | undefined} */ key) => (key && battle?.sprites?.[key] ? new URL(battle.sprites[key].uri, UI).href : null);
   return {
     avatar: (id) => (manifest?.files?.[`avatar:${id}`] ? new URL(manifest.files[`avatar:${id}`].file, ASSETS).href : null),
     profession: (p) => (card?.professions?.[p] ? { url: url(card.professions[p].sprite), color: card.professions[p].color } : null),
     elite: (phase) => url(card?.elite?.[phase]),
-    rarity: (r) => url(card?.rarity?.[Math.max(0, Math.min(5, r - 1))]),
+    rarity: (r) => lobbyArt(lobby, 'rarity', r - 1),
+    potential: (p) => lobbyArt(lobby, 'potential', p - 1),
     skill: (id) => (skills?.icons?.[id] ? new URL(skills.icons[id], new URL('skills/', UI)).href : null),
   };
 }
@@ -63,7 +71,7 @@ export async function startLobby(el, H) {
   await ui.load();
   // the screens' particle effects, when the assets have them (页面-6)
   void startLobbyFx(ui, UI).catch(() => null);
-  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills), atlas, sound, pack });
+  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack), atlas, sound, pack });
 }
 
 /**

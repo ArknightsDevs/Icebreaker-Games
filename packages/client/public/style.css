@@ -38,8 +38,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); f
 @font-face { font-family: "Noto Sans SC"; src: url(/assets/skeleton/fonts/noto-sans-sc.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 :root { --aue-ui-latin: "Montserrat", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Chakra Petch", sans-serif; --aue-ui-arvo: "Arvo", serif; }
 #ui { position: absolute; inset: 0; pointer-events: none; }
-body.original-ui #deck, body.original-ui #skills, body.original-ui #hud .player, body.original-ui #controls { display: none; }
-body.original-ui #hud { top: auto; bottom: 200px; left: 16px; right: auto; }
+body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.original-ui #controls { display: none; }
 /* The picture settings (页面-1): a tab on the left edge, above the original UI too; and the FPS readout. */
 #settings { position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; }
 #settings > button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--muted); border-left: 0; padding: 8px 6px; writing-mode: vertical-rl; cursor: pointer; }

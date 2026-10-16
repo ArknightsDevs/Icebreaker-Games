@@ -2,7 +2,7 @@
 // UI scene, following the page's clips (the camera moves to the room panel and back), the world-space ground mapped
 // onto the floor where the camera sees it. Only when the assets have the scene's index; three.js comes with it (loaded
 // then), so the room page stays light without it. Back to front: the sky's colour, the ground, the models, the page.
-import { homography, matrix3d } from '@aue/ui';
+import { matrix3d } from '@aue/ui';
 
 /** What runs after each UI tick (the page's UI loop calls these). @type {Set<() => void>} */
 export const AFTER_TICK = new Set();
@@ -56,11 +56,18 @@ export async function startScene3d(ui, scr, base) {
       Object.assign(canvas.style, { position: 'absolute', left: '0px', top: '0px', width: `${w / k}px`, height: `${h / k}px`, pointerEvents: 'none' });
     }
     sc.render();
-    const c = sc.corners(ground), gw = ground.el.offsetWidth || ground.n.rt.size[0], gh = ground.el.offsetHeight || ground.n.rt.size[1];
-    ground.el.style.visibility = c ? '' : 'hidden';
-    const H = c ? homography([[0, 0], [gw, 0], [gw, gh], [0, gh]], c.map(([x, y]) => [x / k, y / k])) : null;
+    // the ground's plane on the UI layer: its map from the element's pixels, and the part of it in front of the camera
+    // (the room panel's camera comes down close over it), with the tiles that overflow it
+    const pl = sc.plane(ground, 2), gw = ground.el.offsetWidth || ground.n.rt.size[0], gh = ground.el.offsetHeight || ground.n.rt.size[1];
+    const ok = !!pl && pl.clip.length >= 3;
+    ground.el.style.visibility = ok ? '' : 'hidden';
+    const [sw, sh] = ground.n.rt.size, fx = sw / gw, fy = sh / gh;
+    const H = ok ? [0, 1, 2].flatMap((r) => [pl.H[r * 3] * fx, pl.H[r * 3 + 1] * fy, pl.H[r * 3 + 2]].map((v) => (r < 2 ? v / k : v))) : null;
     inv = H ? inverse3(H) : null;
-    if (H) Object.assign(ground.el.style, { left: '0px', top: '0px', transformOrigin: '0 0', transform: matrix3d(H) });
+    if (H && pl) {
+      const clip = `polygon(${pl.clip.map(([x, y]) => `${(x / fx).toFixed(1)}px ${(y / fy).toFixed(1)}px`).join(', ')})`;
+      Object.assign(ground.el.style, { left: '0px', top: '0px', transformOrigin: '0 0', transform: matrix3d(H), clipPath: clip });
+    }
   };
   const stop = () => { AFTER_TICK.delete(frame); SCENE3D = null; sc.dispose(); canvas.remove(); ui.layer.style.background = was; };
   AFTER_TICK.add(frame);

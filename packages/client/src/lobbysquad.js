@@ -97,6 +97,8 @@ function createStyles(page, A) {
     st0.show(f.btnKeyLackGO, false);
   }
   st0.tap('@group_button/btn_root/btn_interact/anim_root/hotspot', () => { A.setStyle(looked); draw(); });
+  // every style is unlocked: the button stands as its unlock clip leaves it (确认修改 shown, the key price gone)
+  void st0.play(f.animBtnUnlock?.animationWrapper ?? '@group_button/btn_root/btn_interact/anim_root', f.animBtnUnlock?.animationName ?? 'squad_effect_btn_unlock', { rate: 1e4 });
   draw();
   return { close: () => unplace(page, '@state_engine/effect_select_state_root') };
 }

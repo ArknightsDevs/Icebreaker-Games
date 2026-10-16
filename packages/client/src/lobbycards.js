@@ -5,9 +5,11 @@
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./lobbykit.js').Part} Part */
 /**
  * The pictures the cards take from elsewhere: an operator's avatar URL, a profession's icon URL and colour, an elite
- * phase's icon URL, a rarity's URL, a skill's icon URL (each null when there is none).
+ * phase's icon URL, a rarity's URL, a potential's mark URL (by the potential, 1–6), a skill's icon URL (each null when
+ * there is none).
  * @typedef {{ avatar: (id: string) => string | null, profession: (p: string) => { url: string | null, color: number[] } | null,
- *   elite: (phase: number) => string | null, rarity: (r: number) => string | null, skill: (skillId: string) => string | null }} CardArt
+ *   elite: (phase: number) => string | null, rarity: (r: number) => string | null, potential: (p: number) => string | null,
+ *   skill: (skillId: string) => string | null }} CardArt
  */
 /**
  * A card to show: the operator, its box entry (null: unknown), its name, rarity and profession, where it comes from
@@ -42,8 +44,18 @@ export function fillCard(card, d, art) {
   card.picture(f.imgElite, d.entry ? art.elite(d.entry.elite) : null);
   card.show(f.imgElite, !!(d.entry && art.elite(d.entry.elite)));
   if (f.imgRarity) card.picture(f.imgRarity, art.rarity(d.rarity));
-  // no potential icons in the packs: the potential mark stays hidden
-  card.show(f.potentialGO, false);
+  fillMarks(card, f, d, art);
+  if (f.skillEquipPanelGO) fillSkill(card, f, d, art);
+}
+
+/**
+ * A card's marks: its potential from the second potential on (INF-0012), its colour by where it comes from, its
+ * priority icon. @param {Part} card @param {Record<string, any>} f @param {CardData} d @param {CardArt} art
+ */
+function fillMarks(card, f, d, art) {
+  const pot = d.entry && d.entry.potential >= 2 ? art.potential(d.entry.potential) : null;
+  card.show(f.potentialGO, !!pot);
+  if (pot) card.picture(f.iconPotential, pot);
   const c = colorOf(f, FROM_COLOR[d.from ?? 'extra']);
   if (c) card.color(f.colorGraphic, c);
   if (f.iconPriGO) {
@@ -51,7 +63,6 @@ export function fillCard(card, d, art) {
     card.show(f.iconPriHighGO, d.from === 'kept');
     card.show(f.iconPriLowGO, d.from === 'drawn');
   }
-  if (f.skillEquipPanelGO) fillSkill(card, f, d, art);
 }
 
 /** A large card's skill and module panel. @param {Part} card @param {Record<string, any>} f @param {CardData} d @param {CardArt} art */

@@ -133,7 +133,13 @@ function skills(v, S, X) {
  */
 function check(v, S, X) {
   const f = v.view(), me = S.view.you, mate = 1 - me, mine = S.view.lineups[me] ?? draftOf(S).map((x) => x.id), theirs = S.view.lineups[mate];
-  fillList(v, f.mySquad, mine.length, (item, i) => { setSwitch(item, '@', true); holderCard(item, place, cardOf(X, S, me, mine[i], 'extra'), X.cards); });
+  // this player's cards with the skills and modules of its draft; the mate's choices are not in the room's view
+  const chosen = new Map(draftOf(S).map((x) => [x.id, x]));
+  fillList(v, f.mySquad, mine.length, (item, i) => {
+    const d = chosen.get(mine[i]);
+    setSwitch(item, '@', true);
+    holderCard(item, place, { ...cardOf(X, S, me, mine[i], 'extra'), ...(d ? { skill: d.skill, module: d.module, skillId: X.skillId(d.id, d.skill) } : {}) }, X.cards);
+  });
   fillList(v, f.partnerSquad, theirs?.length ?? 0, (item, i) => { setSwitch(item, '@', true); holderCard(item, place, cardOf(X, S, mate, theirs[i], 'extra'), X.cards); });
   v.show(f.waitingTips, !theirs);
   const ready = !!S.view.ready[me];

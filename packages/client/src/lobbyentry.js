@@ -2,7 +2,7 @@
 // makes a room and 加入！ joins one by its code (the invitation text pasted whole works too, 房间-1); 编队 opens the
 // squad page. The entries of systems the platform does not have — quick match, the manual, milestones, rewards,
 // training, medals, invitations, the guide book — are hidden, not left as dead ends.
-import { openPart, inputOn } from './lobbykit.js';
+import { openPart, closePart, inputOn } from './lobbykit.js';
 import { PAGES } from './lobbymap.js';
 
 /** The entry page's state root, under which its panels are. */
@@ -76,6 +76,6 @@ export function createEntry(ui, A) {
     get room() { return room; },
     /** The join box (for tests and the page). */
     code,
-    close: () => ui.close(p.scr),
+    close: () => closePart(p),
   };
 }

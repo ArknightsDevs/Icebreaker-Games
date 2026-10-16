@@ -2,7 +2,7 @@
 // the players come back — the stage's name and class, the stamps won as the rating's stars, each stage's mark of a
 // stamp won; 下一步 goes on to the room (at 项目调整 again). The original's rewards, milestones and illustrations are
 // of systems the platform does not have and stay hidden.
-import { openPart, place } from './lobbykit.js';
+import { openPart, closePart, place } from './lobbykit.js';
 import { PAGES } from './lobbymap.js';
 import { fillDiff } from './lobbystage.js';
 
@@ -18,7 +18,7 @@ export function createFinish(ui, r, A) {
   page.show(f.reportPanelContainer, false);
   const info = f.completeInfoContainer && f.completeInfoPrefab ? place(page, f.completeInfoContainer, f.completeInfoPrefab) : null;
   if (info) completeInfo(info, r, A.project(r.level), A.done);
-  return { part: page, close: () => ui.close(page.scr) };
+  return { part: page, close: () => closePart(page) };
 }
 
 /**

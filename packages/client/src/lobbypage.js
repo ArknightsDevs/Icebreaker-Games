@@ -6,7 +6,7 @@
 import { createUi } from '@aue/ui';
 import { ROSTER, loadTraining } from '@aue/content';
 import { STYLES, TOASTS } from '@icebreaker/mode-regular';
-import { openPart, setSwitch, LOBBY_KIT_CSS } from './lobbykit.js';
+import { openPart, closePart, setSwitch } from './lobbykit.js';
 import { PAGES, pageOf, newLocal } from './lobbymap.js';
 import { createEntry } from './lobbyentry.js';
 import { createSquad } from './lobbysquad.js';
@@ -58,9 +58,6 @@ export async function startLobby(el, H) {
     fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART)]);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
-  const css = el.ownerDocument.createElement('style');
-  css.textContent = LOBBY_KIT_CSS;
-  el.append(css);
   await ui.load();
   return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills), atlas, sound, pack });
 }
@@ -86,7 +83,7 @@ function copyText(text) {
 function toastOn(ui, text) {
   const n = openPart(ui, PAGES.notify, 80);
   n.text(n.view().txtNotify ?? '@txt_notify', text);
-  setTimeout(() => ui.close(n.scr), 3000);
+  setTimeout(() => closePart(n), 3000);
 }
 
 /** A question in the confirm dialog: confirm runs fn. @param {any} ui @param {string} text @param {string} yes @param {() => void} fn */
@@ -96,8 +93,8 @@ function askOn(ui, text, yes, fn) {
   d.text(f.confirmBtnText, yes);
   d.text(f.cancelBtnText, '取消');
   setSwitch(d, f.confirmOnlyToggle, false);
-  d.tap('@obj_btns/panel_two_options/panel_confirm/hotspot', () => { ui.close(d.scr); fn(); });
-  d.tap('@obj_btns/panel_two_options/panel_cancel/hotspot', () => ui.close(d.scr));
+  d.tap('@obj_btns/panel_two_options/panel_confirm/hotspot', () => { closePart(d); fn(); });
+  d.tap('@obj_btns/panel_two_options/panel_cancel/hotspot', () => closePart(d));
 }
 
 /** The UI's clock, its size following the page, and a few ticks a second. @param {any} ui @param {() => void} tick */
@@ -233,6 +230,6 @@ function lobbyOn(ui, H, G) {
     volume: (v) => G.sound.volume(v),
     resume: () => G.sound.resume(),
     /** What the lobby shows, for tests. */
-    state: () => ({ page: page.key, local: { ...L } }),
+    state: () => ({ page: page.key, local: { ...L }, sounds: G.sound.heard() }),
   };
 }

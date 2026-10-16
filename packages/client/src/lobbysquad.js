@@ -2,7 +2,7 @@
 // operators, one of its low-priority ones — with the 常规队 tab, the play style's button and the two 快捷编队 buttons,
 // which open the page's own box editor (the original's operator picker is not in the pack). The style button opens
 // the style select state: the five styles, the chosen one's gains, costs and carried unit, 确认修改 to keep it.
-import { openPart, place, fillList } from './lobbykit.js';
+import { openPart, closePart, place, unplace, fillList } from './lobbykit.js';
 import { fillCard } from './lobbycards.js';
 import { PAGES } from './lobbymap.js';
 import { STYLES } from '@icebreaker/mode-regular';
@@ -45,6 +45,9 @@ export function createSquad(ui, A) {
       const cf = col.view(), list = i === 0 ? q.high : q.low;
       col.show(cf.highPriIconGO, i === 0);
       col.show(cf.lowPriIconGO, i === 1);
+      // a column is as wide as its cards need: the controller's column width for up to three card columns, one card
+      // column's width more for each further one (two rows a column; INF-0010)
+      col.root.rt.size[0] = Math.max(f.classColWidth ?? 474, (f.classColWidth ?? 474) + (Math.ceil(list.length / 2) - 3) * (f.charColWidth ?? 127));
       fillList(col, cf.charList, list.length, (holder, k) => {
         const hf = holder.view(), e = list[k], r = A.rosterOf(e.id);
         const card = hf.charCardRoot && hf.charCardPrefab ? place(holder, hf.charCardRoot, hf.charCardPrefab) : null;
@@ -58,7 +61,7 @@ export function createSquad(ui, A) {
     part: p, update: draw,
     /** The page's back: closes the style select first; false when there is nothing to close. */
     back: () => { if (!styles) return false; closeStyles(); return true; },
-    close: () => { styles?.close(); ui.close(p.scr); },
+    close: () => { styles?.close(); closePart(p); },
   };
 }
 
@@ -95,7 +98,7 @@ function createStyles(page, A) {
   }
   st0.tap('@group_button/btn_root/btn_interact/anim_root/hotspot', () => { A.setStyle(looked); draw(); });
   draw();
-  return { close: () => st0.scr.remove(st0.root) };
+  return { close: () => unplace(page, '@state_engine/effect_select_state_root') };
 }
 
 /** A style's info card: its name, colour, gains, costs and carried unit. @param {Part} info @param {import('@icebreaker/mode-regular').Style} st @param {SquadActions} A */

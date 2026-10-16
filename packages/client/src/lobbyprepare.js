@@ -2,7 +2,7 @@
 // countdown, warning from the activity's hintTime; the stage; leaving; 上一步 in the lineup), the two players beside
 // it (names, styles once shown, who has confirmed, 请离房间, the room's time left), the banner of a new phase, the
 // step views in its step container, the countdown and the start before the match, the lost-connection view.
-import { openPart, place, setSwitch, screenKey } from './lobbykit.js';
+import { openPart, closePart, place, unplace, setSwitch, screenKey } from './lobbykit.js';
 import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.js';
 import { createStage, createStageList, createConfirm, createStart, classIcon } from './lobbystage.js';
 import { createPick } from './lobbypick.js';
@@ -80,11 +80,13 @@ export function createPrepare(ui, X) {
     async start(S) {
       swap('start');
       cur.c?.update(S, null);
-      const cd = place(page, containers[COUNTDOWN] ?? `${MAIN}/countdown_view_container`, COUNTDOWN);
+      const at = containers[COUNTDOWN] ?? `${MAIN}/countdown_view_container`, cd = place(page, at, COUNTDOWN);
+      // the countdown ends on its white logo; it goes when it has played and the start show begins from white
       if (cd) await cd.anim(cd.view().cdAnim);
+      unplace(page, at);
       await /** @type {any} */ (cur.c)?.play?.();
     },
-    close: () => { list?.close(); ui.close(page.scr); },
+    close: () => { list?.close(); closePart(page); },
   };
 }
 

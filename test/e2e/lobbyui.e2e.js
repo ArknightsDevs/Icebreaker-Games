@@ -53,8 +53,8 @@ describe('two players through the original lobby screens', { skip: HAS_LOBBY ? f
     for (const p of [a, b]) await hot(p, 'btn_team_up').click();
     await hot(a, 'btn_strat_room').click();
     const code = await until('a room', async () => (await view(a))?.code, 10000);
-    await b.locator('#lobby .aue-input').fill(code);
-    await b.locator('#lobby .aue-input').press('Enter');
+    await b.locator('#lobby').getByLabel('房间编号').fill(code);
+    await b.locator('#lobby').getByLabel('房间编号').press('Enter');
     await until('joined', async () => ((await view(b))?.code === code ? true : undefined), 10000);
     assert.equal((await lobby(a)).page, 'prepare');
   }

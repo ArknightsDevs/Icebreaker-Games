@@ -24,7 +24,8 @@ export function pickOf(bank, random) {
 }
 
 /**
- * The lobby's sound player: `play(bank)`; `volume(v)` the player's sound volume 0–1; `resume()` after a gesture.
+ * The lobby's sound player: `play(bank)`; `volume(v)` the player's sound volume 0–1; `resume()` after a gesture;
+ * `heard()` the banks asked for lately and those that played (for tests).
  * @param {string} base the URL of the assets' audio directory @param {number} volume
  */
 export function createLobbySound(base, volume) {
@@ -32,6 +33,10 @@ export function createLobbySound(base, volume) {
   let P = null, level = volume;
   /** @type {Map<string, Promise<AudioBuffer | null>>} */
   const buffers = new Map();
+  /** @type {{ asked: string[], played: string[] }} */
+  const log = { asked: [], played: [] };
+  /** @param {string[]} list @param {string} name */
+  const note = (list, name) => { list.push(name); if (list.length > 40) list.shift(); };
   const ready = fetch(new URL('index.json', base)).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((index) => {
     if (!index?.banks) return null;
     const ctx = new AudioContext(), gain = ctx.createGain();
@@ -49,6 +54,7 @@ export function createLobbySound(base, volume) {
   return {
     /** @param {string} name */
     play: async (name) => {
+      note(log.asked, name);
       const p = await ready, bank = p?.banks[name];
       if (!p || !bank || p.ctx.state !== 'running') return;
       const s = pickOf(bank, Math.random), buf = s ? await buffer(p.ctx, s.file) : null;
@@ -59,9 +65,11 @@ export function createLobbySound(base, volume) {
       g.gain.value = s.volume;
       src.connect(g).connect(p.gain);
       src.start(p.ctx.currentTime + s.delay);
+      note(log.played, name);
     },
     /** @param {number} v */
     volume: (v) => { level = v; if (P) P.gain.gain.value = v; },
     resume: () => { void ready.then((p) => p?.ctx.resume()); },
+    heard: () => ({ asked: [...log.asked], played: [...log.played] }),
   };
 }

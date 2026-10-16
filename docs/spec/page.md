@@ -101,4 +101,4 @@
 - 对局页在比赛结束时记下结果（胜负、关卡、各阶段的印章），回到房间页时显示一次结算。
 - 页面保留自己的工具：返回、干员 box、音乐音量、连接状态。
 
-- 来源：数据：activity_table.json `MULTIPLAY_V3/act1multi` 的 `selectStepDataList[]`（time、hintTime）、`constToastData`、`mapDataDict` 的 `previewIconId`（关卡图）、`squadEffectList[]`；界面、节点和动画片段取自界面包（引擎 ADR 0063）；各房间状态对应的界面与它们的文字、侧栏的样式、标记和横幅的时机为推断 INF-0007；干员卡的半身像、颜色和结算的星数为推断 INF-0008
+- 来源：数据：activity_table.json `MULTIPLAY_V3/act1multi` 的 `selectStepDataList[]`（time、hintTime）、`constToastData`、`mapDataDict` 的 `previewIconId`（关卡图）、`squadEffectList[]`；界面、节点和动画片段取自界面包（引擎 ADR 0063）；各房间状态对应的界面与它们的文字、侧栏的样式、标记和横幅的时机为推断 INF-0007；干员卡用头像铺满立绘窗口、卡片颜色和结算的星数为推断 INF-0008；没有矩形的普通节点铺满父节点为推断 INF-0009；赛前编队页每个顺位一列的宽度为推断 INF-0010

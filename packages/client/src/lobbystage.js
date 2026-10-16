@@ -2,7 +2,7 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { place, fillList, setSwitch } from './lobbykit.js';
+import { place, unplace, fillList, setSwitch } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
 import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
 
@@ -141,7 +141,7 @@ export function createStageList(page, X) {
       current = v.project;
       rows(arena, af, { projects, cls, chosen: v.project }, X);
     },
-    close: () => { if (state) state.scr.remove(state.root); },
+    close: () => unplace(page, '@state_engine/stage_list_state'),
   };
 }
 
@@ -154,7 +154,13 @@ function rows(arena, af, o, X) {
   const mine = projects.map((x, i) => ({ x, i })).filter(({ x }) => x.class === cls);
   fillList(arena, af.layout, 1, (row) => {
     const rf = row.view();
-    fillList(row, rf.titleLayout, 1, (t) => { t.text('@text_name', MODE.name); t.show('@img_seperator', false); });
+    fillList(row, rf.titleLayout, 1, (t) => {
+      t.text('@text_name', MODE.name);
+      t.show('@img_seperator', false);
+      // the title's mode icon (an empty slot the page fills; none without the room atlas)
+      t.picture('@img_icon', X.modeIcon());
+      t.show('@img_icon', !!X.modeIcon());
+    });
     fillList(row, rf.stageLayout, mine.length, (item, k) => {
       const { x, i } = mine[k], f = item.view(), small = pictureOf(X.art(), x.level);
       item.text(f.stageCodeText, x.code);

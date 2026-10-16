@@ -30,7 +30,10 @@ export function fillCard(card, d, art) {
   const f = card.view();
   card.show(f.emptyPartGO, false);
   card.show(f.normalPartGO, true);
+  // the pack's portrait slot is a half-length picture's, taller than the window its mask shows; the square avatar
+  // fills the window instead, so the face shows (INF-0008)
   card.picture(f.imgCharPortrait, art.avatar(d.id));
+  card.fillParent(f.imgCharPortrait);
   card.text(f.textLv, d.entry ? String(d.entry.level) : '');
   if (f.textName) card.text(f.textName, d.name);
   const prof = art.profession(d.profession);

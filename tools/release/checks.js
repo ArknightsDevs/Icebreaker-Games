@@ -32,7 +32,11 @@ const TEXT = /\.(?:js|mjs|cjs|json|md|txt|html|css|yaml|yml|bat|cmd|sh|ps1|atlas
 const HOME = [/\/Users\/[A-Za-z]/, /\/home\/[A-Za-z]/, /[A-Za-z]:[\\/]{1,2}Users[\\/]{1,2}[A-Za-z]/i];
 /** A local drive path (D:/…, C:\…), outside node_modules. */
 const DRIVE = /(?<![A-Za-z0-9_$%])[A-Za-z]:(?:\/|\\\\?)[A-Za-z]/;
-const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
+/**
+ * An e-mail address: its domain ends in a top-level domain mail is kept at (the game data's blackboard keys such as
+ * attack@chain.atk look alike otherwise).
+ */
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|edu|gov|io|me|dev|app|cn|jp|kr|tw|hk|sg|uk|de|fr|ru|us|ca|au|co|info|xyz|top|moe|cc)\b/gi;
 /** OS account names too generic to refuse. */
 const GENERIC = new Set(['root', 'user', 'admin', 'node', 'runner', 'ubuntu', 'ci', 'guest', 'app', 'build']);
 

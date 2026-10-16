@@ -1,12 +1,12 @@
 @echo off
-chcp 65001 >nul
-rem 促融共竞：启动完整包的服务器（docs/deploy.md）。需要 Node.js 22.12 或更新的版本。
-rem 参数传给服务器，例如 start-windows.bat --port 8800
+rem Icebreaker-Games: starts the server of the full bundle (docs/deploy.md). Needs Node.js 22.12 or newer.
+rem The arguments go to the server, e.g. start-windows.bat --port 8800
+rem (ASCII only: cmd misreads multibyte text in batch files; scripts\launch.js prints the Chinese messages.)
 setlocal
 cd /d "%~dp0.."
 where node >nul 2>nul
 if errorlevel 1 (
-  echo 没有找到 Node.js。请先安装 Node.js 22 或 24：https://nodejs.org/
+  echo Node.js was not found. Install Node.js 22 or 24 first: https://nodejs.org/
   pause
   exit /b 1
 )

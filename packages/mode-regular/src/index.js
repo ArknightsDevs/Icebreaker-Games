@@ -30,6 +30,12 @@ export const STEP_HINT_MS = Object.freeze({
 /** Each 常规项目 stage's preview picture (the activity's `previewIconId`; 页面-6). @type {Readonly<Record<string, string>>} */
 export const PICTURES = Object.freeze({ ...data.pictures });
 
+/** Each 常规项目 stage's description as Unity rich text (stage_table's `description`; 页面-6). @type {Readonly<Record<string, string>>} */
+export const DETAILS = Object.freeze({ ...data.details });
+
+/** Each 常规项目 stage's missions in their order (the activity's `missionIdList` descriptions; 页面-6). @type {Readonly<Record<string, readonly string[]>>} */
+export const MISSIONS = Object.freeze({ ...data.missions });
+
 /** The activity's toasts of the room flow (页面-6). @type {Readonly<Record<string, string>>} */
 export const TOASTS = Object.freeze({ ...data.toasts });
 

@@ -33,10 +33,18 @@ function trustOf(favor, points) {
 /** A blackboard as [key, value or text] pairs in order. @param {any[]} bb */
 const board = (bb) => bb.map((b) => [b.key, b.valueStr ?? b.value]);
 
+/**
+ * The game's markup `<@style>text</>` as Unity rich text by the game's styles (`richTextStyles`, e.g. `<color=#D4133C>{0}</color>`);
+ * a style it does not know keeps only its text; the text's written line breaks (`\n`) as line breaks.
+ * @param {string} s @param {Record<string, string>} styles
+ */
+export const richText = (s, styles) => s.replace(/<@([\w.]+)>([\s\S]*?)<\/>/g, (_, k, t) => (styles[k] ? styles[k].replace('{0}', t) : t)).replace(/\\n/g, '\n');
+
 /** @param {string} root */
 export function extract(root) {
   const excel = join(root, 'zh_CN', 'gamedata', 'excel');
   const a = readJson(join(excel, 'activity_table.json')).activity.MULTIPLAY_V3[ACTIVITY], favor = readJson(join(excel, 'favor_table.json'));
+  const stageTable = readJson(join(excel, 'stage_table.json')).stages, styles = readJson(join(excel, 'gamedata_const.json')).richTextStyles;
   const steps = Object.fromEntries(a.selectStepDataList.map((/** @type {any} */ s) => [s.stepType, { title: s.title, seconds: s.time, hint: s.hintTime }]));
   const normal = new Set(Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'NORMAL').flatMap((/** @type {any} */ t) => t.stageIdInModeList));
   return {
@@ -47,9 +55,14 @@ export function extract(root) {
     classes: Object.fromEntries(Object.values(a.mapDiffDataDict).map((/** @type {any} */ d) => [d.diffType, d.name])),
     stages: Object.fromEntries(Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'NORMAL')
       .flatMap((/** @type {any} */ t) => t.stageIdInModeList.map((/** @type {string} */ id) => [id, t.difficulty])).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
-    // the lobby screens (页面-6): each stage's preview picture, the toasts of the room flow
+    // the lobby screens (页面-6): each stage's preview picture, its description (stage_table, the game's markup as
+    // rich text) and its missions (the detail and goal panels of 项目确认), the toasts of the room flow
     pictures: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => normal.has(m.stageId))
       .map((/** @type {any} */ m) => [m.stageId, m.previewIconId]).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
+    details: Object.fromEntries([...normal].sort().map((id) => [id, richText(stageTable[id]?.description ?? '', styles)])),
+    missions: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => normal.has(m.stageId))
+      .map((/** @type {any} */ m) => [m.stageId, m.missionIdList.map((/** @type {string} */ id) => a.targetMissionDataDict[id]?.description ?? '')])
+      .sort((x, y) => (x[0] < y[0] ? -1 : 1))),
     toasts: Object.fromEntries(TOASTS.map((k) => [k, a.constToastData[k]])),
     recruits: a.tempCharDataList.map((/** @type {any} */ c) => ({
       id: c.charId, elite: ELITE[/** @type {keyof typeof ELITE} */ (c.evolvePhase)], level: c.level, potential: c.potentialRank + 1, trust: trustOf(favor, c.favorPoint),

@@ -185,8 +185,12 @@ function rows(arena, af, o, X) {
   }, af.rowViewPrefab);
 }
 
+/** The room a goal row keeps at its right once its text takes the reward's (INF-0016). */
+const GOAL_RIGHT = 12;
+
 /**
- * The stage's detail (项目确认, 房间-2): its code, the mode and class, its picture, each stage's task.
+ * The stage's detail (项目确认, 房间-2): its code, the mode and class, its description, its picture, the activity's
+ * missions for it.
  * @param {Part} d @param {ProjectView} pr @param {StepCtx} X
  */
 function fillDetail(d, pr, X) {
@@ -197,14 +201,20 @@ function fillDetail(d, pr, X) {
   d.picture(f.titleModeIconImg, X.modeIcon());
   d.show(f.titleModeIconImg, !!X.modeIcon());
   d.showAll([f.seasonIcon, f.pnlSeasonIcon], false);
-  d.text(f.stageDetailTxt, pr.stages.map((s, i) => `阶段${i + 1}：${s.title}`).join('\n'));
+  // the stage's description as the game writes it (its markup as rich text), else the stages' titles
+  d.text(f.stageDetailTxt, pr.detail || pr.stages.map((s, i) => `阶段${i + 1}：${s.title}`).join('\n'));
   d.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
-  fillList(d, f.goalItemContainer, pr.stages.length, (g, i) => {
-    const s = pr.stages[i], gf = g.view();
-    g.text(gf.goalTxt, `${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''}`);
-    g.text(gf.rewardCntTxt, `${s.seconds}秒`);
-    g.show(gf.nextArrowObj, false);
+  // the goal panel: the activity's missions for the stage in order, an arrow between them (the stage's tasks without
+  // them); their rewards are the activity's tokens, which the platform does not give, so a mission's text takes the
+  // reward's room too, a long one on two lines (the row grows; INF-0016)
+  const goals = pr.missions?.length ? pr.missions : pr.stages.map((s) => s.basic);
+  fillList(d, f.goalItemContainer, goals.length, (g, i) => {
+    const gf = g.view(), t = g.node(gf.goalTxt);
+    if (t) t.rt.size[0] = Math.max(t.rt.size[0], g.root.rt.size[0] - (g.root.n.comps.lg?.pad?.[0] ?? 0) - GOAL_RIGHT);
+    g.text(gf.goalTxt, goals[i]);
+    g.show(gf.rewardCntTxt, false);
     g.show(gf.itemIconImg, false);
+    g.show(gf.nextArrowObj, i < goals.length - 1);
   }, f.goalItemPrefab);
   const regular = (f.modeConfigs ?? []).find((/** @type {any} */ m) => m.modeType === 1);
   for (const m of f.modeConfigs ?? []) d.show(m.recordObj, m === regular);

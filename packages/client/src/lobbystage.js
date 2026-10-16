@@ -2,9 +2,9 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placeIllust } from './lobbykit.js';
+import { place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
-import { STYLES, MODE, TOASTS } from '@icebreaker/mode-regular';
+import { STYLES, MODE, TOASTS, PLAYER_TITLE } from '@icebreaker/mode-regular';
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./roomview.js').ProjectView} ProjectView */
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
@@ -274,36 +274,44 @@ export async function playEntrance(p, X, v) {
   p.show('@multi_v3_stage_confirm', false);
   p.show(f.entranceShowRoot, true);
   p.showAll(f.invertObjs, false);
-  // the season's logo in the corner and both players' assists (房间-3), which the game fills at run time (INF-0018)
+  // the season's logo in the corner, which the game fills at run time (INF-0018)
   seasonLogo(p, f.seasonIconImg2, 'start');
-  for (const [seat, at] of /** @type {[number, string][]} */ ([[v.you, f.selfAssitIllustContainer], [1 - v.you, f.partnerAssitIllustContainer]])) {
-    const a = v.assists?.[seat];
-    placeIllust(p, at, a ? X.cards.illust(a.id, a.elite) : null);
-  }
   if (f.bottomBarContainer) placeBottomBar(p, f.bottomBarContainer);
-  for (const [seat, icon, name, card] of /** @type {[number, string, string, string][]} */ ([[v.you, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer],
-    [1 - v.you, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]])) {
-    const st = STYLES.find((s) => s.id === v.styles[seat]);
-    p.picture(icon, st ? X.styleIcon(st.id, '') : null);
-    p.text(name, st?.name ?? '');
-    const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
-    if (c) nameCard(c, v.members[seat]?.name ?? '', X.art().namecard);
-  }
+  showPlayer(p, f, X, v, [v.you, f.selfAssitIllustContainer, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer]);
+  showPlayer(p, f, X, v, [1 - v.you, f.partnerAssitIllustContainer, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]);
   await p.anim(f.normEnterAnim);
   await new Promise((done) => { setTimeout(done, SHOW_HOLD_MS); });
   await p.anim(f.showExitAnim);
 }
 
 /**
- * A player's short name card: its name on the default card skin (the player's own skin is theirs to choose in the
- * game; INF-0014); no id, title, level, mentor mark or early-quit mask.
- * @param {Part} c @param {string} name @param {string | undefined} skin the default skin's sprite
+ * One player's side of the entrance show: its assist's illustration (房间-3, INF-0018), its style's icon and name, its
+ * name card.
+ * @param {Part} p @param {Record<string, any>} f @param {StepCtx} X @param {any} v
+ * @param {[number, string, string, string, string]} side the seat; its illust loader, its style's icon and name, its name card's container
  */
-function nameCard(c, name, skin) {
-  const f = c.view(), bg = c.node(f.bgImgContainer), sp = skin ? c.scr.ctx.pack.sprites[skin] : null;
-  if (bg?.el && sp) Object.assign(bg.el.style, { backgroundImage: `url("${c.scr.ctx.base}${sp.uri}")`, backgroundSize: '100% 100%' });
+function showPlayer(p, f, X, v, [seat, illust, icon, name, card]) {
+  const a = v.assists?.[seat], st = STYLES.find((s) => s.id === v.styles[seat]);
+  placePicture(p, illust, a ? X.cards.illust(a.id, a.elite) : null);
+  p.picture(icon, st ? X.styleIcon(st.id, '') : null);
+  p.text(name, st?.name ?? '');
+  const c = card && f.nameCardPrefab ? place(p, card, f.nameCardPrefab) : null;
+  if (c) nameCard(c, v.members[seat]?.name ?? '', X.art().namecard, a ? X.cards.avatar(a.id) : null);
+}
+
+/**
+ * A player's short name card (INF-0014): its name and the title of a player who chose none (平凡的博士) on the default
+ * card skin — the skin at its sprite's own size in the card's skin holder (the holder's scale makes it the card's
+ * size, as the original's recording shows it) — and its assist's avatar in its frame filling the avatar box (the
+ * avatar loader's parent, its own scale aside); no id, level, mentor mark or early-quit mask (the platform has none).
+ * @param {Part} c @param {string} name @param {string | undefined} skin the default skin's sprite @param {string | null} avatar
+ */
+function nameCard(c, name, skin, avatar) {
+  const f = c.view(), sp = skin ? c.scr.ctx.pack.sprites[skin] : null;
+  placePicture(c, f.bgImgContainer, sp && skin ? { sprite: skin, pos: [0, 0], size: [sp.w, sp.h] } : null);
   c.text(f.doctorName, name);
+  c.text(f.doctorTitle, PLAYER_TITLE);
   for (const r of [f.doctorUidGO, f.mentorObj, f.earlyQuitMaskGO]) c.show(r, false);
-  c.text(f.doctorTitle, '');
   c.show('@container/headIcon/panel_exp', false);
+  placeAvatar(c, typeof f.avatarViewContainer === 'string' ? f.avatarViewContainer.replace(/\/[^/]+$/, '') : undefined, avatar);
 }

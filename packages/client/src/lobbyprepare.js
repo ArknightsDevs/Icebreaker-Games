@@ -8,7 +8,7 @@ import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.j
 import { createStage, createStageList, createConfirm, playEntrance, classIcon } from './lobbystage.js';
 import { createPick } from './lobbypick.js';
 import { createLineup } from './lobbylineup.js';
-import { clock } from './roomtext.js';
+import { clock, pingText } from './roomtext.js';
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./lobbystage.js').StepCtx} StepCtx */
 
@@ -86,6 +86,10 @@ export function createPrepare(ui, X) {
       const cd = countdownOf(S.view, performance.now() - S.at);
       if (top) warn = countdownTick(top, tf, cd, warn);
       if (side) side.text(sf.closeTxt, clock(S.view.left - (performance.now() - S.at)));
+      // the lobby's latency on the top bar and, beside no 上一步, on the side view's full panel (页面-6)
+      const pt = S.ping == null ? '' : pingText(S.ping);
+      if (top) { top.show(tf.pingLabel, !!pt); top.text(tf.pingLabel, pt); }
+      if (side) side.text(sf.pingTxt, pt);
     },
     /**
      * Before the match (页面-6): the countdown over the lineup, 3-2-1, then the logo's white frame closing in; once
@@ -156,7 +160,6 @@ function createSteps(page, at, X, entered, cover) {
 function wireTop(t, f, X) {
   t.tap('@bkg/btn_exit/hot_spot', X.leave);
   t.tap('@bkg/panel_horz_grp/panel_pre_btn/btn_return', X.back);
-  t.show(f.pingLabel, false);
   t.show(f.invertTipObj, false);
   t.show('@bkg/panel_horz_grp/panel_map_btn/btn_show_map', false);
 }
@@ -233,7 +236,6 @@ function sideUpdate(s, f, S, X, step) {
   s.show(f.kickBtnObj, me === 0 && v.phase === 'setup' && !!other);
   s.show(f.partnerOfflineObj, !!other && !other.online);
   setSwitch(s, f.lastStepBtnToggle, step === 'check');
-  s.text(f.pingTxt, '');
 }
 
 /**

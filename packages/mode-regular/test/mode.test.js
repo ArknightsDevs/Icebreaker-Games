@@ -2,7 +2,7 @@
 // times, the lineup's size, the temporary recruits.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS } from '../src/index.js';
+import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS, PLAYER_TITLE, PINGS } from '../src/index.js';
 
 test('[房间-2] the MVP projects: IG-1 and IG-10 in 初级赛, IG-S-2 in 特级赛, at the normal difficulty', () => {
   assert.deepEqual(PROJECTS.map((p) => [p.level, p.difficulty, p.className]), [
@@ -20,6 +20,12 @@ test('[页面-6] each project\'s missions in their order and its description, th
   assert.deepEqual(MISSIONS['act1multi_01'], ['保护4位乌萨斯平民进入目标点', '保护3位乌萨斯平民进入目标点', '保护5位乌萨斯平民进入目标点']);
   for (const p of PROJECTS) assert.equal(MISSIONS[p.level]?.length, 3, p.level);
   assert.match(DETAILS['act1multi_06'], /他们人多。\n<color=#D4133C><玉门天灾工事><\/color>置于其中/);
+});
+
+test("[页面-6] the name cards' title of a player who chose none, and the latency texts by threshold in the game's colours", () => {
+  assert.equal(PLAYER_TITLE, '平凡的博士');
+  assert.deepEqual(PINGS.map((p) => p.from), [1, 60, 200]);
+  assert.equal(PINGS[0]?.text, '当前延迟<color=#7fa826>{0}</color>ms');
 });
 
 test('[房间-5] the 5 temporary recruits: E2 level 80, potential 1, trust 200%, each skill at level 7 with mastery 3', () => {

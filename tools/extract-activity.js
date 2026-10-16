@@ -40,6 +40,15 @@ const board = (bb) => bb.map((b) => [b.key, b.valueStr ?? b.value]);
  */
 export const richText = (s, styles) => s.replace(/<@([\w.]+)>([\s\S]*?)<\/>/g, (_, k, t) => (styles[k] ? styles[k].replace('{0}', t) : t)).replace(/\\n/g, '\n');
 
+/**
+ * The title of a player who chose none (页面-6): the activity's first front part and first back part by their order
+ * (平凡的 + 博士). @param {Record<string, { order: number, titleDesc: string, isBack: boolean }>} titles
+ */
+function defaultTitle(titles) {
+  const first = (/** @type {boolean} */ back) => Object.values(titles).filter((t) => t.isBack === back).sort((x, y) => x.order - y.order)[0]?.titleDesc ?? '';
+  return first(false) + first(true);
+}
+
 /** @param {string} root */
 export function extract(root) {
   const excel = join(root, 'zh_CN', 'gamedata', 'excel');
@@ -64,6 +73,9 @@ export function extract(root) {
       .map((/** @type {any} */ m) => [m.stageId, m.missionIdList.map((/** @type {string} */ id) => a.targetMissionDataDict[id]?.description ?? '')])
       .sort((x, y) => (x[0] < y[0] ? -1 : 1))),
     toasts: Object.fromEntries(TOASTS.map((k) => [k, a.constToastData[k]])),
+    // the name cards' title of a player who chose none, and the latency texts from each threshold in ms (页面-6)
+    title: defaultTitle(a.titleDataDict),
+    pings: a.constData.pingConds.map((/** @type {any} */ p) => ({ from: p.cond, text: richText(p.txt, styles) })),
     recruits: a.tempCharDataList.map((/** @type {any} */ c) => ({
       id: c.charId, elite: ELITE[/** @type {keyof typeof ELITE} */ (c.evolvePhase)], level: c.level, potential: c.potentialRank + 1, trust: trustOf(favor, c.favorPoint),
       skillLevel: c.mainSkillLevel + c.specializeLevel,

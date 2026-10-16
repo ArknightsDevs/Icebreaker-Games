@@ -157,22 +157,55 @@ export function seasonLogo(p, r, name) {
   p.show(r, on);
 }
 
-/** The node an illust loader makes for its art (a template added to the pack with the art index). */
-export const ILLUST = 'charillust';
+/** The node the page puts a picture in at a rect of its own, and the frame of a player's avatar (templates the page adds to the pack). */
+export const PICTURE = 'picture', AVATAR = 'avatarframe';
+
+/** A rect anchored over its parent's box (amin–amax) with a size delta, centred. @param {number} a0 @param {number} a1 @param {number[]} size */
+const rectIn = (a0, a1, size) => ({ amin: [a0, a0], amax: [a1, a1], pos: [0, 0], size, pivot: [0.5, 0.5], scale: [1, 1], rotz: 0 });
+/** A plain image node: a run-time picture, or the common white sprite in a colour. @param {string} name @param {number[] | null} color @param {any} rt */
+const imageNode = (name, color, rt) => ({ name, active: true, children: [], rt,
+  comps: { img: color ? { kind: 'atlas', ref: 'sprite/common_atlas/sprite_white', color, mesh: 0, slice: [0, 0, 1, 1] } : { kind: 'image', ref: null, color: [1, 1, 1, 1], type: 0, fill: 1, preserve: 0 } } });
 
 /**
- * An operator's illustration in an illust loader node (页面-6): the loader puts the art's prefab as it is — its own
- * rect, under the loader's scale — so the part of the art the assets keep goes at its rect in the loader; the loader
- * left empty without the art.
- * @param {Part} p @param {string | undefined} at the loader @param {{ url: string, pos: number[], size: number[] } | null} ill
+ * A player's avatar as the original's recording shows it on the name cards (INF-0014): the picture on a light square
+ * with a grey edge of 2 units; the frame's colours are measured there.
  */
-export function placeIllust(p, at, ill) {
+const AVATAR_EDGE = [0.7, 0.7, 0.7, 1], AVATAR_BACK = [0.88, 0.88, 0.88, 1];
+
+/** The templates the page adds to the pack before the UI starts (页面-6). */
+export const PAGE_SCREENS = Object.freeze({
+  [PICTURE]: imageNode('picture', null, rectIn(0.5, 0.5, [100, 100])),
+  [AVATAR]: { ...imageNode('avatar', AVATAR_EDGE, rectIn(0, 1, [0, 0])),
+    children: [imageNode('back', AVATAR_BACK, rectIn(0, 1, [-4, -4])), imageNode('face', null, rectIn(0, 1, [-4, -4]))] },
+});
+
+/**
+ * A player's avatar filling a node (页面-6): in its frame; the node left empty without one.
+ * @param {Part} p @param {string | undefined} at @param {string | null} url
+ */
+export function placeAvatar(p, at, url) {
   if (!at) return null;
-  if (!ill) { unplace(p, at); return null; }
-  const c = place(p, at, ILLUST);
+  if (!url) { unplace(p, at); return null; }
+  const c = place(p, at, AVATAR);
+  if (c) c.picture('@face', url);
+  return c;
+}
+
+/**
+ * A picture at a rect of its own inside a node (页面-6), as the game's loaders put their prefab there: a URL or a
+ * sprite of the pack, centred at pos with its size, under the node's own scale; the node left empty without one. An
+ * operator's illustration goes at the rect its art keeps in an illust loader, a name card's skin at its sprite's size.
+ * @param {Part} p @param {string | undefined} at
+ * @param {{ url?: string, sprite?: string, pos: number[], size: number[] } | null} pic
+ */
+export function placePicture(p, at, pic) {
+  if (!at) return null;
+  if (!pic) { unplace(p, at); return null; }
+  const c = place(p, at, PICTURE);
   if (!c) return null;
-  Object.assign(c.root.rt, { pos: [...ill.pos], size: [...ill.size] });
-  c.scr.picture('', ill.url, c.root);
+  Object.assign(c.root.rt, { pos: [...pic.pos], size: [...pic.size] });
+  if (pic.sprite) c.scr.sprite('', pic.sprite, c.root);
+  else c.scr.picture('', pic.url ?? null, c.root);
   return c;
 }
 

@@ -18,6 +18,7 @@ const shortText = (x, max) => typeof x === 'string' && x.length > 0 && x.length 
 const SHAPES = {
   hello: (m) => shortText(m.key, 64) && shortText(m.name, 16) && String(m.name).trim().length > 0,
   create: () => true, leave: () => true, kick: () => true, go: () => true, handover: () => true,
+  ping: (m) => typeof m.at === 'number' && Number.isFinite(m.at),
   join: (m) => shortText(m.code, 200),
   project: (m) => Number.isInteger(m.index),
   prepare: (m) => typeof m.on === 'boolean',
@@ -27,7 +28,7 @@ const SHAPES = {
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup' };
+const FIELDS = { hello: 'key,name', ping: 'at', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the
@@ -71,6 +72,8 @@ export function createLobby(o) {
       const why = lobbyMessageProblem(m);
       if (why) { ws.close(1008, why.slice(0, 120)); return; }
       if (m.t === 'hello') { hello = true; rooms.hello(id, m.key, String(m.name).trim()); } else if (!hello) ws.close(1008, 'say hello first');
+      // the latency the page shows (页面-6): its own time sent straight back
+      else if (m.t === 'ping') ws.send(JSON.stringify({ t: 'pong', at: m.at }));
       else rooms.message(id, m);
     });
     ws.on('close', () => { sockets.delete(id); if (hello) rooms.gone(id); });

@@ -32,6 +32,39 @@ function showing(n) {
   return !!n.shown || !!n.el?.isConnected;
 }
 
+/** How opaque a node's graphic draws: its colour's alpha through its own and its ancestors' groups (0 when hidden). @param {any} n */
+function drawnAlpha(n) {
+  let a = n.color?.[3] ?? 0;
+  for (let x = n; x; x = x.parent) { if (!x.active) return 0; a *= x.alpha ?? 1; }
+  return a;
+}
+
+/** Whether a node draws a solid colour (an image with no sprite, or the common white one). @param {any} n */
+const solid = (n) => !!n.g && !!n.n.comps.img && (!n.sprite || String(n.sprite).endsWith('/sprite_white'));
+
+/**
+ * Whether a node's effect is under a solid graphic drawn after it that covers its centre (页面-6): the page-wide layer
+ * is above every screen, so an effect a later opaque layer hides in the original — the title's season cover over the
+ * team-up button's waves — is not drawn. @param {any} n
+ */
+function covered(n) {
+  const r = n.el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  /** @param {any} k @returns {boolean} */
+  const over = (k) => {
+    if (!k.active) return false;
+    if (solid(k) && drawnAlpha(k) >= 0.9) {
+      const b = k.el.getBoundingClientRect();
+      if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return true;
+    }
+    return k.kids.some(over);
+  };
+  for (let c = n; c.parent; c = c.parent) {
+    const kids = c.parent.kids;
+    if (kids.slice(kids.indexOf(c) + 1).some(over)) return true;
+  }
+  return false;
+}
+
 /**
  * The effects' nodes in a screen, by the pack's keys "<prefab>|<root>/<path>": in the screen of that prefab, or in a
  * screen that has the prefab nested (every copy). @param {any} pack @param {any} scr @returns {Spot[]}
@@ -99,7 +132,7 @@ export async function startLobbyFx(ui, base) {
   };
   /** A spot's effect started, moved or removed as its node shows. @param {Spot} s @param {any} fx */
   const place = (s, fx) => {
-    const r = fx && showing(s.node) ? rootOf(s) : null;
+    const r = fx && showing(s.node) && (s.ground || !covered(s.node)) ? rootOf(s) : null;
     if (!r) { s.h?.remove(); s.h = null; return; }
     if (s.h?.done) s.h = null;
     if (s.h) s.h.move(r); else s.h = fx.play(s.key, r, s.scale);

@@ -313,6 +313,21 @@
   "roomCollaboratorReviseMap": "项目内容有变更，请确认后重新准备",
   "matchPrepareRoomClose": "房间已解散"
  },
+ "title": "平凡的博士",
+ "pings": [
+  {
+   "from": 1,
+   "text": "当前延迟<color=#7fa826>{0}</color>ms"
+  },
+  {
+   "from": 60,
+   "text": "当前延迟<color=#ec7a00>{0}</color>ms"
+  },
+  {
+   "from": 200,
+   "text": "当前延迟<color=#ff3d3d>{0}</color>ms"
+  }
+ ],
  "recruits": [
   {
    "id": "char_508_aguard",

@@ -4,6 +4,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pageOf, stepOf, countdownOf, bannerOf, stagePanel, ownerStatus, pictureOf, pickView, lineupOptions, resultOf, newLocal, STEP_SCREENS, LINEUP_VIEWS } from '../src/lobbymap.js';
 import { pickOf } from '../src/lobbysound.js';
+import { pingText } from '../src/roomtext.js';
+
+test('[页面-6] the latency text: the colour of the highest threshold at or under it, in whole ms, at least 1', () => {
+  assert.equal(pingText(0.2), '当前延迟<color=#7fa826>1</color>ms');
+  assert.equal(pingText(59.4), '当前延迟<color=#7fa826>59</color>ms');
+  assert.equal(pingText(60), '当前延迟<color=#ec7a00>60</color>ms');
+  assert.equal(pingText(250), '当前延迟<color=#ff3d3d>250</color>ms');
+});
 
 test('[页面-6] the page: a result first, the entry page (or its squad page) without a room, the prepare page in one', () => {
   const L = newLocal();

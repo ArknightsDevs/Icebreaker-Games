@@ -10,6 +10,8 @@ import { createHttpServer, createLobby, createBattles, lobbyMessageProblem, proj
 test('[房间-1] lobby messages: a known type with exactly its fields, each of its kind', () => {
   assert.equal(lobbyMessageProblem({ t: 'hello', key: 'k', name: 'A' }), null);
   assert.equal(lobbyMessageProblem({ t: 'create' }), null);
+  assert.equal(lobbyMessageProblem({ t: 'ping', at: 12.5 }), null);
+  assert.match(String(lobbyMessageProblem({ t: 'ping', at: 'now' })), /malformed/);
   assert.match(String(lobbyMessageProblem({ t: 'create', x: 1 })), /fields/);
   assert.match(String(lobbyMessageProblem({ t: 'hello', key: 'k', name: '   ' })), /malformed/);
   assert.match(String(lobbyMessageProblem({ t: 'shout' })), /not a lobby message/);
@@ -60,6 +62,18 @@ test('[房间-1] a malformed message, or any before hello, closes the lobby conn
     await b.ready;
     b.send({ t: 'hello', key: 'k', name: 'B', extra: 1 });
     assert.match((/** @type {any} */ (await b.closed)).reason, /fields/);
+  } finally { s.close(); }
+});
+
+test('[页面-6] a ping after hello comes straight back with its time, for the latency the page shows', async () => {
+  const s = await start();
+  try {
+    const a = open(`ws://127.0.0.1:${s.port}/lobby`);
+    await a.ready;
+    a.send({ t: 'hello', key: 'k', name: 'A' });
+    a.send({ t: 'ping', at: 1234.5 });
+    assert.deepEqual(await a.next('pong'), { t: 'pong', at: 1234.5 });
+    a.ws.close();
   } finally { s.close(); }
 });
 

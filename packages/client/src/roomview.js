@@ -11,9 +11,9 @@ import { skillLevelText, trainingText } from './training.js';
 /** @typedef {{ level: string, code: string, name: string, class: string, className: string, stages: { title: string, basic: string, advanced?: string, seconds: number }[], missions?: readonly string[], detail?: string }} ProjectView */
 /**
  * What the page knows: the lobby's projects and recruits, the room as last seen and when, the lineup being set, the
- * match this tab was sent to.
+ * match this tab was sent to, the lobby's latency in ms (null until measured).
  * @typedef {{ conn: string, lobby: { name: string, projects: ProjectView[], recruits: BoxEntry[] } | null, view: any, at: number, draft: Pick[] | null,
- *   started: { match: string, seat: number } | null }} RoomState
+ *   started: { match: string, seat: number } | null, ping: number | null }} RoomState
  */
 /**
  * @typedef {object} RoomActions

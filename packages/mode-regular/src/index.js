@@ -39,6 +39,12 @@ export const MISSIONS = Object.freeze({ ...data.missions });
 /** The activity's toasts of the room flow (页面-6). @type {Readonly<Record<string, string>>} */
 export const TOASTS = Object.freeze({ ...data.toasts });
 
+/** The name cards' title of a player who chose none (页面-6). */
+export const PLAYER_TITLE = data.title;
+
+/** The latency texts (页面-6): each from its threshold in ms, `{0}` the latency, in the game's colours as rich text. */
+export const PINGS = Object.freeze(data.pings.map((p) => Object.freeze({ ...p })));
+
 /** The fewest and most operators of a lineup (房间-5). */
 export const LINEUP = Object.freeze({ ...data.lineup });
 

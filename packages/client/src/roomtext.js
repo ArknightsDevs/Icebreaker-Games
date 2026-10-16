@@ -1,7 +1,7 @@
 // What the room page says about a room (docs/spec/room.md): the steps' names, the countdowns, the invitation text, whose
 // turn it is, and the lineup a player starts from. Pure; roomview.js draws it.
 
-import { STYLES } from '@icebreaker/mode-regular';
+import { STYLES, PINGS } from '@icebreaker/mode-regular';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
 /** @typedef {{ kept: string[], drawn: string[], extra: string[] }} Options */
@@ -24,6 +24,15 @@ export const PHASE_TITLES = { setup: '项目调整', confirm: '项目确认', pi
 export function clock(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/**
+ * The latency text (页面-6): the activity's text of the highest threshold at or under the latency, the latency in whole
+ * ms (at least 1) in its colour. @param {number} ms
+ */
+export function pingText(ms) {
+  const v = Math.max(1, Math.round(ms)), p = PINGS.filter((x) => v >= x.from).at(-1) ?? PINGS[0];
+  return p ? p.text.replace('{0}', String(v)) : '';
 }
 
 /** The text a host sends to invite (房间-1: the code in brackets, so the whole text can be pasted). @param {string} code @param {string} name */

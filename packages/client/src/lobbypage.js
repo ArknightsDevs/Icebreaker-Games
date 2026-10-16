@@ -6,7 +6,7 @@
 import { createUi } from '@aue/ui';
 import { ROSTER, loadTraining } from '@aue/content';
 import { STYLES, TOASTS } from '@icebreaker/mode-regular';
-import { openPart, closePart, setSwitch, SEASON, ILLUST } from './lobbykit.js';
+import { openPart, closePart, setSwitch, SEASON, PAGE_SCREENS } from './lobbykit.js';
 import { PAGES, pageOf, newLocal } from './lobbymap.js';
 import { createEntry } from './lobbyentry.js';
 import { createSquad } from './lobbysquad.js';
@@ -73,16 +73,15 @@ function cardArt(battle, manifest, skills, lobby, { portraits, equips, illusts }
 
 /**
  * What the lobby pack gets from the other indexes before the UI starts (页面-6): the season's logos as its sprites
- * (season/<name>, INF-0018), and the node an illust loader makes for its art (placeIllust gives its rect and picture).
+ * (season/<name>, INF-0018), and the templates the page makes its own nodes from (a picture at a rect of its own, a
+ * player's avatar in its frame).
  * @param {any} pack @param {any} season the season index
  */
 function addArt(pack, season) {
   for (const [name, v] of Object.entries(season ?? {})) {
     if (v && typeof v === 'object' && typeof v.file === 'string') pack.sprites[SEASON + name] = { w: v.w, h: v.h, uri: `../season/${v.file}` };
   }
-  pack.screens[ILLUST] = { name: 'illust', active: true, children: [],
-    comps: { img: { kind: 'image', ref: null, color: [1, 1, 1, 1], type: 0, fill: 1, preserve: 0 } },
-    rt: { amin: [0.5, 0.5], amax: [0.5, 0.5], pos: [0, 0], size: [100, 100], pivot: [0.5, 0.5], scale: [1, 1], rotz: 0 } };
+  Object.assign(pack.screens, structuredClone(PAGE_SCREENS));
 }
 
 /**

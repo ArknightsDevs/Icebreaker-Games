@@ -26,7 +26,9 @@ const ASSETS = new URL('/assets/skeleton/', location.href), ART = new URL('ui/ro
 let atlas = null;
 const music = createRoomMusic(new URL('audio/', ASSETS).href, readSettings(store).music);
 /** @type {import('./roomview.js').RoomState} */
-const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted() };
+const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted(), ping: null };
+/** How often the page measures the lobby's latency (页面-6). */
+const PING_MS = 2000;
 /** @type {WebSocket | null} */
 let ws = null;
 let retry = 0;
@@ -136,6 +138,7 @@ function onRoom(v) {
 
 /** @param {any} m */
 function onMessage(m) {
+  if (m.t === 'pong') { if (typeof m.at === 'number') S.ping = performance.now() - m.at; return; }
   if (m.t === 'lobby') S.lobby = m;
   else if (m.t === 'room') onRoom(m);
   else if (m.t === 'error') { lobby?.failed(); toast(m.msg); }
@@ -155,16 +158,21 @@ function onMessage(m) {
 function connect() {
   const sock = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/lobby`);
   ws = sock;
-  sock.onopen = () => { retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); draw(); };
+  sock.onopen = () => { retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); ping(); draw(); };
   sock.onmessage = (e) => onMessage(JSON.parse(String(e.data)));
   sock.onclose = (e) => {
     S.conn = '重连中';
+    S.ping = null;
     if (e.reason) toast(`连接断开：${e.reason}`);
     draw();
     setTimeout(connect, Math.min(5000, 500 * 2 ** retry++));
   };
 }
 
+/** The lobby's latency: the page's time sent and back (页面-6). */
+function ping() { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'ping', at: performance.now() })); }
+
+setInterval(ping, PING_MS);
 setInterval(() => {
   for (const el of document.querySelectorAll('[data-until]')) el.textContent = clock(Number(/** @type {HTMLElement} */ (el).dataset['until']) - performance.now());
 }, 250);

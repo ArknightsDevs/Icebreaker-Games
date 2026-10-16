@@ -8,14 +8,22 @@ import { AFTER_TICK, SCENE3D } from './lobby3d.js';
  *   h: { move: (r: any) => void, remove: () => void, clip: (r: number[] | null) => void, done: boolean } | null }} Spot
  */
 
-/** The page rectangle (CSS pixels x, y, w, h) a node's nearest masking ancestor clips it to, or null. @param {any} n */
+/**
+ * The page rectangle (CSS pixels x, y, w, h) a node's effect is clipped to, or null: its nearest masking ancestor's,
+ * cut to the box of a stencil image beside it (the effect reads the stencil that image writes, as the team-up button's
+ * waves its rounded back; the box stands for the image's shape).
+ * @param {any} n
+ */
 function clipOf(n) {
-  for (let x = n.parent; x; x = x.parent) {
-    if (!x.n.comps.mask) continue;
-    const r = x.el.getBoundingClientRect();
-    return [r.left, r.top, r.width, r.height];
-  }
-  return null;
+  /** @type {DOMRect | null} */
+  let r = null;
+  for (let x = n.parent; x && !r; x = x.parent) if (x.n.comps.mask) r = x.el.getBoundingClientRect();
+  const w = n.parent?.kids.find((/** @type {any} */ k) => k !== n && k.active && k.n.comps.mask === 'stencil' && k.n.comps.img);
+  const b = w?.el.getBoundingClientRect() ?? null;
+  if (!r && !b) return null;
+  if (!r || !b) { const q = /** @type {DOMRect} */ (r ?? b); return [q.left, q.top, q.width, q.height]; }
+  const x0 = Math.max(r.left, b.left), y0 = Math.max(r.top, b.top), x1 = Math.min(r.right, b.right), y1 = Math.min(r.bottom, b.bottom);
+  return [x0, y0, Math.max(0, x1 - x0), Math.max(0, y1 - y0)];
 }
 
 /** Whether a node and its ancestors show. @param {any} n */
@@ -99,7 +107,7 @@ export async function startLobbyFx(ui, base) {
   };
   AFTER_TICK.add(frame);
   // for tests and the console: the effects playing on the page layer and in the 3D scene, the spots found
-  /** @type {any} */ (globalThis).__lobbyFx = () => ({ flat: flat.count, deep: deep?.fx.count ?? 0, boxes: deep?.fx.inspect() ?? [], cam: SCENE3D?.sc.camera?.getWorldPosition(new SCENE3D.sc.camera.position.constructor()).toArray().map(Math.round),
+  /** @type {any} */ (globalThis).__lobbyFx = () => ({ flat: flat.count, deep: deep?.fx.count ?? 0, boxes: deep?.fx.inspect() ?? [], flatBoxes: flat.inspect(), cam: SCENE3D?.sc.camera?.getWorldPosition(new SCENE3D.sc.camera.position.constructor()).toArray().map(Math.round),
     spots: [...spots.values()].flat().map((s) => ({ key: s.key.split('|')[1]?.split('/').slice(-2).join('/'), on: !!s.h, ground: s.ground })) });
   return { stop: () => { AFTER_TICK.delete(frame); flat.dispose(); deep?.fx.dispose(); canvas.remove(); } };
 }

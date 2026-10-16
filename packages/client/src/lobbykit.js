@@ -69,7 +69,7 @@ export class Part {
    * Plays a clip on a node (its animation's wrapper); resolves when it has played (at once for a clip the pack lacks).
    * Its events call back and its sound events play (界面-32).
    * @param {string} r @param {string} clip
-   * @param {{ loop?: boolean, reverse?: boolean, delay?: number, rate?: number, onStart?: () => void, onEnd?: () => void, onEvent?: (name: string) => void }} [o]
+   * @param {{ loop?: boolean, reverse?: boolean, delay?: number, rate?: number, from?: number, onStart?: () => void, onEnd?: () => void, onEvent?: (name: string) => void }} [o]
    */
   play(r, clip, o) {
     const s = this.node(r);

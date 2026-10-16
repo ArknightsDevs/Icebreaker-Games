@@ -56,18 +56,16 @@ export async function startScene3d(ui, scr, base) {
       Object.assign(canvas.style, { position: 'absolute', left: '0px', top: '0px', width: `${w / k}px`, height: `${h / k}px`, pointerEvents: 'none' });
     }
     sc.render();
-    // the ground's plane on the UI layer: its map from the element's pixels, and the part of it in front of the camera
-    // (the room panel's camera comes down close over it), with the tiles that overflow it
+    // the ground's plane on the UI layer: its map from the element's pixels, shown while some of it is in front of the
+    // camera; the browser leaves out what falls behind the camera itself (a clip path on this huge 3D-mapped element
+    // made the GPU drop it on some frames: the page flickered)
     const pl = sc.plane(ground, 2), gw = ground.el.offsetWidth || ground.n.rt.size[0], gh = ground.el.offsetHeight || ground.n.rt.size[1];
     const ok = !!pl && pl.clip.length >= 3;
     ground.el.style.visibility = ok ? '' : 'hidden';
     const [sw, sh] = ground.n.rt.size, fx = sw / gw, fy = sh / gh;
     const H = ok ? [0, 1, 2].flatMap((r) => [pl.H[r * 3] * fx, pl.H[r * 3 + 1] * fy, pl.H[r * 3 + 2]].map((v) => (r < 2 ? v / k : v))) : null;
     inv = H ? inverse3(H) : null;
-    if (H && pl) {
-      const clip = `polygon(${pl.clip.map(([x, y]) => `${(x / fx).toFixed(1)}px ${(y / fy).toFixed(1)}px`).join(', ')})`;
-      Object.assign(ground.el.style, { left: '0px', top: '0px', transformOrigin: '0 0', transform: matrix3d(H), clipPath: clip });
-    }
+    if (H) Object.assign(ground.el.style, { left: '0px', top: '0px', transformOrigin: '0 0', transform: matrix3d(H) });
   };
   const stop = () => { AFTER_TICK.delete(frame); SCENE3D = null; sc.dispose(); canvas.remove(); ui.layer.style.background = was; };
   AFTER_TICK.add(frame);

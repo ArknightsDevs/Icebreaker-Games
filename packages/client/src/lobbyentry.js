@@ -23,7 +23,15 @@ export const ENTRY_HIDDEN = Object.freeze([
  * @property {() => void} squad opens the squad page
  * @property {() => string | null} squadProblem why the save's 常规队 cannot be used (the 编队 button says 人数不足)
  * @property {(room: boolean) => void} roomPanel the room panel is shown or not (the page's back button follows it)
+ * @property {Promise<unknown>} [effects] settles when the screens' particle effects are loaded (or will not be)
  */
+
+/** The entry page's title animation (its entry clip's first part, ADR 0063): the panel, its two lines, where it ends. */
+const TITLE = '@view_ui/canvas_ui/canvas_group/panel_entry_anim', TITLE_END = 2.28;
+/** The season cover's colour as the original's recording shows it (INF-0017), and how long the title waits for its effects. */
+const COVER = [46 / 255, 178 / 255, 167 / 255, 1], TITLE_WAIT_MS = 6000;
+/** Whether this page load has played the title: it plays on the first entry only, a later one starts after it. */
+let titled = false;
 
 /**
  * The entry page on the lobby UI.
@@ -36,7 +44,7 @@ export function createEntry(ui, A) {
   p.show('@view_back', false);
   /** @type {{ stop: () => void } | null} */
   let scene = null;
-  void startScene3d(ui, p.scr, ui.ctx.base).then((s) => { scene = s; if (s) p.show('@view_back', true); }, () => {});
+  const scene3d = startScene3d(ui, p.scr, ui.ctx.base).then((s) => { scene = s; if (s) p.show('@view_back', true); }, () => {});
   // the season's logo comes from the activity's art, which the pack does not have
   p.show(`${ENTRY}/panel_main/season_logo`, false);
   // the activity's "ended" marks, and the left panel's back that framed the buttons hidden above
@@ -74,7 +82,18 @@ export function createEntry(ui, A) {
   p.tap(`${ENTRY}/panel_room/panel_right/btn_strat_room/hotspot`, A.create);
   p.tap(`${ENTRY}/panel_room/panel_right/btn_join_room/btn_search_room/panel_enable/hotspot`, () => join(code?.value() ?? ''));
   joining(false);
-  void p.anim(f.animEntry);
+  // the title's two lines, which the game fills at run time, and the season cover in the recording's colour (INF-0017)
+  p.text(`${TITLE}/group_text_ice/entry_text_ice`, 'ICEBREAKER');
+  p.text(`${TITLE}/group_text_game/entry_text_ice`, 'GAME');
+  if (f.imgEntryAnimBkg) p.color(f.imgEntryAnimBkg, COVER);
+  const a = f.animEntry, first = !titled;
+  titled = true;
+  if (a?.animationName && first) {
+    // the title holds its first frame (white) until the 3D scene and the particle effects are ready, then plays
+    void p.play(a.animationWrapper ?? '@', a.animationName, { rate: 0 });
+    const ready = Promise.all([scene3d, A.effects]), late = new Promise((done) => { setTimeout(done, TITLE_WAIT_MS); });
+    void Promise.race([ready, late]).then(() => { if (!p.scr.dead) void p.anim(a); });
+  } else if (a?.animationName) void p.play(a.animationWrapper ?? '@', a.animationName, { from: TITLE_END });
   return {
     part: p,
     /** The 编队 button's hint when the 常规队 cannot be used. */

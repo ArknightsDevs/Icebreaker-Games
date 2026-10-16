@@ -82,8 +82,8 @@ export async function startLobby(el, H) {
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load();
   // the screens' particle effects, when the assets have them (页面-6)
-  void startLobbyFx(ui, UI).catch(() => null);
-  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips }), atlas, sound, pack });
+  const effects = startLobbyFx(ui, UI).catch(() => null);
+  return lobbyOn(ui, H, { cards: cardArt(battle, manifest, skills, pack, { portraits, equips }), atlas, sound, pack, effects });
 }
 
 /**
@@ -197,7 +197,7 @@ function pageMakers(ui, H, G, L, K) {
   const A = H.A;
   return {
     entry: () => createEntry(ui, { create: () => A.send({ t: 'create' }), join: (code) => A.send({ t: 'join', code }), squad: () => { L.squad = true; draw(); },
-      squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; } }),
+      squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; }, effects: G.effects }),
     squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, editBox: H.editBox, nameOf: A.nameOf,
       rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
     prepare: () => createPrepare(ui, X),
@@ -214,7 +214,7 @@ function memberToast(v, was, toast) {
 
 /**
  * The lobby on a loaded UI.
- * @param {any} ui @param {LobbyHost} H @param {{ cards: import('./lobbycards.js').CardArt, atlas: any, sound: ReturnType<typeof createLobbySound>, pack: any }} G
+ * @param {any} ui @param {LobbyHost} H @param {{ cards: import('./lobbycards.js').CardArt, atlas: any, sound: ReturnType<typeof createLobbySound>, pack: any, effects: Promise<unknown> }} G
  */
 function lobbyOn(ui, H, G) {
   const L = newLocal(), S = H.S;

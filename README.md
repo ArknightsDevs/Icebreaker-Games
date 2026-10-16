@@ -8,77 +8,89 @@
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
 [![CI](https://github.com/Cloudnyco/Icebreaker-Games/actions/workflows/ci.yml/badge.svg)](https://github.com/Cloudnyco/Icebreaker-Games/actions/workflows/ci.yml)
 
-《明日方舟》限时玩法「促融共竞」（国际服名 *Icebreaker Games*）的同人复刻：两名玩家在同一张地图上实时合作。战斗跑在 [明日方舟通用引擎](https://github.com/Cloudnyco/Arknights-Universal-Engine) 上，画面、镜头和战斗界面按原版还原。
+《明日方舟》限时玩法「促融共竞」（国际服名 *Icebreaker Games*）的同人复刻。两名玩家在局域网里组队参赛，在同一张地图上实时合作打完一场比赛。活动界面、战斗画面和比赛流程都按原版还原，战斗由 [明日方舟通用引擎](https://github.com/Cloudnyco/Arknights-Universal-Engine) 计算。
 
-**现状**（2026-10-17）：两名玩家在局域网里组队参赛：一人创建房间，另一人用房间编号加入，确认项目、分配干员、组建上场阵容，然后打完整局双人合作对局（一局两个阶段），全程帧同步、由服务器复算。v0.1.0 是第一个可玩版本（MVP）：「常规项目」的双人局域网对局；v0.1.1 按官方截图与原版录像把战斗外界面逐项对齐，加上名片、点赞和两页结算。
+## 开始游玩
 
-- **对局**：服务器的战斗房间与复算、断线重连（带 kit 的对局从第 0 帧重放）、开局等待协作者、二倍速与暂停、费用请求；可玩的关卡有 IG-1 逃离火线、IG-10 匪帮集会、IG-S-2 爬高上低等四关。关卡装置有模型时画成模型（山海密语仪），没有素材时画成方块（城防路障），血条按所属阵营着色。
-- **页面**：真 3D 战场与 Spine 模型、原样式的战斗界面（部署卡与召唤物卡、费用、技能、方向选择、任务与阶段横幅），没有素材时用页面自带的简易界面。合作关卡用各自场景的地图主题，四周带场景里的装饰。
-- **原版的战斗外界面**（引擎 ADR 0063，[页面-6](docs/spec/page.md)）：活动主界面（3D 场景、地上走动的人和楼顶的横幅环）、创建与加入房间、赛前流程的每一步（项目调整与确认、赛前编队与比赛风格、高顺位干员协调、组建上场阵容、倒计时与开赛展示）、结算、断线提示与对话框，动画与界面音效按原版；逻辑是我们自己的房间流程。干员 box 录入、画面设置原版没有，按活动风格自己做。
-- **画面设置**：帧率上限、清晰度、攻击特效、帧率显示由玩家选择，保存在本机，不设统一上限（引擎 ADR 0059，[页面-1](docs/spec/page.md)）。
-- **组队参赛**（[房间](docs/spec/room.md)）：房间编号与 15 分钟存在时间、项目调整与项目确认、赛前编队（常规队：高顺位最多 10 名、低顺位最多 20 名、至少 20 名；比赛风格）、高顺位干员协调（先-后-后-先轮流选取，可让出一次）、组建上场阵容（6–10 名，含临时招募干员）、准备就绪后开赛，比赛结束回到项目调整。时限、人数和临时招募干员取自活动表。
-- **box 与存档**：干员 box 手动录入（精英化、等级、潜能、信赖、技能等级、模组阶段，按每名干员的上限），保存在本机浏览器，可以导出、导入为文本。
-- **干员**：引擎的兼容层运行 Stronghold Protocol 的干员 kit，逐个与 Stronghold 对照、所有技能一致后启用（引擎 ADR 0058）；72 个全部启用，其中 7 个的差异登记在引擎的已知差异表里。没有 kit 的干员按引擎自己的实现作战，72 个职业分支的特性引擎都已实现（含战术家的战术点、傀儡师的替身与替身自己的攻击范围）。
-- **比赛风格**：基础、驻场、游走、攻坚、支援，各自的增益与代价只作用于选它的玩家，并带一个携带物卡（赛场啦啦队、护具分发员、混乱烟花箱、猛兽能量饮料、喷射汽水机；引擎 符文-1…6、装置-6）。
-- **声音**：原版战斗音效（部署、撤退、阵亡、技能、合作的申请与结算等）按原版的音效库播放，战斗音乐用关卡自己的曲子；普通攻击和命中音效仍然空着（引擎 音频-1…3）。
-- **干员语音**：部署、部署后第一次接敌、技能开启、被选中时说话，开场由编队第一名干员说「行动出发」；一次只说一句，优先级、冷却和交叉淡化按游戏数据。配音默认按游戏数据（大多是日语，联动干员是联动配音），也可以选素材里有的中文-普通话等（引擎 音频-4…6、ADR 0061；[页面-4](docs/spec/page.md)）。音乐、音效、语音的音量和配音在画面设置里调。
+1. 在 [Releases](../../releases/latest) 下载完整包 `Icebreaker-Games-v<版本>.zip`。
+2. 装好 [Node.js](https://nodejs.org/) 22 或 24。
+3. 解压后，Windows 双击 `scripts\start-windows.bat`；macOS / Linux 在解压出的文件夹里运行 `sh scripts/start.sh`。
+4. 用浏览器打开窗口里列出的地址。另一名玩家在同一局域网的电脑上打开「局域网」那一行的地址。
+5. 先在「干员 box」里录入自己的干员、编好常规队（也可以一键随机填满），然后一人创建房间，把房间编号或邀请文字发给另一人加入。
 
-## 下载与开服
+运行 `node scripts/verify.js` 可以检查下载的文件是否完整。换端口、只让本机打开、从源代码运行等其他开服方式，见 [开服说明](docs/deploy.md)。
 
-[Releases](../../releases/latest) 里每个版本有两个包，任选其一（详见 [docs/deploy.md](docs/deploy.md)）：
+## 能玩什么
 
-- **完整包** `Icebreaker-Games-v<版本>.zip`：程序、运行依赖、全部素材（战斗界面与战斗外界面、Spine 模型、特效、地图、音效、战斗曲与房间音乐，中文-普通话、日语和联动干员语音）和对局用的干员 kit。装好 Node.js 22 或 24，解压后双击 `scripts\start-windows.bat`（macOS / Linux 运行 `sh scripts/start.sh`），再打开窗口里列出的地址。
-- **素材包** `Icebreaker-Games-v<版本>-assets.zip`：只有素材，给从源代码运行的服务器用（`AUE_ASSETS_DIR`）。
+- **完整的比赛流程**：创建与加入房间、确认项目、赛前编队与比赛风格、高顺位干员协调、组建上场阵容（选技能和模组）、开赛、结算。打完一局回到房间，可以接着下一局。
+- **关卡**：常规项目的 IG-1 逃离火线、IG-10 匪帮集会，特级的 IG-S-2 爬高上低。每场比赛两个阶段，两人分守地图两侧，互相支援。
+- **比赛风格**：基础、驻场、游走、攻坚、支援，各有自己的增益与代价，并带一张携带物卡。
+- **干员**：全部 461 名干员都能上场，练度在干员 box 里录入，可以导出、导入。
+- **名片**：自定义昵称和 4 位代号，选择助理干员（开赛展示和结算里出现的立绘）和头像；结算时可以给队友点赞。
+- **画面与声音**：原版的活动主界面、赛前流程、开赛展示和结算界面，3D 战场和 Spine 小人；原版音效、各关卡的战斗曲和干员语音（日语、中文-普通话和联动配音）。帧率、清晰度、攻击特效和各项音量都可以在设置里调。
 
-两个包都带 `MANIFEST.json`（每个文件的大小和 sha256），完整包里的 `node scripts/verify.js` 逐个核对。
+## 还没有的
 
-## 结构
+- 其余常规项目关卡，以及阵地足球、堡垒守御两种模式；
+- 匹配、好友邀请、训练场、比赛中的表情等联机功能；
+- 一部分干员的技能和天赋只有部分效果，不少干员的攻击还没有特效，普通攻击和命中的音效暂时空着。
 
-| 位置 | 内容 |
-|---|---|
-| `engine/` | 引擎（git 子模块，固定在引擎的某个提交，发布时为标签） |
-| `packages/server` | 页面与模块服务（改写导入）、kit 服务、大厅与房间、各房间的战斗实例、服务器复算 |
-| `packages/client` | 页面：房间页（组队流程、box 录入、本地存档）、对局画面与界面、画面设置 |
-| `packages/mode-regular` | 常规项目：项目、各步骤的时限、临时招募干员、赛前编队的规则、比赛风格（取自活动表） |
+每个版本的变化见 [CHANGELOG.md](CHANGELOG.md)。
 
-## 开发
+## 常见问题
 
-需要 Node.js 22.12 以上和 pnpm（版本由 `package.json` 的 `packageManager` 固定；有 corepack 时会自动使用，没有时运行 `npx pnpm@11.28.0`）。
+- **另一台电脑打不开地址**：确认两台电脑在同一个局域网里，并在开服电脑的防火墙里允许 Node.js 的入站连接（默认端口 8700）。Windows 第一次启动时会弹出防火墙询问，选择允许即可。
+- **我的干员和设置存在哪里**：干员 box、名片和设置都存在各自电脑的浏览器里。换浏览器或清除网站数据之前，先在干员 box 里导出。
+- **画面卡顿**：在设置里调低帧率上限或清晰度，或者关掉攻击特效。
+
+## 从源代码运行
+
+需要 Node.js 22.12 或更新的版本、pnpm（版本由 `package.json` 的 `packageManager` 固定；装了 corepack 会自动使用，没有时运行 `npx pnpm@11.28.0`）和 Git。
 
 ```sh
 git clone --recurse-submodules https://github.com/Cloudnyco/Icebreaker-Games.git
-# 已经克隆过的：git submodule update --init
+cd Icebreaker-Games
 pnpm install
 pnpm run ci
 ```
 
-组队参赛（默认只绑定 127.0.0.1）：
+素材不在仓库里：在 [Releases](../../releases/latest) 下载与代码同一版本的素材包 `Icebreaker-Games-v<版本>-assets.zip`，解压后用 `AUE_ASSETS_DIR` 指给服务器：
 
 ```sh
-AUE_ASSETS_DIR=<素材目录> node packages/server/src/main.js --port 8700
-# 浏览器打开 http://127.0.0.1:8700/ ：房间页。两个标签页就是两名玩家
+AUE_ASSETS_DIR=<解压的位置>/Icebreaker-Games-assets/assets node packages/server/src/main.js --port 8700
+# 浏览器打开 http://127.0.0.1:8700/ ；开两个标签页就是两名玩家
 ```
 
-局域网里两台电脑对战：加 `--host 0.0.0.0`，另一台电脑打开 `http://<这台电脑的局域网 IP>:8700/`（防火墙要放行这个端口）。房间页先在 box 里录入干员、编好常规队（「随机填满常规队」可以一键填入 20 名满练度的六星），再创建或加入房间。
+- **局域网联机**：加 `--host 0.0.0.0`（默认只允许本机打开）。
+- **直接开一局**（不经过房间）：加 `--match packages/server/matches/ig-1.json`，再打开 `http://127.0.0.1:8700/?seat=0` 和 `?seat=1`。`matches/` 里有三张关卡的示例对局。
+- **干员脚本**（可选）：运行 `pnpm exec aue-check oracle` 取得引擎固定版本的 Stronghold Protocol，服务器会自动使用；没有时，干员都按引擎通用的实现作战。
+- **端到端测试**：`pnpm run e2e`（`E2E_CHROME` 指定本机 Chrome 的路径）。
+- **升级引擎**：引擎是 `engine/` 下的 git 子模块。在 `engine/` 里切换到新的发布标签，提交子模块的变化，再跑 CI 和端到端测试；引擎本身的改动请提交到引擎仓库。
 
-直接开一局（不经过房间）：加 `--match <对局设定.json>`，浏览器打开 `http://127.0.0.1:8700/?seat=0` 和 `?seat=1`。`packages/server/matches/` 里有可玩关卡的对局设定（`ig-1.json`、`ig-10.json`、`ig-s-2.json`，两边都是精英 2 的六星），例如 `--match packages/server/matches/ig-s-2.json`。种子决定关卡的随机变体：IG-S-2 第一阶段有山海众（八成）和越狱两种，山海密语仪有 3 个或 5 个；`ig-s-2.json` 的种子抽到的是山海众和 3 个密语仪。
+没有素材时服务器照样能开，对局照常进行，只是不绘制战场、没有声音。完整的说明见 [开服说明](docs/deploy.md)。
 
-常规项目的数据（`packages/mode-regular/data/act1multi.json`）由 `node tools/extract-activity.js --gamedata <ArknightsGameData 目录>` 从活动表生成。
+## 项目结构
 
-素材由维护者另行准备（引擎 ADR 0018）；没有素材时页面不画战场，对局照常进行。端到端测试：`pnpm run e2e`（`E2E_CHROME` 指定 Chrome，`E2E_FULL=1` 加跑整局）。
+| 位置 | 内容 |
+|---|---|
+| `engine/` | 明日方舟通用引擎（git 子模块） |
+| `packages/server` | 服务器：网页与模块、大厅与房间、每场比赛的战斗实例与复算 |
+| `packages/client` | 网页：房间页（组队流程、干员 box、存档）、对局画面、设置 |
+| `packages/mode-regular` | 常规项目的规则：项目、各步骤的时限、临时招募干员、编队规则、比赛风格（取自活动数据） |
 
-升级引擎：在 `engine/` 里切换到要用的提交（发布时用标签），提交子模块的变化，然后跑 CI 和端到端测试。不要直接修改 `engine/` 里的文件，引擎的改动提交到引擎仓库。
+页面和房间的行为写在 [docs/spec/](docs/spec/) 里。
 
-干员 kit（可选，引擎 ADR 0058）：取得引擎固定的 Stronghold Protocol 提交，用 `AUE_KITS_DIR` 指给服务器；没有时，干员按引擎自己的实现作战。
+## 参与
 
-```sh
-git clone https://github.com/sganggs/Stronghold-Protocol.git <dir>
-git -C <dir> checkout <sha>   # 引擎 packages/content/data/kits.json 的 source.sha
-AUE_KITS_DIR=<dir> node packages/server/src/main.js
-```
+欢迎报告问题、提出改进或提交代码，请先读 [CONTRIBUTING.md](CONTRIBUTING.md)。指出和原版不一致的地方时，附上 PRTS 页面或实机录像会很有帮助。
 
-参与方式见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+## 致谢
+
+- [明日方舟通用引擎](https://github.com/Cloudnyco/Arknights-Universal-Engine)：战斗、画面、界面和联机。
+- [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol)：72 名六星干员的脚本（GPL-3.0-or-later）。
+- [PRTS](https://prts.wiki/) 与 [Kengxxiao/ArknightsGameData](https://github.com/Kengxxiao/ArknightsGameData)：机制与游戏数据。
+- Release 包里素材的各个来源，列在 [NOTICE.md](NOTICE.md)。
 
 ## 许可
 
-本项目自己编写的代码以 [AGPL-3.0-or-later](LICENSE) 发布；引擎以 GPL-3.0-or-later 发布。游戏素材与数据不在其中，见 [NOTICE.md](NOTICE.md)。
+本项目自己编写的代码以 [AGPL-3.0-or-later](LICENSE) 发布，引擎以 GPL-3.0-or-later 发布。游戏素材与数据不在其中，见 [NOTICE.md](NOTICE.md)。

@@ -45,6 +45,12 @@ describe('the original battle UI in the browser', { skip: HAS_UI ? false : 'no b
     const banner = page.locator('.aue-n[data-name="container_conventional_mode"]');
     await until('the stage banner', async () => ((await banner.isVisible()) ? true : undefined), 5000);
     assert.ok((await banner.innerText()).includes(c.level.stages[0].task.basic), 'the first stage\'s basic task');
+    // the page's sound (页面-4): the assets' audio index, the level's music from the battle's first frame
+    const sound = await until('the music', async () => {
+      const s = await page.evaluate(() => /** @type {any} */ (globalThis).__battle.sound());
+      return s.music ? s : undefined;
+    }, 10000);
+    assert.ok(sound.banks > 1000, `${sound.banks} sound banks`);
     const op = deck.slice().sort((a, b) => c.operators[a].cost - c.operators[b].cost)[0], d = c.operators[op];
     const want = d.position === 'MELEE' ? ['MELEE', 'ALL'] : ['RANGED', 'ALL'];
     /** @type {{ row: number, col: number, h: number } | null} */

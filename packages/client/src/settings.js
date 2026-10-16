@@ -1,15 +1,17 @@
 // The player's picture settings (docs/spec/page.md 页面-1; engine ADR 0059): a frame-rate cap, the 清晰度, attack effects,
-// an FPS readout — saved on this device, applied at once. Nothing here touches the battle: it runs 30 frames a second
+// an FPS readout, and the music and sound volumes (页面-4) — saved on this device, applied at once. Nothing here touches the battle: it runs 30 frames a second
 // whatever the picture does (the engine's 时间-1).
 
-/** @typedef {{ fpsCap: number, scale: number, attackEffects: boolean, showFps: boolean }} Settings */
+/** @typedef {{ fpsCap: number, scale: number, attackEffects: boolean, showFps: boolean, music: number, sfx: number }} Settings */
 
 /** The frame-rate caps; 0 follows the display (no cap of ours). */
 export const FPS_CAPS = Object.freeze([0, 144, 120, 60, 30]);
 /** The 清晰度 choices: the canvas's pixel ratio over the device's (the engine's 渲染-15). */
 export const SCALES = Object.freeze([1, 0.75, 0.5]);
+/** The volume choices of the music and the sounds (页面-4). */
+export const VOLUMES = Object.freeze([1, 0.5, 0]);
 /** No limits of ours by default. @type {Readonly<Settings>} */
-export const DEFAULTS = Object.freeze({ fpsCap: 0, scale: 1, attackEffects: true, showFps: false });
+export const DEFAULTS = Object.freeze({ fpsCap: 0, scale: 1, attackEffects: true, showFps: false, music: 1, sfx: 1 });
 
 const KEY = 'ice.settings.v1';
 
@@ -21,6 +23,8 @@ export function sanitize(v) {
     scale: SCALES.includes(/** @type {number} */ (o.scale)) ? /** @type {number} */ (o.scale) : DEFAULTS.scale,
     attackEffects: typeof o.attackEffects === 'boolean' ? o.attackEffects : DEFAULTS.attackEffects,
     showFps: typeof o.showFps === 'boolean' ? o.showFps : DEFAULTS.showFps,
+    music: VOLUMES.includes(/** @type {number} */ (o.music)) ? /** @type {number} */ (o.music) : DEFAULTS.music,
+    sfx: VOLUMES.includes(/** @type {number} */ (o.sfx)) ? /** @type {number} */ (o.sfx) : DEFAULTS.sfx,
   };
 }
 
@@ -74,6 +78,8 @@ const ROWS = Object.freeze([
   { field: 'scale', label: '清晰度', choices: SCALES.map((v) => [v, `${v * 100}%`]) },
   { field: 'attackEffects', label: '攻击特效', choices: [[true, '开'], [false, '关']] },
   { field: 'showFps', label: '显示帧率', choices: [[false, '关'], [true, '开']] },
+  { field: 'music', label: '音乐', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
+  { field: 'sfx', label: '音效', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
 ]);
 
 /**

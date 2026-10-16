@@ -14,10 +14,10 @@ function storage(broken = false) {
   };
 }
 
-test('[页面-1] no limits by default; a choice that is not one of the options takes the default', () => {
-  assert.deepEqual(DEFAULTS, { fpsCap: 0, scale: 1, attackEffects: true, showFps: false });
-  assert.deepEqual(sanitize({ fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true }), { fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true });
-  assert.deepEqual(sanitize({ fpsCap: 59, scale: 2, attackEffects: 'no', extra: 1 }), DEFAULTS);
+test('[页面-1] [页面-4] no limits by default, music and sounds full; a choice that is not one of the options takes the default', () => {
+  assert.deepEqual(DEFAULTS, { fpsCap: 0, scale: 1, attackEffects: true, showFps: false, music: 1, sfx: 1 });
+  assert.deepEqual(sanitize({ fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true, music: 0, sfx: 0.5 }), { fpsCap: 60, scale: 0.5, attackEffects: false, showFps: true, music: 0, sfx: 0.5 });
+  assert.deepEqual(sanitize({ fpsCap: 59, scale: 2, attackEffects: 'no', music: 0.3, sfx: '1', extra: 1 }), DEFAULTS);
   assert.deepEqual(sanitize(null), DEFAULTS);
 });
 

@@ -10,6 +10,8 @@
 | 清晰度 | 100%、75%、50%（画布像素比相对设备像素比，引擎 渲染-15） | 100% |
 | 攻击特效 | 开、关（引擎 渲染-15） | 开 |
 | 显示帧率 | 关、开（左下角显示最近一秒画了多少帧） | 关 |
+| 音乐 | 100%、50%、关（页面-4） | 100% |
+| 音效 | 100%、50%、关（页面-4） | 100% |
 
 - **帧率上限**：有上限时，屏幕的每次刷新只在距上一次绘制的时间槽满一个间隔（1000 ÷ 上限 毫秒）时绘制，早到 1.5 毫秒以内也算到了；间隔两倍以上没有绘制时，时间槽从这一帧重新开始。
 - **保存**：本机存不了时（隐私模式等），选择只在这一页有效；存的内容不完整或有误时，那一项用默认值。
@@ -35,3 +37,15 @@
 经局域网地址（如 `http://192.168.1.2:8700/`）打开的页面不是安全上下文，只能用不需要安全上下文的浏览器功能：会话密钥用 `crypto.getRandomValues` 生成，不用 `crypto.randomUUID`；复制邀请文字由玩家自己选中复制，不用剪贴板接口。
 
 - 来源：设计决定；安全上下文的限制见 [MDN「Secure contexts」](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts/features_restricted_to_secure_contexts)（`crypto.randomUUID`、`navigator.clipboard` 只在安全上下文可用）
+
+### 页面-4 声音
+
+对局页按引擎的音频规则出声（引擎 音频-1…3）：
+
+- 素材里有音频索引（`audio/index.json`）时才有声音；没有时整页静音，对局照常进行。
+- 浏览器要等玩家第一次点按或按键后才让页面出声，所以在那之前听不到声音。
+- 每帧的表现事件按 音频-2 播放音效；战斗从第 0 帧开始时播放关卡的音乐（音频-3），战斗结束时淡出。
+- 服务器的控制消息（引擎 同步-7、同步-8）里，协作者申请暂停时播 `battle.ON_COOPERATE_PAUSE_CONFIRM`；协作者打开二倍速、而自己还没打开时播 `battle.ON_COOPERATE_SPEED_REQUEST`。
+- 音乐和音效的音量由画面设置里的「音乐」「音效」决定（页面-1）。
+
+- 来源：设计决定（引擎 ADR 0024，规划问答 Q69）；浏览器的自动播放限制见 [MDN「Autoplay guide for media and Web Audio APIs」](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay)；协作者申请时的提示音为推断，同引擎 INF-0169

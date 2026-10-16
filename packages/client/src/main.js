@@ -7,7 +7,7 @@
 // (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles. The
 // player's picture settings (settings.js, 页面-1) shape the drawing only.
 import { startBattle } from '@aue/worker';
-import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit, loadEffectPack } from '@aue/render';
+import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit, loadEffectPack, createBattleAudio } from '@aue/render';
 import { matchContent } from '@aue/content';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
@@ -18,6 +18,7 @@ import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './batt
 import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
+import { controlSounds } from './sound.js';
 
 const ASSETS = new URL('/assets/skeleton/', location.href);
 
@@ -158,7 +159,7 @@ function markField(game, pointer, marks) {
  * @typedef {{ game: Awaited<ReturnType<typeof setUp>> | null, net: string, costAsker: number, players: number,
  *   control: import('./controls.js').Control | null, lastView: import('@aue/schema').View | null, unitKeys: Map<number, string>,
  *   pointer: { row: number, col: number } | null, hudNow: import('@aue/ui').HudState | null, hand: Hand | null,
- *   requests: import('./battlehud.js').Requests,
+ *   requests: import('./battlehud.js').Requests, audio: Awaited<ReturnType<typeof createBattleAudio>>, music: boolean,
  *   battle: ReturnType<typeof startBattle>, mark: () => void, skills: ReturnType<typeof createSkillBar>, bar: () => void }} Page
  */
 
@@ -166,7 +167,8 @@ async function main() {
   const art = await assets();
   /** @type {Page} */
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
-    requests: { answer: null, pauseSince: -1, now: 0 } });
+    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false });
+  if (art) void startAudio(P);
   P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
   $('fps').hidden = !settings.showFps;
   createSettingsPanel($('settings'), settings, (s) => {
@@ -175,6 +177,7 @@ async function main() {
     P.game?.renderer?.setPixelScale(s.scale);
     P.game?.renderer?.setAttackEffects(s.attackEffects);
     $('fps').hidden = !s.showFps;
+    P.audio?.volumes(s);
   });
   P.skills = createSkillBar($('skills'), (id) => P.battle.command({ type: 'skill', unit: id }), (id) => P.battle.command({ type: 'retreat', unit: id }));
   /** @type {Record<string, () => void>} */
@@ -195,11 +198,37 @@ async function main() {
       // loaded: the server may begin the battle (the engine's 同步-11)
       if (s.state === 'match' && s.match && !P.game) setUp(s.match, art, () => P.mark(), s.frame ?? -1).then((g) => { P.game = g; start(P, g); P.battle.ready(); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
     },
-    onControl: (c) => { P.control = c; P.bar(); },
+    onControl: (c) => { for (const bank of controlSounds(P.control, c, seat)) void P.audio?.play(bank); P.control = c; P.bar(); },
   });
   // for end-to-end tests and the console
   const b = P.battle;
-  Object.assign(globalThis, { __battle: { seat, debug: b.debug, command: b.command, speed: b.speed, ready: () => P.game !== null, ui: () => (P.game?.ui ? 'original' : 'bars') } });
+  Object.assign(globalThis, { __battle: { seat, debug: b.debug, command: b.command, speed: b.speed, ready: () => P.game !== null, ui: () => (P.game?.ui ? 'original' : 'bars'),
+    sound: () => ({ banks: P.audio ? Object.keys(P.audio.index.banks).length : 0, music: P.music }) } });
+}
+
+/**
+ * The page's sound (页面-4): the audio of the assets (none without its index) at the player's volumes, let sound from
+ * the first touch or key. @param {Page} P
+ */
+async function startAudio(P) {
+  P.audio = await createBattleAudio({ base: new URL('audio/', ASSETS).href }).catch(() => null);
+  P.audio?.volumes(settings);
+  const resume = () => { void P.audio?.resume(); };
+  addEventListener('pointerdown', resume);
+  addEventListener('keydown', resume);
+}
+
+/**
+ * A frame's sound (页面-4, engine 音频-2, 音频-3): its events' banks; the level's music from the first frame of the battle
+ * until it ends; none before the match's side is ready or without audio. @param {Page} P @param {{ view: import('@aue/schema').View, events: Record<string, string | number>[] }} f
+ */
+function frameSound(P, f) {
+  const audio = P.audio, game = P.game;
+  if (!audio || !game) return;
+  const level = /** @type {any} */ (game.content.level);
+  audio.frame(f.events, { keyOf: (id) => P.unitKeys.get(id), operators: /** @type {any} */ (game.content.operators), enemies: /** @type {any} */ (game.content).enemies, seat, stages: level.stages?.length ?? 0 });
+  if (!P.music && f.view.frame >= 0) { P.music = true; void audio.startMusic(level.bgm); }
+  if (f.events.some((e) => e['type'] === 'end')) audio.stopMusic();
 }
 
 /**
@@ -211,6 +240,7 @@ function onFrame(P, f) {
   const end = events.find((e) => e['type'] === 'end');
   if (end && MATCH) ended(Number(end['result']));
   for (const [id, k] of Object.entries(f.keys)) P.unitKeys.set(Number(id), k);
+  frameSound(P, f);
   P.players = view.players.length;
   P.costAsker = costAskerAfter(P.costAsker, events);
   // every key seen so far: units that appeared before the renderer was ready get their figures too

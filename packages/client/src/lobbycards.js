@@ -75,7 +75,9 @@ function fillSkill(card, f, d, art) {
   if (skill >= 0) {
     card.picture(f.imgSkillIcon, d.skillId ? art.skill(d.skillId) : null);
     card.text(f.textSkillLv, lv > 7 ? '' : String(lv));
+    // a mastered skill shows its mastery mark (the pack's small mastery icons, as the skill items use) in place of its level
     card.show(f.imgSkillSpecLv, lv > 7);
+    if (lv > 7) card.sprite(f.imgSkillSpecLv, `sprite/evolve_small_icon_${Math.min(3, lv - 7)}`);
   }
   card.show(f.emptyEquipPanelGO, module < 0);
   card.show(f.normalEquipPanelGO, module >= 0);
@@ -86,15 +88,19 @@ function fillSkill(card, f, d, art) {
  * A step's card holder (a prefab whose controller names a card prefab and its container: the pick's large card, the
  * lineup's small card, the reserve card holding a small card) with its card placed and shown, through as many
  * holders as there are.
+ * A tap on the card (`onTap`) goes to every holder's button on the way (the innermost one with a hit area is where
+ * the pointer lands).
  * @param {Part} holder @param {(p: Part, at: string, prefab: string) => Part | null} place @param {CardData} d @param {CardArt} art
+ * @param {() => void} [onTap]
  * @returns {Part | null} the card
  */
-export function holderCard(holder, place, d, art) {
+export function holderCard(holder, place, d, art, onTap) {
   const f = holder.view(), inner = f.cardPrefab && f.container ? place(holder, f.container, f.cardPrefab) : null;
   if (f.teampTag) holder.show(f.teampTag, d.from === 'recruit');
+  if (onTap && f.btnGraphic) holder.tap(f.btnGraphic, onTap);
   if (!inner) return null;
   const g = inner.view();
-  if (g.cardPrefab && g.container) return holderCard(inner, place, d, art);
+  if (g.cardPrefab && g.container) return holderCard(inner, place, d, art, onTap);
   fillCard(inner, d, art);
   return inner;
 }

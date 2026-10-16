@@ -62,20 +62,24 @@ const tabs = new WeakMap();
 /** The lineup being set, never null. @param {any} S @returns {Pick[]} */
 const draftOf = (S) => S.draft ?? [];
 
-/** Whether each option's card stands in the row below (not chosen), for its clip when that changes. @type {WeakMap<Part, boolean>} */
-const RESERVE_IN = new WeakMap();
+/** Each option's card's place in the row below (not chosen: in) and whether its clip has played, for its clip when that changes. @type {WeakMap<Part, { on: boolean, settled: boolean }>} */
+const RESERVE = new WeakMap();
 
 /**
  * An option's card in the row below: a chosen one is taken out of the row (its clip backwards: it slides away and the
- * row closes up), one given back comes in (forwards); the first time it stands as the clip leaves it.
+ * row closes up), one given back comes in (forwards); the first time it stands as the clip leaves it. One taken out
+ * takes no taps once it has gone (its card stays where it slid to, unseen).
  * @param {Part} item @param {boolean} on
  */
 function reserveSwitch(item, on) {
-  const was = RESERVE_IN.get(item);
-  if (was === on) return;
-  RESERVE_IN.set(item, on);
+  const was = RESERVE.get(item);
+  if (was?.on === on) { if (!on && was.settled) item.root.active = false; return; }
+  const st = { on, settled: false };
+  RESERVE.set(item, st);
   const a = item.view().animInOut;
-  void item.play(a?.animationWrapper ?? '@', a?.animationName ?? 'multi_v3_prepare_squad_reserve_char_card_switch', { reverse: !on, rate: was === undefined ? 1e4 : 1 });
+  if (on) item.root.active = true;
+  void item.play(a?.animationWrapper ?? '@', a?.animationName ?? 'multi_v3_prepare_squad_reserve_char_card_switch', { reverse: !on, rate: was ? 1 : 1e4 })
+    .then(() => { st.settled = true; if (RESERVE.get(item) === st && !on) item.root.active = false; });
 }
 
 /**
@@ -99,9 +103,8 @@ function select(v, S, o, X) {
   });
   fillList(v, f.reserveList, opts.length, (item, i) => {
     const { id, tag } = opts[i];
-    holderCard(item, place, cardOf(X, S, S.view.you, id, tag), X.cards);
+    holderCard(item, place, cardOf(X, S, S.view.you, id, tag), X.cards, () => toggle(id));
     reserveSwitch(item, !draft.some((x) => x.id === id));
-    item.tap('@container', () => toggle(id));
   });
   v.text(f.minCntTips, why ? '编队至少6人' : `已选择 ${draft.length} 名`);
   setSwitch(v, f.btnNext, !why);

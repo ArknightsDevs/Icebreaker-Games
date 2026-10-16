@@ -3,6 +3,7 @@
 // squad page. The entries of systems the platform does not have — quick match, the manual, milestones, rewards,
 // training, medals, invitations, the guide book — are hidden, not left as dead ends.
 import { openPart, closePart, inputOn } from './lobbykit.js';
+import { startScene3d } from './lobby3d.js';
 import { PAGES } from './lobbymap.js';
 
 /** The entry page's state root, under which its panels are. */
@@ -31,8 +32,11 @@ export const ENTRY_HIDDEN = Object.freeze([
 export function createEntry(ui, A) {
   const p = openPart(ui, PAGES.entry), f = p.view(ENTRY);
   for (const r of ENTRY_HIDDEN) p.show(r, false);
-  // the 3D scene behind (its meshes, cameras and the world-space ground) is not drawn yet (页面-6)
+  // the 3D scene behind (its models, camera and the world-space ground): shown once the engine draws it, hidden without its assets (页面-6)
   p.show('@view_back', false);
+  /** @type {{ stop: () => void } | null} */
+  let scene = null;
+  void startScene3d(ui, p.scr, ui.ctx.base).then((s) => { scene = s; if (s) p.show('@view_back', true); }, () => {});
   // the season's logo comes from the activity's art, which the pack does not have
   p.show(`${ENTRY}/panel_main/season_logo`, false);
   // the activity's "ended" marks, and the left panel's back that framed the buttons hidden above
@@ -76,6 +80,6 @@ export function createEntry(ui, A) {
     get room() { return room; },
     /** The join box (for tests and the page). */
     code,
-    close: () => closePart(p),
+    close: () => { scene?.stop(); closePart(p); },
   };
 }

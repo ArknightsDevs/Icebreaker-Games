@@ -13,6 +13,7 @@ import { createSquad } from './lobbysquad.js';
 import { createPrepare } from './lobbyprepare.js';
 import { createFinish } from './lobbyfinish.js';
 import { createLobbySound } from './lobbysound.js';
+import { AFTER_TICK } from './lobby3d.js';
 import { entryIn } from './roomview.js';
 import { styleIcon, loadRoomAtlas, spriteUrl, MODE_ICONS } from './roomart.js';
 
@@ -103,6 +104,7 @@ function runUi(ui, tick) {
   const loop = (/** @type {number} */ now) => {
     ui.tick(Math.min(0.1, (now - at) / 1000));
     at = now;
+    for (const f of AFTER_TICK) f();
     // a focused or clicked node can scroll the clipped layer: it never scrolls
     if (ui.layer.scrollLeft || ui.layer.scrollTop) { ui.layer.scrollLeft = 0; ui.layer.scrollTop = 0; }
     requestAnimationFrame(loop);

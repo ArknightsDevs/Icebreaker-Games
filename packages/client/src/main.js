@@ -22,8 +22,11 @@ import { controlSounds } from './sound.js';
 import { assetsUrl, siteUrl, socketUrl } from './site.js';
 import { createTutorial } from './tutorial.js';
 import { createSignals, loadEmoteArt } from './battlesignals.js';
+import { startTurn } from './turn.js';
 import { TRAINING, TRAINING_LEVELS } from '@icebreaker/mode-regular';
 
+// a phone plays in landscape (页面-7), before anything measures the page
+startTurn(/** @type {HTMLButtonElement | null} */ (document.getElementById('full')));
 const ASSETS = assetsUrl();
 
 const params = new URLSearchParams(location.search);

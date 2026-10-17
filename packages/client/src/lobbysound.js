@@ -2,6 +2,7 @@
 // banks (ui.*) as the engine's 音频-1 says — a sound picked by weight, its pitch and volume within their ranges, after
 // its delay — at the player's sound volume. A bank the assets lack is not played; nothing sounds before the player's
 // first touch (the browser's rule). The room page does not load the battle renderer, so this is the page's own player.
+import { audioContext } from './sound.js';
 
 /** @typedef {{ file: string, weight: number, delay: number, pitch: number[], volume: number[] }} Sound */
 /** @typedef {{ sounds: Sound[], max: number, popOldest: boolean, loop: boolean }} Bank */
@@ -38,8 +39,9 @@ export function createLobbySound(base, volume) {
   /** @param {string[]} list @param {string} name */
   const note = (list, name) => { list.push(name); if (list.length > 40) list.shift(); };
   const ready = fetch(new URL('index.json', base)).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((index) => {
-    if (!index?.banks) return null;
-    const ctx = new AudioContext(), gain = ctx.createGain();
+    const ctx = index?.banks ? audioContext() : null;
+    if (!ctx) return null;
+    const gain = ctx.createGain();
     gain.gain.value = level;
     gain.connect(ctx.destination);
     P = { ctx, gain, banks: index.banks };

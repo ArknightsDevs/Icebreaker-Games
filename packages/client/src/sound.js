@@ -16,3 +16,9 @@ export function controlSounds(prev, next, seat) {
   if (mateOn && next.fast[seat] !== 1) out.push('battle.ON_COOPERATE_SPEED_REQUEST');
   return out;
 }
+
+/** A Web Audio context (older Safari's prefixed one), or null where the browser has none: the page then stays silent. */
+export function audioContext() {
+  const C = /** @type {typeof AudioContext | undefined} */ (globalThis.AudioContext ?? /** @type {any} */ (globalThis).webkitAudioContext);
+  return C ? new C() : null;
+}

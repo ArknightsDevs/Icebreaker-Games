@@ -66,3 +66,9 @@ body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.or
 .tut-head { flex: none; width: 4.6em; height: 4.6em; object-fit: cover; background: rgb(255 255 255 / 0.08); }
 .tut-text { flex: 1; }
 .tut-more { position: absolute; right: 0.6em; bottom: 0.3em; width: 0; height: 0; border: 0.35em solid transparent; border-top-color: #fff; animation: tut-pulse 1s infinite; }
+/* phones (页面-7): no page gestures over the battle (zoom, scroll, the long-press menu); 全屏 under the 画面 button; a
+   phone held upright turns the body (turn.js), the page around it black */
+html.touch body { touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+html.turned { overflow: hidden; background: #000; }
+#full { position: absolute; left: 0; top: calc(50% + 44px); z-index: 3; background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--muted); padding: 4px 6px; writing-mode: vertical-rl; }
+#full[hidden] { display: none; }

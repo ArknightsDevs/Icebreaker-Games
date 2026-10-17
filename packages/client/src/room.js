@@ -16,6 +16,7 @@ import { readSettings, writeSettings, VOLUMES } from './settings.js';
 import { startLobby } from './lobbypage.js';
 import { resultOf } from './lobbymap.js';
 import { assetsUrl, socketUrl } from './site.js';
+import { startTurn } from './turn.js';
 
 /** Where this tab's last match is kept, for a way back into it; where the battle page leaves its result (页面-6). */
 const MATCH_KEY = 'ice.match', RESULT_KEY = 'ice.result';
@@ -26,6 +27,8 @@ let save = readSave(store);
 const STARTED_AT_LOAD = readStarted();
 // a 代号 of its own from the first visit on (房间-1), kept with the save
 if (!save.tag) { save = { ...save, tag: newTag() }; writeSave(store, save); }
+// a phone plays in landscape (页面-7), before anything measures the page
+startTurn(/** @type {HTMLButtonElement | null} */ (document.getElementById('full')));
 const ASSETS = assetsUrl(), ART = new URL('ui/room/', ASSETS).href;
 /** @type {import('./roomart.js').RoomAtlas | null} */
 let atlas = null;

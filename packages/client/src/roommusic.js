@@ -2,6 +2,7 @@
 // sys.ON_MULTIV3_LOADED — its intro, then its loop from the intro's end, at the bank's volume times the player's music
 // volume. A browser lets a page sound only after the player touched it, so it starts on the first touch or key; it
 // fades out over the bank's crossfade when the page leaves for a battle. Without the bank the page is silent.
+import { audioContext } from './sound.js';
 
 /** The bank the room page plays. */
 export const ROOM_MUSIC = 'sys.ON_MULTIV3_LOADED';
@@ -27,8 +28,9 @@ export function createRoomMusic(base, volume) {
   let P = null, started = false, level = volume;
   const ready = fetch(new URL('index.json', base)).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((index) => {
     const bank = roomMusicOf(index);
-    if (!bank) return null;
-    const ctx = new AudioContext(), gain = ctx.createGain();
+    const ctx = bank ? audioContext() : null;
+    if (!bank || !ctx) return null;
+    const gain = ctx.createGain();
     gain.gain.value = bank.volume * level;
     gain.connect(ctx.destination);
     P = { ctx, gain, bank };

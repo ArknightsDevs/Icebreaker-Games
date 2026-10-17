@@ -48,21 +48,21 @@ details.save { margin-top: 12px; }
 .mode { font-weight: bold; display: inline-flex; align-items: center; }
 .mode-icon { width: 24px; height: 23px; margin-right: 4px; }
 .tools { display: inline-flex; gap: 8px; align-items: baseline; }
-#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgb(0 0 0 / 0.85); padding: 10px 16px; max-width: 90vw; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgb(0 0 0 / 0.85); padding: 10px 16px; max-width: 90%; }
 @media (max-width: 640px) { td { display: block; border: 0; } tr { display: block; border-top: 1px solid #333840; padding: 4px 0; } }
 /* The original lobby screens over the whole page (页面-6): the page's own tools in a corner, the box editor over them. */
 @font-face { font-family: "Montserrat"; src: url(../assets/skeleton/fonts/montserrat.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: "Chakra Petch"; src: url(../assets/skeleton/fonts/chakra-petch-regular.woff2) format("woff2"); font-display: swap; }
 :root { --aue-ui-latin: "Montserrat", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Chakra Petch", sans-serif; --aue-ui-arvo: "Arvo", serif; }
 #lobby { position: fixed; inset: 0; background: #1b1d21; }
-#lobby[hidden], #back[hidden], #boxbtn[hidden], #boxclose[hidden] { display: none; }
+#lobby[hidden], #back[hidden], #boxbtn[hidden], #boxclose[hidden], #full[hidden] { display: none; }
 body.lobby-on { overflow: hidden; }
 body.lobby-on #room-app { max-width: none; padding: 0; }
 body.lobby-on h1, body.lobby-on #screen { display: none; }
 body.lobby-on header { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 20; background: rgb(0 0 0 / 0.45); padding: 2px 8px; font-size: 12px; }
 body.lobby-on header button { padding: 1px 8px; font-size: 12px; }
 body.lobby-on #back { position: fixed; left: 8px; top: 8px; z-index: 20; }
-body.lobby-on #box { position: fixed; inset: 48px 5vw 5vh; z-index: 30; overflow: auto; box-shadow: 0 8px 32px rgb(0 0 0 / 0.6); }
+body.lobby-on #box { position: fixed; inset: 48px 5% 5%; z-index: 30; overflow: auto; box-shadow: 0 8px 32px rgb(0 0 0 / 0.6); }
 #boxclose { float: right; }
 
 /* 表情交流 (房间-7) */
@@ -72,3 +72,9 @@ body.lobby-on #box { position: fixed; inset: 48px 5vw 5vh; z-index: 30; overflow
 
 /* 互选模式 (房间-8) */
 .inverse.on { color: #1b9fb0; font-weight: 600; }
+/* phones (页面-7): the lobby screens take no page gestures (zoom, scroll, the long-press menu); the page's own bar small
+   and faint over the original bottom bar; a phone held upright turns the body (turn.js), the page around it black */
+html.touch body.lobby-on { touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+html.turned { overflow: hidden; background: #000; }
+@media (pointer: coarse) { body.lobby-on header { opacity: 0.75; padding: 0 4px; font-size: 10px; } body.lobby-on header button { padding: 0 6px; font-size: 10px; } }
+body.lobby-on #box { -webkit-overflow-scrolling: touch; touch-action: pan-y; }

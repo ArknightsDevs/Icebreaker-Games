@@ -128,6 +128,9 @@ export function extract(root) {
       .flatMap((/** @type {any} */ t) => t.stageIdInModeList.map((/** @type {string} */ id) => [id, t.difficulty])).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
     // the lobby screens (页面-6): each stage's preview picture, its description (stage_table, the game's markup as
     // rich text) and its missions (the detail and goal panels of 项目确认), the toasts of the room flow
+    // each 常规项目 stage's level (its level file) and its code and name (stage_table): 高级赛's IG-EX stages play the
+    // 初级赛 levels (房间-2)
+    names: Object.fromEntries([...normal].sort().map((id) => [id, { level: String(stageTable[id].levelId).toLowerCase().split('/level_').pop() ?? '', code: stageTable[id].code, name: stageTable[id].name }])),
     pictures: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => normal.has(m.stageId))
       .map((/** @type {any} */ m) => [m.stageId, m.previewIconId]).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
     details: Object.fromEntries([...normal].sort().map((id) => [id, richText(stageTable[id]?.description ?? '', styles)])),

@@ -2,7 +2,7 @@
 // 关卡-4), class, the tasks of its two stages (关卡-5), its description and the activity's missions for it (shown at 项目确认); the
 // temporary recruits as box entries.
 import { LEVELS, TESTING, loadTraining } from '@aue/content';
-import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, defenceStage } from '@icebreaker/mode-regular';
+import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName } from '@icebreaker/mode-regular';
 
 /**
  * A project as the lobby shows it: its code and name, its stages' tasks (常规项目) or its waves (堡垒守御), the
@@ -17,7 +17,7 @@ export const TESTING_NOTE = '<color=#FF6E6E>测试中：部分敌人能力未实
 /** The projects as the lobby shows them. @returns {ProjectView[]} */
 export function projectViews() {
   return PROJECTS.map((p) => {
-    const lv = LEVELS[p.level].level, own = defenceStage(p.stage), testing = TESTING.includes(p.level), detail = DETAILS[p.stage] ?? '';
+    const lv = LEVELS[p.level].level, own = stageName(p.stage), testing = TESTING.includes(p.level), detail = DETAILS[p.stage] ?? '';
     return { ...p, code: own?.code ?? lv.code, name: own?.name ?? lv.name, stages: (lv.stages ?? []).map((/** @type {any} */ s) => ({ ...s.task, seconds: s.time })),
       waves: lv.waves.length, missions: MISSIONS[p.stage] ?? [], detail: testing ? `${TESTING_NOTE}\n${detail}` : detail, testing };
   });

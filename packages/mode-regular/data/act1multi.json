@@ -72,6 +72,168 @@
   "act1multi_rm07": "ORDINARY",
   "act1multi_tr01": "TRAINING"
  },
+ "names": {
+  "act1multi_01": {
+   "level": "act1multi_01",
+   "code": "IG-1",
+   "name": "逃离火线"
+  },
+  "act1multi_02": {
+   "level": "act1multi_02",
+   "code": "IG-8",
+   "name": "密探有专车接送"
+  },
+  "act1multi_03": {
+   "level": "act1multi_03",
+   "code": "IG-2",
+   "name": "黑吃黑"
+  },
+  "act1multi_04": {
+   "level": "act1multi_04",
+   "code": "IG-9",
+   "name": "移动靶射击练习"
+  },
+  "act1multi_05": {
+   "level": "act1multi_05",
+   "code": "IG-3",
+   "name": "填陆造海"
+  },
+  "act1multi_06": {
+   "level": "act1multi_06",
+   "code": "IG-10",
+   "name": "匪帮集会"
+  },
+  "act1multi_07": {
+   "level": "act1multi_07",
+   "code": "IG-4",
+   "name": "当意外来敲门"
+  },
+  "act1multi_ex01": {
+   "level": "act1multi_01",
+   "code": "IG-EX-1",
+   "name": "逃离火线"
+  },
+  "act1multi_ex02": {
+   "level": "act1multi_02",
+   "code": "IG-EX-8",
+   "name": "密探有专车接送"
+  },
+  "act1multi_ex03": {
+   "level": "act1multi_03",
+   "code": "IG-EX-2",
+   "name": "黑吃黑"
+  },
+  "act1multi_ex04": {
+   "level": "act1multi_04",
+   "code": "IG-EX-9",
+   "name": "移动靶射击练习"
+  },
+  "act1multi_ex05": {
+   "level": "act1multi_05",
+   "code": "IG-EX-3",
+   "name": "填陆造海"
+  },
+  "act1multi_ex06": {
+   "level": "act1multi_06",
+   "code": "IG-EX-10",
+   "name": "匪帮集会"
+  },
+  "act1multi_ex07": {
+   "level": "act1multi_07",
+   "code": "IG-EX-4",
+   "name": "当意外来敲门"
+  },
+  "act1multi_hard-01": {
+   "level": "act1multi_hard-01",
+   "code": "IG-S-1",
+   "name": "别有洞天"
+  },
+  "act1multi_hard-02": {
+   "level": "act1multi_hard-02",
+   "code": "IG-S-2",
+   "name": "爬高上低"
+  },
+  "act1multi_hard-03": {
+   "level": "act1multi_hard-03",
+   "code": "IG-S-3",
+   "name": "鼷流滚滚"
+  },
+  "act1multi_rm-ex01": {
+   "level": "act1multi_rm01",
+   "code": "IG-EX-11",
+   "name": "糖果派送"
+  },
+  "act1multi_rm-ex02": {
+   "level": "act1multi_rm02",
+   "code": "IG-EX-5",
+   "name": "腐坏森林"
+  },
+  "act1multi_rm-ex03": {
+   "level": "act1multi_rm03",
+   "code": "IG-EX-12",
+   "name": "火山泳池"
+  },
+  "act1multi_rm-ex04": {
+   "level": "act1multi_rm04",
+   "code": "IG-EX-13",
+   "name": "拒宾大道"
+  },
+  "act1multi_rm-ex05": {
+   "level": "act1multi_rm05",
+   "code": "IG-EX-6",
+   "name": "战场留声"
+  },
+  "act1multi_rm-ex06": {
+   "level": "act1multi_rm06",
+   "code": "IG-EX-7",
+   "name": "黑夜留形"
+  },
+  "act1multi_rm-ex07": {
+   "level": "act1multi_rm07",
+   "code": "IG-EX-14",
+   "name": "创造与繁殖"
+  },
+  "act1multi_rm01": {
+   "level": "act1multi_rm01",
+   "code": "IG-11",
+   "name": "糖果派送"
+  },
+  "act1multi_rm02": {
+   "level": "act1multi_rm02",
+   "code": "IG-5",
+   "name": "腐坏森林"
+  },
+  "act1multi_rm03": {
+   "level": "act1multi_rm03",
+   "code": "IG-12",
+   "name": "火山泳池"
+  },
+  "act1multi_rm04": {
+   "level": "act1multi_rm04",
+   "code": "IG-13",
+   "name": "拒宾大道"
+  },
+  "act1multi_rm05": {
+   "level": "act1multi_rm05",
+   "code": "IG-6",
+   "name": "战场留声"
+  },
+  "act1multi_rm06": {
+   "level": "act1multi_rm06",
+   "code": "IG-7",
+   "name": "黑夜留形"
+  },
+  "act1multi_rm07": {
+   "level": "act1multi_rm07",
+   "code": "IG-14",
+   "name": "创造与繁殖"
+  },
+  "act1multi_tr01": {
+   "level": "act1multi_tr01",
+   "code": "IG-TR-1",
+   "name": "规则教学-常规项目"
+  }
+ },
  "pictures": {
   "act1multi_01": "multi_v3_01-01_preview",
   "act1multi_02": "multi_v3_01-02_preview",

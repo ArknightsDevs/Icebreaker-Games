@@ -19,27 +19,38 @@ export const ACTIVITY = data;
 /** 堡垒守御's stages (房间-2) as the activity has them: each its level, class, code, name, picture, description and missions. */
 const DEFENCE_STAGES = /** @type {Record<string, { level: string, class: string, code: string, name: string, picture: string, detail: string, missions: string[] }>} */ (data.defence.stages);
 
-/** A project of a mode at a stage, in the class the activity puts it. @param {'NORMAL' | 'DEFENCE'} mode @param {string} stage @param {'NORMAL' | 'FOUR_STAR'} difficulty */
-function project(mode, stage, difficulty) {
+/** 常规项目's stages (房间-2) as the stage table has them: each its level, code and name. */
+const NORMAL_STAGES = /** @type {Record<string, { level: string, code: string, name: string }>} */ (data.names);
+
+/**
+ * A project of a mode at a stage, in the class the activity puts it: a 高级赛 stage plays its level at the harder
+ * difficulty (房间-2, 房间-13). @param {'NORMAL' | 'DEFENCE'} mode @param {string} stage
+ */
+function project(mode, stage) {
   const cls = mode === 'DEFENCE' ? DEFENCE_STAGES[stage].class : /** @type {Record<string, string>} */ (data.stages)[stage];
-  const level = mode === 'DEFENCE' ? DEFENCE_STAGES[stage].level : stage;
+  const level = mode === 'DEFENCE' ? DEFENCE_STAGES[stage].level : NORMAL_STAGES[stage].level;
+  const difficulty = /** @type {'NORMAL' | 'FOUR_STAR'} */ (cls === 'DIFFICULTY' ? 'FOUR_STAR' : 'NORMAL');
   return Object.freeze({ stage, mode, level, difficulty, class: cls, className: /** @type {Record<string, string>} */ (data.classes)[cls] });
 }
 
 /**
- * The projects played here (房间-2): the MVP's 常规项目 levels; 堡垒守御's IG-DF-1, its 高级赛 IG-DF-4 (the same level at
- * the harder difficulty) and IG-S-5, being tested (the engine's 关卡-8). @type {readonly Project[]}
+ * The projects played here (房间-2): the 常规项目 stages whose levels the engine plays in full — IG-1, IG-10 and their
+ * 高级赛 IG-EX-1, IG-EX-10, IG-S-2 —; 堡垒守御's IG-DF-1, IG-DF-4 and IG-S-5, being tested (the engine's 关卡-8).
+ * @type {readonly Project[]}
  */
 export const PROJECTS = Object.freeze([
-  ...['act1multi_01', 'act1multi_06', 'act1multi_hard-02'].map((stage) => project('NORMAL', stage, 'NORMAL')),
-  project('DEFENCE', 'act1multi_fortress-rm01', 'NORMAL'), project('DEFENCE', 'act1multi_fortress-ex-rm01', 'FOUR_STAR'), project('DEFENCE', 'act1multi_fortress-hard-01', 'NORMAL'),
+  ...['act1multi_01', 'act1multi_06', 'act1multi_ex01', 'act1multi_ex06', 'act1multi_hard-02'].map((stage) => project('NORMAL', stage)),
+  ...['act1multi_fortress-rm01', 'act1multi_fortress-ex-rm01', 'act1multi_fortress-hard-01'].map((stage) => project('DEFENCE', stage)),
 ]);
 
 /** 堡垒守御's mode as the projects show it (页面-5): its type, name, icon id and colour. */
 export const DEFENCE_MODE = Object.freeze({ ...data.defence.mode });
 
-/** A 堡垒守御 stage's code and name (stage_table, 关卡-4), or null for another stage. @param {string} stage */
-export const defenceStage = (stage) => (Object.hasOwn(DEFENCE_STAGES, stage) ? { code: DEFENCE_STAGES[stage].code, name: DEFENCE_STAGES[stage].name } : null);
+/** A stage's code and name (stage_table, 关卡-4): IG-EX-1 for 高级赛's IG-1; null for a stage the activity has not. @param {string} stage */
+export function stageName(stage) {
+  const s = Object.hasOwn(DEFENCE_STAGES, stage) ? DEFENCE_STAGES[stage] : Object.hasOwn(NORMAL_STAGES, stage) ? NORMAL_STAGES[stage] : null;
+  return s ? { code: s.code, name: s.name } : null;
+}
 
 /** The activity's classes by type (训练场, 初级赛, 高级赛, 特级赛). @type {Readonly<Record<string, string>>} */
 export const CLASS_NAMES = Object.freeze({ ...data.classes });

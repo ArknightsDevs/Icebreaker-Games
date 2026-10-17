@@ -3,19 +3,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS, PLAYER_TITLE, PINGS, TRAINING, TRAINING_LEVELS, PICTURES,
-  DEFENCE_MODE, modeOf, defenceStage } from '../src/index.js';
+  DEFENCE_MODE, modeOf, stageName } from '../src/index.js';
 import { storyOf } from '../src/story.js';
 
 test('[房间-2] [房间-13] the projects: IG-1 and IG-10 in 初级赛, IG-S-2 in 特级赛; 堡垒守御 IG-DF-1, IG-DF-4 (the same level, harder) and IG-S-5', () => {
   assert.deepEqual(PROJECTS.map((p) => [p.stage, p.mode, p.level, p.difficulty, p.className]), [
+    // 高级赛's IG-EX stages play the 初级赛 levels at the harder difficulty
     ['act1multi_01', 'NORMAL', 'act1multi_01', 'NORMAL', '初级赛'], ['act1multi_06', 'NORMAL', 'act1multi_06', 'NORMAL', '初级赛'],
+    ['act1multi_ex01', 'NORMAL', 'act1multi_01', 'FOUR_STAR', '高级赛'], ['act1multi_ex06', 'NORMAL', 'act1multi_06', 'FOUR_STAR', '高级赛'],
     ['act1multi_hard-02', 'NORMAL', 'act1multi_hard-02', 'NORMAL', '特级赛'],
     ['act1multi_fortress-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'NORMAL', '初级赛'], ['act1multi_fortress-ex-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'FOUR_STAR', '高级赛'],
     ['act1multi_fortress-hard-01', 'DEFENCE', 'act1multi_fortress_hard-01', 'NORMAL', '特级赛'],
   ]);
   assert.equal(ACTIVITY.source.activity, 'MULTIPLAY_V3/act1multi');
-  assert.deepEqual([DEFENCE_MODE.name, DEFENCE_MODE.icon, DEFENCE_MODE.color, modeOf(PROJECTS[3]).name, modeOf(PROJECTS[0]).name], ['堡垒守御', 'defence', '#3cbfd0', '堡垒守御', '常规项目']);
-  assert.deepEqual([defenceStage('act1multi_fortress-ex-rm01'), defenceStage('act1multi_01')], [{ code: 'IG-DF-4', name: '团体战竞技场' }, null]);
+  assert.deepEqual([DEFENCE_MODE.name, DEFENCE_MODE.icon, DEFENCE_MODE.color, modeOf(PROJECTS.find((p) => p.mode === 'DEFENCE')).name, modeOf(PROJECTS[0]).name], ['堡垒守御', 'defence', '#3cbfd0', '堡垒守御', '常规项目']);
+  assert.deepEqual([stageName('act1multi_fortress-ex-rm01'), stageName('act1multi_ex01'), stageName('act1multi_99')], [{ code: 'IG-DF-4', name: '团体战竞技场' }, { code: 'IG-EX-1', name: '逃离火线' }, null]);
   assert.equal(PICTURES['act1multi_fortress-hard-01'], 'multi_v3_01-fortress-hard-01_preview');
 });
 

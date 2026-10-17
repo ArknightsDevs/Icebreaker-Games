@@ -33,7 +33,8 @@ export const LINEUP_VIEWS = Object.freeze({
 /**
  * A match's result as the battle page leaves it: won, the level, each stage's stamps, when it ended (ms), the field's
  * last frame blurred (a data URL), whether it was in 互选模式 (房间-8), whether it was a training (房间-11).
- * @typedef {{ match: string, result: number, level: string, stamps: number[], at?: number, bg?: string, inverse?: boolean, training?: boolean }} MatchResult
+ * @typedef {{ match: string, result: number, level: string, difficulty?: string, stamps: number[], fortress?: { defended: number, damage: number }, at?: number, bg?: string,
+ *   inverse?: boolean, training?: boolean }} MatchResult
  */
 
 /** A new lobby page's own state. @returns {Local} */
@@ -131,7 +132,9 @@ export function resultOf(raw) {
   try {
     const r = raw ? JSON.parse(raw) : null;
     if (!(r && typeof r.match === 'string' && typeof r.result === 'number' && Array.isArray(r.stamps))) return null;
-    return { match: r.match, result: r.result, level: String(r.level ?? ''), stamps: r.stamps.map(Number), ...(Number.isFinite(r.at) ? { at: r.at } : {}) };
+    const f = r.fortress && Number.isFinite(r.fortress.defended) ? { fortress: { defended: Number(r.fortress.defended), damage: Number(r.fortress.damage) || 0 } } : {};
+    return { match: r.match, result: r.result, level: String(r.level ?? ''), ...(typeof r.difficulty === 'string' ? { difficulty: r.difficulty } : {}), stamps: r.stamps.map(Number), ...f,
+      ...(Number.isFinite(r.at) ? { at: r.at } : {}) };
   } catch {
     return null;
   }

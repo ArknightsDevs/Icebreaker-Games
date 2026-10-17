@@ -34,7 +34,7 @@ const NOT_OPEN = '暂未开放';
 export function trainingProject(level) {
   const lv = /** @type {any} */ (LEVELS[level]).level;
   return {
-    level, class: 'TRAINING', className: CLASS_NAMES['TRAINING'] ?? '', code: lv.code, name: lv.name,
+    stage: level, mode: 'NORMAL', level, difficulty: 'NORMAL', class: 'TRAINING', className: CLASS_NAMES['TRAINING'] ?? '', code: lv.code, name: lv.name,
     stages: (lv.stages ?? []).map((/** @type {any} */ s) => ({ ...s.task, seconds: s.time })), missions: MISSIONS[level] ?? [], detail: DETAILS[level] ?? '',
   };
 }

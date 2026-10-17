@@ -208,7 +208,7 @@ function stepCtx(H, G, L, K) {
     copy: () => K.toast(copyText(H.invite()) ? TOASTS.roomIdCopySuccess : H.invite()),
     nameOf: A.nameOf, rosterOf: (id) => ROSTER[id] ?? null, squad: A.squad, squadProblem: A.squadProblem, style: A.style, setDraft: A.setDraft,
     entryOf: (seat, id) => entryIn(S, seat, id) ?? (seat === S.view?.you ? H.entry(id) : null), skillId: K.skills.get, moduleType: K.skills.module, moduleCount: K.skills.modules, version: K.skills.version,
-    modeIcon: (color) => spriteUrl(G.atlas, ROOM_ART, `${MODE_ICONS.NORMAL}${color ? '_color' : ''}`),
+    modeIcon: (color, type = 'NORMAL') => spriteUrl(G.atlas, ROOM_ART, `${/** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? MODE_ICONS.NORMAL}${color ? '_color' : ''}`),
     emoteArt: () => G.emotes, emote: A.emote,
   };
 }
@@ -228,7 +228,7 @@ function pageMakers(ui, H, G, L, K) {
       rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
     prepare: () => createPrepare(ui, X),
     match: () => createMatch(ui, {
-      classes: () => [...new Map((H.S.lobby?.projects ?? []).map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
+      classes: () => [...new Map((H.S.lobby?.projects ?? []).filter((p) => p.mode !== 'DEFENCE').map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
       send: A.send, seek: A.seek, seeking: () => H.S.seeking, toast: X.toast,
       modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
       back: () => { if (H.S.seeking) A.send({ t: 'unseek' }); L.match = false; draw(); },
@@ -237,7 +237,8 @@ function pageMakers(ui, H, G, L, K) {
       train: A.train, X, modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
       back: () => { L.train = false; draw(); },
     }),
-    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level) => X.projects().find((p) => p.level === level) ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : null),
+    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level, difficulty) => X.projects().find((p) => p.level === level && p.difficulty === (difficulty ?? 'NORMAL'))
+      ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : null),
       players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
       together: () => togetherOf(H), playTogether: () => A.send({ t: 'together' }),
       // after a training its room page again (房间-11)

@@ -2,14 +2,21 @@
 // times, the lineup's size, the temporary recruits.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS, PLAYER_TITLE, PINGS, TRAINING, TRAINING_LEVELS } from '../src/index.js';
+import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS, PLAYER_TITLE, PINGS, TRAINING, TRAINING_LEVELS, PICTURES,
+  DEFENCE_MODE, modeOf, defenceStage } from '../src/index.js';
 import { storyOf } from '../src/story.js';
 
-test('[房间-2] the MVP projects: IG-1 and IG-10 in 初级赛, IG-S-2 in 特级赛, at the normal difficulty', () => {
-  assert.deepEqual(PROJECTS.map((p) => [p.level, p.difficulty, p.className]), [
-    ['act1multi_01', 'NORMAL', '初级赛'], ['act1multi_06', 'NORMAL', '初级赛'], ['act1multi_hard-02', 'NORMAL', '特级赛'],
+test('[房间-2] [房间-13] the projects: IG-1 and IG-10 in 初级赛, IG-S-2 in 特级赛; 堡垒守御 IG-DF-1, IG-DF-4 (the same level, harder) and IG-S-5', () => {
+  assert.deepEqual(PROJECTS.map((p) => [p.stage, p.mode, p.level, p.difficulty, p.className]), [
+    ['act1multi_01', 'NORMAL', 'act1multi_01', 'NORMAL', '初级赛'], ['act1multi_06', 'NORMAL', 'act1multi_06', 'NORMAL', '初级赛'],
+    ['act1multi_hard-02', 'NORMAL', 'act1multi_hard-02', 'NORMAL', '特级赛'],
+    ['act1multi_fortress-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'NORMAL', '初级赛'], ['act1multi_fortress-ex-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'FOUR_STAR', '高级赛'],
+    ['act1multi_fortress-hard-01', 'DEFENCE', 'act1multi_fortress_hard-01', 'NORMAL', '特级赛'],
   ]);
   assert.equal(ACTIVITY.source.activity, 'MULTIPLAY_V3/act1multi');
+  assert.deepEqual([DEFENCE_MODE.name, DEFENCE_MODE.icon, DEFENCE_MODE.color, modeOf(PROJECTS[3]).name, modeOf(PROJECTS[0]).name], ['堡垒守御', 'defence', '#3cbfd0', '堡垒守御', '常规项目']);
+  assert.deepEqual([defenceStage('act1multi_fortress-ex-rm01'), defenceStage('act1multi_01')], [{ code: 'IG-DF-4', name: '团体战竞技场' }, null]);
+  assert.equal(PICTURES['act1multi_fortress-hard-01'], 'multi_v3_01-fortress-hard-01_preview');
 });
 
 test('[房间-2] [房间-4] [房间-5] the steps\' times and the lineup\'s size from the activity table', () => {
@@ -19,7 +26,7 @@ test('[房间-2] [房间-4] [房间-5] the steps\' times and the lineup\'s size 
 
 test('[页面-6] each project\'s missions in their order and its description, the game\'s markup as rich text', () => {
   assert.deepEqual(MISSIONS['act1multi_01'], ['保护4位乌萨斯平民进入目标点', '保护3位乌萨斯平民进入目标点', '保护5位乌萨斯平民进入目标点']);
-  for (const p of PROJECTS) assert.equal(MISSIONS[p.level]?.length, 3, p.level);
+  for (const p of PROJECTS) assert.equal(MISSIONS[p.stage]?.length, 3, p.stage);
   assert.match(DETAILS['act1multi_06'], /他们人多。\n<color=#D4133C><玉门天灾工事><\/color>置于其中/);
 });
 

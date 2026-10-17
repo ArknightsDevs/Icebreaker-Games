@@ -7,7 +7,7 @@
 // (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles. The
 // player's picture settings (settings.js, 页面-1) shape the drawing only.
 import { startBattle } from '@aue/worker';
-import { createBattleRenderer, loadTextures, loadSpineModels, loadTileKit, loadEffectPack, createBattleAudio, leaderOf } from '@aue/render';
+import { createBattleRenderer, loadTextures, loadSpineModels, loadDeviceMeshes, loadTileKit, loadEffectPack, createBattleAudio, leaderOf } from '@aue/render';
 import { matchContent } from '@aue/content';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
@@ -81,6 +81,13 @@ async function spineModels(content) {
   return loadSpineModels(await res.json(), new URL('spine/', ASSETS).href, ids);
 }
 
+/** The mesh models of the level's devices (the engine's 渲染-20: 堡垒守御's facilities), none without the assets' index. @param {any} content */
+async function deviceMeshes(content) {
+  const res = await fetch(new URL('devices/index.json', ASSETS)).catch(() => null);
+  if (!res?.ok) return new Map();
+  return loadDeviceMeshes(await res.json(), ASSETS.href, Object.keys(content.devices ?? {}));
+}
+
 /** The map theme's tile kit a level uses (the engine's 渲染-7), or null when the assets have no kit index. @param {string} level */
 async function tileKit(level) {
   const res = await fetch(new URL('kits/index.json', ASSETS)).catch(() => null);
@@ -110,8 +117,7 @@ async function setUp(match, art, changed, joined, opening) {
   // the original UI opens first: its start panel is the loading screen while the field, the models and the effects load
   // (opened already when the room page left the stage for it)
   const early = opening ?? earlyUi(art, stageOf(match, content, joined));
-  const models = art ? await spineModels(/** @type {any} */ (content)) : new Map();
-  const kit = art ? await tileKit(match.level) : null, effects = art ? await effectPack() : null;
+  const { models, meshes, kit, effects } = await fieldArt(art, match, content);
   const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
   // the level devices on the enemies' side (the engine's 装置-3): their bars and stand-in blocks in the enemies' colour
@@ -120,12 +126,23 @@ async function setUp(match, art, changed, joined, opening) {
   // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
   const opened = await early, pack = opened?.loaded ?? null;
   const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, foeDevices,
-    kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects }) : null;
+    kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
   const ui = renderer && opened ? originalUi(match, content, avatar, opened) : null;
+  // a level being tested (房间-13, the engine's 关卡-8): its enemies' abilities not all there yet
+  $('testing').hidden = !(/** @type {any} */ (content.level).uncovered?.length > 0);
   return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders, foeDevices, early: joined < 0, avatar };
+}
+
+/**
+ * What the field draws with from the assets: the units' Spine models, the devices' meshes, the map theme's kit, the
+ * attack effects; none without the assets. @param {Awaited<ReturnType<typeof assets>>} art @param {import('@aue/schema').Match} match @param {any} content
+ */
+async function fieldArt(art, match, content) {
+  if (!art) return { models: new Map(), meshes: new Map(), kit: null, effects: null };
+  return { models: await spineModels(content), meshes: await deviceMeshes(content), kit: await tileKit(match.level), effects: await effectPack() };
 }
 
 /**
@@ -316,19 +333,18 @@ function onFrame(P, f) {
   const { view, events, status } = f, game = P.game;
   const end = events.find((e) => e['type'] === 'end');
   stampsOf(P.stamps, events);
-  if (end && MATCH) ended(Number(end['result']), P);
+  if (end && MATCH) ended(Number(end['result']), P, status);
   for (const [id, k] of Object.entries(f.keys)) P.unitKeys.set(Number(id), k);
   tutorialFrame(P.tutorial, f, end !== undefined);
   frameSound(P, f);
   P.players = view.players.length;
   P.costAsker = costAskerAfter(P.costAsker, events);
-  // every key seen so far: units that appeared before the renderer was ready get their figures too
-  game?.renderer?.update(view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, k.split('#')[0]])), events);
+  drawField(P, f);
   drawHud(view, P.net, matchText(status, /** @type {any} */ (game?.content.level)?.stages ?? [], view.frame));
   if (game?.ui) {
     P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
     const level = /** @type {any} */ (game.content.level);
-    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests,
+    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, waves: level.waves.length, requests: P.requests,
       offline: P.net === '重连中' });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
     P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
@@ -341,6 +357,18 @@ function onFrame(P, f) {
   }
   P.bar();
   P.lastView = view;
+}
+
+/**
+ * The field of a frame: 堡垒守御's facilities at their levels (the engine's 渲染-20); every key seen so far — units that
+ * appeared before the renderer was ready get their figures too.
+ * @param {Page} P @param {{ view: import('@aue/schema').View, events: Record<string, string | number>[], status: import('@aue/worker').Status }} f
+ */
+function drawField(P, f) {
+  const r = P.game?.renderer;
+  if (!r) return;
+  if (f.status.fortress) r.levels(f.status.fortress.levels);
+  r.update(f.view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, k.split('#')[0]])), f.events);
 }
 
 /** The control state the battle UI shows: a training's script holding the battle is not the player's pause (房间-11). @param {Page} P */
@@ -383,12 +411,14 @@ function lastFrame(P) {
 
 /**
  * A room's match ended (房间-6): the result and the way back to the room; the result kept for the room's result view
- * (页面-6), with the field's last frame. @param {number} result 1: won, 0: lost @param {Page} P
+ * (页面-6), with the field's last frame — in 堡垒守御 the stamps of the waves defended, and those waves and the last
+ * wave's damage (the engine's 守御-1). @param {number} result 1: won, 0: lost @param {Page} P @param {import('@aue/worker').Status} status
  */
-function ended(result, P) {
+function ended(result, P, status) {
   notice(`比赛结束：${result === 1 ? '胜利' : '失败'}。`);
-  const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', stamps = [...P.stamps].map((x) => x ?? 0), bg = lastFrame(P);
-  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, stamps, at: Date.now() })); } catch { /* the room shows no result */ }
+  const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', bg = lastFrame(P), f = status.fortress, difficulty = P.game?.match.difficulty ?? 'NORMAL';
+  const stamps = f ? [f.stamps] : [...P.stamps].map((x) => x ?? 0), fortress = f ? { defended: f.defended, damage: Math.floor(f.damage) } : undefined;
+  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, difficulty, stamps, fortress, at: Date.now() })); } catch { /* the room shows no result */ }
   try { if (bg) sessionStorage.setItem('ice.result.bg', bg); } catch { /* the result shows without it */ }
   const back = document.createElement('a');
   back.href = 'room';
@@ -461,6 +491,8 @@ function startOriginal(P, g, renderer, canvas) {
   o.hud.on('speed', () => b.speed(P.control?.fast[seat] !== 1));
   o.hud.on('pause', () => (P.control?.held ? b.resume() : b.pause()));
   o.hud.on('ask', () => b.command({ type: 'ask' }));
+  // 「跳过休整」 (the engine's 守御-2, 界面-39)
+  o.hud.on('rest', () => b.command({ type: 'rest' }));
   o.hud.on('answer', (/** @type {string | undefined} */ v) => b.command({ type: 'answer', accept: v === 'yes' ? 1 : 0 }));
   o.hud.on('confirm', (/** @type {string | undefined} */ v) => b.pauseReply(v === 'yes'));
   const usable = (/** @type {string} */ id) => !!P.hudNow && cardViews(o.deck, P.hudNow).some((v) => v.id === id && v.usable);

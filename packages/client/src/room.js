@@ -84,7 +84,7 @@ const A = {
   setDraft: (d) => { S.draft = d; draw(); },
   style: () => save.style,
   icon: (icon, variant) => styleIcon(atlas, ART, icon, variant),
-  modeIcon: () => modeIcon(atlas, ART, MODE.type),
+  modeIcon: (type = MODE.type) => modeIcon(atlas, ART, type),
   // 表情交流 (房间-7): the server sends it back to both seats; the page holds its buttons for the cooldown
   emote: (id, theme) => { S.chatAt = performance.now(); send({ t: 'emote', id, theme }); draw(); setTimeout(draw, EMOTES.cd * 1000 + 50); },
   // 快速匹配 (房间-9): with the save's 常规队 and style, which the room confirms with when 项目确认 runs out (房间-10)

@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, SKILL_STATE } from '@aue/schema';
-import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars, stageStartOf } from '../src/battlehud.js';
+import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars, stageStartOf, fortressOf } from '../src/battlehud.js';
 
 /** A view unit. @param {Record<string, number>} v @returns {import('@aue/schema').ViewUnit} */
 const unit = (v) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 2, y: 3, z: 0, dir: 0, hp: 10, maxHp: 10, anim: 0, sp: 5, spCost: 20, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, element: 0, ep: 1, burst: 0, ...v });
@@ -143,3 +143,20 @@ test('a stage that has just begun, with its task texts: within a second of its s
   assert.deepEqual([stageStartOf(st(1, 300), stages, 290), stageStartOf(st(1, 300), stages, 330), stageStartOf(st(2, 0), stages, 0)], [null, null, null]);
 });
 
+
+test('[房间-13] 堡垒守御 on the HUD (the engine\'s 界面-39): the builders as counted cards, their counts, the wave and the rest panel', () => {
+  const match = /** @type {any} */ ({ decks: [[]] });
+  const content = { decks: [['w#0']], operators: { 'w#0': { char: 'trap_166_muwork', profession: 'TRAP', respawnTime: 0, builder: { sp: 'sp', hits: 5, life: 6 } } } };
+  assert.deepEqual(deckCards(match, content, 0, () => null)[0], { id: 'w#0', avatar: null, profession: 'TRAP', rarity: 1, phase: 0, respawn: 0, pool: true });
+  const fortress = { phase: 'rest', wave: 2, until: 300, defended: 3, stamps: 1, damage: 0, ready: [false, true], pools: [{ 'w#0': 4 }, { 'w#1': 1 }], total: 9, out: 9, levels: {} };
+  const view = { frame: 90, players: [{ life: 3, cost: 12 }, { life: 2, cost: 4 }], units: [] };
+  const ps = { costTimer: 10, deployed: [], slots: 7, cards: {}, summons: {}, revive: -1, ask: -1, askCd: 0 };
+  const status = /** @type {any} */ ({ players: [ps, ps], fortress });
+  const s = hudState({ view, status, control: null, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: null, waves: 8 });
+  assert.deepEqual([s.counts, s.building], [{ 'w#0': 4 }, true]);
+  assert.deepEqual(s.coop?.fortress, { wave: 4, waves: 8, out: 0, total: 0, left: 7, last: false, damage: 0 }, 'in a rest after the third wave: the fourth, the rest left');
+  assert.deepEqual(s.coop?.resting, { left: 7, me: false, mate: true });
+  const last = fortressOf(/** @type {any} */ ({ fortress: { ...fortress, phase: 'defend', wave: 7, out: 1, total: 1, damage: 5e5 } }), 8, 90, 1);
+  assert.deepEqual([last.fortress?.last, last.fortress?.damage, last.resting], [true, 5e5, null]);
+  assert.deepEqual(fortressOf(/** @type {any} */ ({}), 8, 0, 0), {});
+});

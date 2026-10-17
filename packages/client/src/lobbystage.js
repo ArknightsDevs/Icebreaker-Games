@@ -4,7 +4,7 @@
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
 import { openPart, closePart, place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar, showInvert } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
-import { STYLES, MODE, TOASTS, PLAYER_TITLE, INVERSE } from '@icebreaker/mode-regular';
+import { STYLES, TOASTS, PLAYER_TITLE, INVERSE, modeOf } from '@icebreaker/mode-regular';
 import { cardName } from './roomtext.js';
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./roomview.js').ProjectView} ProjectView */
@@ -36,7 +36,7 @@ import { cardName } from './roomtext.js';
  * @property {(d: Pick[]) => void} setDraft
  * @property {(seat: number, id: string) => BoxEntry | null} entryOf
  * @property {(id: string, skill: number) => string | null} skillId
- * @property {(color?: boolean) => string | null} modeIcon the mode's icon URL (its coloured tile when asked)
+ * @property {(color?: boolean, type?: string) => string | null} modeIcon a mode's icon URL (常规项目's unless a type is given; its coloured tile when asked)
  * @property {(id: string, k: number) => string | null} moduleType a module's type (EXE-Y…), null until its data came
  * @property {(id: string) => number} moduleCount how many modules an operator has (0 until its data came)
  * @property {() => number} version a number that changes when lazily loaded data (skill ids, module types) comes
@@ -103,7 +103,7 @@ export function createStage(p, X) {
         if (!sp.owner) void p.anim(f.guestMapDetailInAnim);
         p.text(f.mapCodeText, pr.code);
         p.text(f.mapModeText, pr.name);
-        p.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
+        p.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.stage));
         classIcon(p, f.mapDiffIconViewContainer, f.mapDiffIconViewPrefab, pr, f.mapDiffScale ?? 1);
       }
       shown = v.project;
@@ -195,17 +195,19 @@ export function createStageList(page, X) {
 function rows(arena, af, o, X) {
   const { projects, cls, chosen } = o;
   const mine = projects.map((x, i) => ({ x, i })).filter(({ x }) => x.class === cls);
-  fillList(arena, af.layout, 1, (row) => {
-    const rf = row.view();
+  // a row for each mode with projects of the class, its title the mode's (常规项目, then 堡垒守御)
+  const modes = [...new Set(mine.map(({ x }) => x.mode))];
+  fillList(arena, af.layout, modes.length, (row, r) => {
+    const rf = row.view(), mode = modes[r], own = mine.filter(({ x }) => x.mode === mode), icon = X.modeIcon(false, mode);
     fillList(row, rf.titleLayout, 1, (t) => {
-      t.text('@text_name', MODE.name);
+      t.text('@text_name', modeOf({ mode }).name);
       t.show('@img_seperator', false);
       // the title's mode icon (an empty slot the page fills; none without the room atlas)
-      t.picture('@img_icon', X.modeIcon());
-      t.show('@img_icon', !!X.modeIcon());
+      t.picture('@img_icon', icon);
+      t.show('@img_icon', !!icon);
     });
-    fillList(row, rf.stageLayout, mine.length, (item, k) => {
-      const { x, i } = mine[k], f = item.view(), small = pictureOf(X.art(), x.level);
+    fillList(row, rf.stageLayout, own.length, (item, k) => {
+      const { x, i } = own[k], f = item.view(), small = pictureOf(X.art(), x.stage);
       item.text(f.stageCodeText, x.code);
       item.sprite(f.stageImage, small ? X.art().stageIcon?.[`${small.split('/').pop()}_small`] ?? small : null);
       item.show(f.pnlLocked, false);
@@ -246,15 +248,15 @@ export function fillDetail(d, pr, X) {
   const f = d.view();
   d.text(f.stageCodeTxt, pr.code);
   // the code and the mode only, as the original's recording shows the title (IG-1 常规项目, without the stage's name)
-  d.text(f.modeNameCodeTxt, MODE.name);
+  d.text(f.modeNameCodeTxt, modeOf(pr).name);
   classIcon(d, f.diffIconViewContainer, f.diffIconViewPrefab, pr, f.diffScale ?? 1);
   // the title's mode icon: the mode's coloured tile (the slot's own size; the original's recording shows it red)
-  d.picture(f.titleModeIconImg, X.modeIcon(true));
-  d.show(f.titleModeIconImg, !!X.modeIcon(true));
+  d.picture(f.titleModeIconImg, X.modeIcon(true, pr.mode));
+  d.show(f.titleModeIconImg, !!X.modeIcon(true, pr.mode));
   seasonLogo(d, f.seasonIcon, 'detail');
   // the stage's description as the game writes it (its markup as rich text), else the stages' titles
   d.text(f.stageDetailTxt, pr.detail || pr.stages.map((s, i) => `阶段${i + 1}：${s.title}`).join('\n'));
-  d.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.level));
+  d.sprite(f.stageBigPreviewImg, pictureOf(X.art(), pr.stage));
   // the goal panel: the activity's missions for the stage in order, an arrow between them (the stage's tasks without
   // them); their rewards are the activity's tokens, which the platform does not give, so a mission's text takes the
   // reward's room too, a long one on two lines (the row grows; INF-0016)

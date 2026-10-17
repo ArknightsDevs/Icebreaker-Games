@@ -2,13 +2,18 @@
 // says — 项目调整, 项目确认, 高顺位干员协调, 组建上场阵容 — and the match. Countdowns carry `data-until` (a
 // performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`. The mode and
 // the styles carry the activity's icons when the assets have them (页面-5).
-import { MODE, STYLES, EMOTES, INVERSE, MATCH, emoteSceneOf } from '@icebreaker/mode-regular';
+import { STYLES, EMOTES, INVERSE, MATCH, emoteSceneOf, modeOf } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText, cardName } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry @typedef {import('./roomtext.js').Pick} Pick */
-/** @typedef {{ level: string, code: string, name: string, class: string, className: string, stages: { title: string, basic: string, advanced?: string, seconds: number }[], missions?: readonly string[], detail?: string }} ProjectView */
+/**
+ * A project as the lobby gives it (房间-2): its stage, mode, level and difficulty, code, name, class, its stages' tasks
+ * (常规项目) or its waves (堡垒守御), missions, description, whether it is being tested.
+ * @typedef {{ stage: string, mode: 'NORMAL' | 'DEFENCE', level: string, difficulty: string, code: string, name: string, class: string, className: string,
+ *   stages: { title: string, basic: string, advanced?: string, seconds: number }[], waves?: number, missions?: readonly string[], detail?: string, testing?: boolean }} ProjectView
+ */
 /**
  * What the page knows: the lobby's projects and recruits, the room as last seen and when, the lineup being set, the
  * match this tab was sent to, the lobby's latency in ms (null until measured), the emote each seat sent last and until
@@ -26,7 +31,7 @@ import { skillLevelText, trainingText } from './training.js';
  * @property {(draft: Pick[]) => void} setDraft
  * @property {() => string} style the play style of the save
  * @property {(icon: string, variant: '' | '_tiny') => string | null} icon a style icon's URL (页面-5), null without it
- * @property {() => string | null} modeIcon the mode's icon URL (页面-5), null without it
+ * @property {(type?: string) => string | null} modeIcon a mode's icon URL (页面-5; 常规项目's unless a type is given), null without it
  * @property {(id: string, theme: string) => void} emote sends an emote (房间-7)
  * @property {(classes: string[], pos: string, inverse: boolean) => void} seek starts 快速匹配 with the save's 常规队 and style (房间-9)
  * @property {(level: string) => void} train starts a training level (房间-11)
@@ -38,10 +43,10 @@ const styleLine = (A, id) => {
   return h('span', { class: 'style-line' }, src ? h('img', { class: 'style-tiny', src, alt: '' }) : null, styleText(id));
 };
 
-/** The mode of the projects, with its icon and colour (页面-5). @param {RoomActions} A */
-const modeTag = (A) => {
-  const src = A.modeIcon();
-  return h('span', { class: 'mode', style: `color: ${MODE.color}` }, src ? h('img', { class: 'mode-icon', src, alt: '' }) : null, MODE.name);
+/** A project's mode, with its icon and colour (页面-5). @param {RoomActions} A @param {ProjectView} p */
+const modeTag = (A, p) => {
+  const m = modeOf(p), src = A.modeIcon(m.type);
+  return h('span', { class: 'mode', style: `color: ${m.color}` }, src ? h('img', { class: 'mode-icon', src, alt: '' }) : null, m.name);
 };
 
 /** A countdown to `ms` after the view came. @param {RoomState} S @param {number} ms */
@@ -75,7 +80,7 @@ function quickMatch(S, A) {
       h('p', {}, '正在匹配协作者', h('span', { class: 'clock', 'data-until': String(sk.until) }, clock(sk.until - performance.now()))),
       h('button', { onclick: () => A.send({ t: 'unseek' }) }, '取消匹配'));
   }
-  const classes = [...new Map((S.lobby?.projects ?? []).map((p) => [p.class, p.className])).entries()];
+  const classes = [...new Map((S.lobby?.projects ?? []).filter((p) => p.mode !== 'DEFENCE').map((p) => [p.class, p.className])).entries()];
   const first = new Set(MATCH.classes.filter((c) => c.first).map((c) => c.class));
   const boxes = classes.map(([c, name]) => h('label', {}, h('input', { type: 'checkbox', value: c, checked: first.has(c), 'aria-label': name }), ` ${name}`));
   const pos = /** @type {HTMLSelectElement} */ (h('select', { 'aria-label': '参赛身份' }, MATCH.positions.map((p) => h('option', { value: p.id, disabled: p.locked }, p.locked ? `${p.name}（${p.hint}）` : p.name))));
@@ -116,10 +121,15 @@ function emoteBar(S, A) {
     h('button', { class: 'emote-btn', disabled: wait, onclick: () => A.emote(id, EMOTES.themes[0] ?? '') }, EMOTES.text[id] ?? id)));
 }
 
-/** A project's mode (页面-5), code, name, class and its stages' tasks (房间-2). @param {ProjectView} p @param {RoomActions} A */
+/**
+ * A project's mode (页面-5), code, name, class and its stages' tasks (房间-2) — 堡垒守御's its waves —, the note of a
+ * project being tested. @param {ProjectView} p @param {RoomActions} A
+ */
 const projectInfo = (p, A) => h('div', { class: 'project' },
-  h('h3', {}, modeTag(A), ` ${p.code} ${p.name}`, h('small', {}, ` ${p.className}`)),
-  h('ol', {}, p.stages.map((s) => h('li', {}, `${s.title}：${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''} · ${s.seconds} 秒`))));
+  h('h3', {}, modeTag(A, p), ` ${p.code} ${p.name}`, h('small', {}, ` ${p.className}`)),
+  p.testing ? h('p', { class: 'testing' }, '测试中：部分敌人能力未实现') : null,
+  p.mode === 'DEFENCE' ? h('p', {}, `共 ${p.waves} 波，防御阶段与休整阶段轮替`)
+    : h('ol', {}, p.stages.map((s) => h('li', {}, `${s.title}：${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''} · ${s.seconds} 秒`))));
 
 /** 项目调整 (房间-2). @param {RoomState} S @param {RoomActions} A */
 function setup(S, A) {

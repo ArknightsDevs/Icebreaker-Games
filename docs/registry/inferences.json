@@ -166,5 +166,12 @@
     "statement": "标记的三个常数按：markCd 3 为一次标记后的冷却秒数，markCond1 5 与 markCond2 2 为任意 5 秒内至多 2 次；一次标记在双方画面上显示 5 秒（取 markCond1）",
     "basis": "PRTS 只说「标记次数有限制和冷却时间」；activity_table 的 constData 有 markCd 3、markCond1 5、markCond2 2，没有说明含义；标记卡冷却节点里的样例文字是「5.5s」，说明冷却可以超过 3 秒，与「次数满了要等窗口过去」相合；显示时长没有数据",
     "status": "待查证"
+  },
+  {
+    "id": "INF-0025",
+    "clause": "房间-13",
+    "statement": "堡垒守御的高级赛 IG-DF-4 与初级赛 IG-DF-1 用同一关卡文件，按引擎的突袭难度（FOUR_STAR）组装；快速匹配只配常规项目",
+    "basis": "关卡表里两项的 levelId 相同、difficulty 都是 NORMAL，高级赛比初级赛难的地方只能来自关卡符文里按难度掩码生效的那些（突袭的掩码）；平台的快速匹配页只开放常规项目一种模式（房间-9）",
+    "status": "待查证"
   }
 ]

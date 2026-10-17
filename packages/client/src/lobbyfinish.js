@@ -17,7 +17,7 @@ import { cardName } from './roomtext.js';
  * this player's own name card), the likes on the result (given, got: 房间-6), the steps' pictures and names, liking
  * the other player, going on to the room, leaving it.
  * The room's 继续一起玩 after a matched match (房间-10): whether the room is matched, each seat's choice, choosing it.
- * @typedef {{ project: (level: string) => ProjectView | null, players: () => [Player | null, Player | null], likes: () => [boolean, boolean], X: StepCtx,
+ * @typedef {{ project: (level: string, difficulty?: string) => ProjectView | null, players: () => [Player | null, Player | null], likes: () => [boolean, boolean], X: StepCtx,
  *   like: () => void, done: () => void, quit: () => void, together: () => { matched: boolean, mine: boolean, mate: boolean, room: boolean }, playTogether: () => void }} FinishCtx
  */
 
@@ -29,7 +29,7 @@ const starsOf = (r) => Math.min(3, r.stamps.reduce((t, x) => t + Math.max(0, x),
  * @param {FinishCtx} A
  */
 export function createFinish(ui, r, A) {
-  const page = openPart(ui, PAGES.finish), f = page.view(), pr = A.project(r.level);
+  const page = openPart(ui, PAGES.finish), f = page.view(), pr = A.project(r.level, r.difficulty);
   // behind the panels the battle's last frame, blurred, as the original shows it
   if (r.bg) page.picture(f.blurBg ?? '@blur_bg', r.bg);
   page.show(f.playerDisplayContainer, false);

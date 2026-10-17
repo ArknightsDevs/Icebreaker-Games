@@ -28,8 +28,9 @@ export async function loadUiPack(assets) {
 }
 
 /**
- * The seat's deck as cards: avatar, profession, rarity, elite phase and 再部署时间 of each operator; then the summon cards
- * of its operators (the engine's 界面-23), put in by cost and id.
+ * The seat's deck as cards: avatar, profession, rarity, elite phase and 再部署时间 of each operator — 堡垒守御's builders
+ * as counted cards (the engine's 界面-39) —; then the summon cards of its operators (the engine's 界面-23), put in by cost
+ * and id.
  * @param {import('@aue/schema').Match} match @param {any} content @param {number} seat @param {(char: string) => string | null} avatar
  * @returns {import('@aue/ui').DeckCard[]}
  */
@@ -37,7 +38,8 @@ export function deckCards(match, content, seat, avatar) {
   const builds = new Map((match.decks?.[seat] ?? []).map((d) => [d.id, d.build])), keys = /** @type {string[]} */ (content.decks?.[seat] ?? []);
   const ops = keys.map((k) => {
     const op = content.operators[k], char = op.char ?? k, r = ROSTER[char];
-    return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: builds.get(k)?.elite ?? 0, respawn: op.respawnTime ?? 60 };
+    return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: builds.get(k)?.elite ?? 0, respawn: op.respawnTime ?? 60,
+      ...(op.builder ? { pool: true } : {}) };
   });
   const summons = Object.entries(content.operators).filter(([, o]) => ((o.summon?.supply ?? 0) > 0 || (o.summon?.grant?.n ?? 0) > 0) && keys.includes(o.summoner))
     .map(([k, o]) => ({ id: k, avatar: avatar(o.char ?? k), profession: o.profession ?? '', rarity: 1, phase: 0, respawn: o.respawnTime ?? 0, summon: true }));
@@ -69,15 +71,16 @@ export function requestsAfter(r, f) {
 }
 
 /**
- * What the HUD shows of a frame.
+ * What the HUD shows of a frame; in 堡垒守御 the builders' cards left and whether they may be deployed (a rest).
  * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, selected: string | null,
- *   stages?: any[], requests?: Requests, offline?: boolean }} o
+ *   stages?: any[], waves?: number, requests?: Requests, offline?: boolean }} o
  * @returns {import('@aue/ui').HudState}
  */
 export function hudState(o) {
-  const { view, status, control, seat } = o, p = view.players[seat], ps = status.players[seat], speed = battleSpeed(control), paused = !!control?.held;
+  const { view, status, control, seat } = o, p = view.players[seat], ps = status.players[seat], speed = battleSpeed(control), paused = !!control?.held, f = status.fortress;
   return {
     frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots, summons: ps.summons,
+    ...(f ? { counts: f.pools[seat] ?? {}, building: f.phase === 'rest' } : {}),
     costTimer: ps.costTimer, costPeriod: secondsToFrames(o.options.costIncreaseTime), maxCost: o.options.maxCost, selected: o.selected,
     life: p.life, speed, paused, coop: view.players.length === 2 ? coopState(o, speed, paused) : undefined,
     states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline }, stageStart: stageStartOf(status, o.stages ?? [], view.frame),
@@ -96,8 +99,8 @@ export function stageStartOf(s, stages, frame) {
 }
 
 /**
- * The co-op top bar's and the cost request's state (界面-12, 界面-15–17).
- * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, stages?: any[], requests?: Requests }} o
+ * The co-op top bar's and the cost request's state (界面-12, 界面-15–17), 堡垒守御's (界面-39).
+ * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, stages?: any[], waves?: number, requests?: Requests }} o
  * @param {number} speed @param {boolean} paused
  */
 function coopState(o, speed, paused) {
@@ -105,7 +108,25 @@ function coopState(o, speed, paused) {
   const r = o.requests, c = o.control, mate = 1 - o.seat;
   const left = r && r.pauseSince >= 0 ? Math.max(0, 1 - (r.now - r.pauseSince) / (OPEN * 1000)) : 0;
   return { me: side(o.seat), mate: side(mate), speed, paused, asking: c?.asker === o.seat && r ? left : -1, confirm: c?.asker === mate && r ? left : -1,
-    task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)) };
+    task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)), ...fortressOf(o.status, o.waves ?? 0, o.view.frame, o.seat) };
+}
+
+/**
+ * 堡垒守御 on the co-op top bar and the rest panel (the engine's 界面-39): the wave (1-based; in a rest the one to come)
+ * of the level's, the wave's enemies gone of its own, the seconds left of its defence or of the rest, the last wave's
+ * damage; in a rest each side's 「休整完毕」. Nothing in another level.
+ * @param {Status} s @param {number} waves @param {number} frame @param {number} seat
+ * @returns {{ fortress?: import('@aue/ui').FortressTask, resting?: import('@aue/ui').Resting | null }}
+ */
+export function fortressOf(s, waves, frame, seat) {
+  const f = s.fortress;
+  if (!f) return {};
+  const left = Math.max(0, (f.until - frame) / FPS), rest = f.phase === 'rest';
+  return {
+    // the status's wave is the one defended last, so in a rest the one to come is the next
+    fortress: { wave: f.wave + (rest ? 2 : 1), waves, out: rest ? 0 : f.out, total: rest ? 0 : f.total, left, last: f.wave === waves - 1 && !rest, damage: f.damage },
+    resting: rest ? { left, me: !!f.ready[seat], mate: !!f.ready[1 - seat] } : null,
+  };
 }
 
 /**

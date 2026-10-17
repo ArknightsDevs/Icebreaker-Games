@@ -22,7 +22,7 @@ export const mayPair = (a, b) => MATES[/** @type {keyof typeof MATES} */ (a.pos)
  * @param {{ classes: unknown[], pos: unknown, squad: unknown, style: unknown }} m @param {readonly { class: string }[]} projects
  */
 export function seekProblem(m, projects) {
-  const open = new Set(projects.map((p) => p.class));
+  const open = new Set(projects.filter((p) => /** @type {any} */ (p).mode !== 'DEFENCE').map((p) => p.class));
   if (!m.classes.length || !m.classes.every((c) => typeof c === 'string' && open.has(c))) return TOASTS['matchNoProject'] ?? 'no project';
   const pos = MATCH.positions.find((p) => p.id === m.pos);
   if (!pos) return `没有这种参赛身份 ${String(m.pos)}`;
@@ -42,9 +42,10 @@ export function createMatcher(o) {
   const queue = new Map();
   const ms = MATCH.seconds * 1000;
 
-  /** A pair's project: one of the classes both chose, at random. @param {Seeker} a @param {Seeker} b */
+  /** A pair's project: a 常规项目 one of the classes both chose, at random (快速匹配 plays 常规项目 only). @param {Seeker} a @param {Seeker} b */
   function projectOf(a, b) {
-    const shared = o.projects.map((p, i) => [p, i]).filter(([p]) => a.classes.includes(/** @type {any} */ (p).class) && b.classes.includes(/** @type {any} */ (p).class));
+    const shared = o.projects.map((p, i) => [p, i]).filter(([p]) => /** @type {any} */ (p).mode !== 'DEFENCE' && a.classes.includes(/** @type {any} */ (p).class)
+      && b.classes.includes(/** @type {any} */ (p).class));
     return /** @type {number} */ (shared[Math.floor(o.random() * shared.length)][1]);
   }
 

@@ -1065,6 +1065,107 @@
    "f_tut_black": 0.6
   }
  },
+ "defence": {
+  "mode": {
+   "type": "DEFENCE",
+   "name": "堡垒守御",
+   "icon": "defence",
+   "color": "#3cbfd0"
+  },
+  "stages": {
+   "act1multi_fortress-01": {
+    "level": "act1multi_fortress_01",
+    "class": "ORDINARY",
+    "code": "IG-DF-2",
+    "name": "湿地跨栏",
+    "picture": "multi_v3_01-fortress-01_preview",
+    "detail": "湿地跨栏是近年兴起的团体径赛项目。许多观众认为选手在湿地沼泽中跨过泥水奋力奔腾的英姿极具观赏性。\n<color=#D4133C><沼泽地段></color>置于其中的干员攻击速度逐渐降低，经过的敌人攻击速度和移动速度逐渐降低\n<color=#D4133C><芦苇丛></color>置于其中的干员获得\"迷彩\"",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   },
+   "act1multi_fortress-02": {
+    "level": "act1multi_fortress_02",
+    "class": "ORDINARY",
+    "code": "IG-DF-3",
+    "name": "机械质检通道",
+    "picture": "multi_v3_01-fortress-02_preview",
+    "detail": "宽阔的质检通道上，一排排军用机械迈着整齐的步伐向我们走来。用你能想到最粗暴的方式检验它们的质量吧！\n<color=#D4133C><重力感应></color>存在重力感应机关与“行星碎屑”：在轨道上随重力滑动，阻挡路线，对经过的单位造成物理伤害，可被周围4格我方推动。",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   },
+   "act1multi_fortress-ex-01": {
+    "level": "act1multi_fortress_01",
+    "class": "DIFFICULTY",
+    "code": "IG-DF-5",
+    "name": "湿地跨栏",
+    "picture": "multi_v3_01-fortress-01_preview",
+    "detail": "<color=#D4133C>附加条件:</color>\n出现额外敌人\n部署费用的自然回复速度下降\n\n<color=#D4133C><沼泽地段></color>置于其中的干员攻击速度逐渐降低，经过的敌人攻击速度和移动速度逐渐降低\n<color=#D4133C><芦苇丛></color>置于其中的干员获得\"迷彩\"",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   },
+   "act1multi_fortress-ex-02": {
+    "level": "act1multi_fortress_02",
+    "class": "DIFFICULTY",
+    "code": "IG-DF-6",
+    "name": "机械质检通道",
+    "picture": "multi_v3_01-fortress-02_preview",
+    "detail": "<color=#D4133C>附加条件:</color>\n出现额外敌人\n部署费用的自然回复速度下降\n\n<color=#D4133C><重力感应></color>存在重力感应机关与“行星碎屑”：在轨道上随重力滑动，阻挡路线，对经过的单位造成物理伤害，可被周围4格我方推动。",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   },
+   "act1multi_fortress-ex-rm01": {
+    "level": "act1multi_fortress_rm01",
+    "class": "DIFFICULTY",
+    "code": "IG-DF-4",
+    "name": "团体战竞技场",
+    "picture": "multi_v3_01-fortress-rm01_preview",
+    "detail": "<color=#D4133C>附加条件:</color>\n出现额外敌人\n部署费用的自然回复速度下降",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   },
+   "act1multi_fortress-hard-01": {
+    "level": "act1multi_fortress_hard-01",
+    "class": "EXTREMELY",
+    "code": "IG-S-5",
+    "name": "请买纪念品",
+    "picture": "multi_v3_01-fortress-hard-01_preview",
+    "detail": "进入赛场的路线总是需要精心设计。只要愿意，你可以让每个选手入场时绕上五圈，经过至少几十个纪念品摊位。",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   },
+   "act1multi_fortress-rm01": {
+    "level": "act1multi_fortress_rm01",
+    "class": "ORDINARY",
+    "code": "IG-DF-1",
+    "name": "团体战竞技场",
+    "picture": "multi_v3_01-fortress-rm01_preview",
+    "detail": "在卡西米尔的大型团体战竞技场，只要有足够的赞助支持，改变赛场地形也不是什么难事。",
+    "missions": [
+     "坚守3个波次",
+     "坚守5个波次",
+     "坚守7个波次"
+    ]
+   }
+  }
+ },
  "marks": {
   "markCd": 3,
   "markCond1": 5,

@@ -52,6 +52,9 @@ body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.or
 #settings button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 #fps { position: absolute; left: 8px; bottom: 4px; margin: 0; z-index: 3; color: var(--muted); font-size: 12px; pointer-events: none; }
 #notice a.back { color: var(--accent); }
+/* a level being tested (房间-13): a small note at the top left, under the original UI's taps */
+#testing { position: absolute; left: 8px; top: 4px; margin: 0; z-index: 3; padding: 2px 8px; color: #ff6e6e; background: rgb(0 0 0 / 0.55); font-size: 12px; pointer-events: none; }
+#testing[hidden] { display: none; }
 /* a training's tutorials (房间-11): the mask with its lit part, the drag's hand, the dialog (the page's own look, INF-0023) */
 .tutorial { position: absolute; inset: 0; z-index: 5; overflow: hidden; }
 .tutorial.passing { pointer-events: none; }

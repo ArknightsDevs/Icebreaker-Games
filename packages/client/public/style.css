@@ -52,3 +52,17 @@ body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.or
 #settings button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 #fps { position: absolute; left: 8px; bottom: 4px; margin: 0; z-index: 3; color: var(--muted); font-size: 12px; pointer-events: none; }
 #notice a.back { color: var(--accent); }
+/* a training's tutorials (房间-11): the mask with its lit part, the drag's hand, the dialog (the page's own look, INF-0023) */
+.tutorial { position: absolute; inset: 0; z-index: 5; overflow: hidden; }
+.tutorial.passing { pointer-events: none; }
+.tut-shade { position: absolute; inset: 0; }
+.tut-hole { position: absolute; pointer-events: none; outline: 2px solid rgb(255 255 255 / 0.85); animation: tut-pulse 1.2s ease-in-out infinite; }
+@keyframes tut-pulse { 50% { outline-color: rgb(0 152 220 / 0.9); outline-offset: 4px; } }
+.tut-hand { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.95) 0 30%, rgb(255 255 255 / 0.25) 31% 100%); animation: tut-drag 1.6s ease-in-out infinite; }
+@keyframes tut-drag { 0%, 15% { transform: translate(var(--from-x), var(--from-y)); opacity: 1; } 80% { transform: translate(var(--to-x), var(--to-y)); opacity: 1; } 100% { transform: translate(var(--to-x), var(--to-y)); opacity: 0; } }
+.tut-dialog { position: absolute; transform: translateY(-50%); display: flex; align-items: center; gap: 0.8em; box-sizing: border-box; padding: 0.7em 1.2em 0.7em 0.7em;
+  background: linear-gradient(90deg, rgb(20 20 24 / 0.94), rgb(20 20 24 / 0.82)); border-left: 4px solid #0098dc; color: #fff; line-height: 1.5; pointer-events: none; }
+.tut-head { flex: none; width: 4.6em; height: 4.6em; object-fit: cover; background: rgb(255 255 255 / 0.08); }
+.tut-text { flex: 1; }
+.tut-more { position: absolute; right: 0.6em; bottom: 0.3em; width: 0; height: 0; border: 0.35em solid transparent; border-top-color: #fff; animation: tut-pulse 1s infinite; }

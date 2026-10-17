@@ -2,7 +2,7 @@
 // 关卡-4), class, the tasks of its two stages (关卡-5), its description and the activity's missions for it (shown at 项目确认); the
 // temporary recruits as box entries.
 import { LEVELS, loadTraining } from '@aue/content';
-import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, recruitEntries } from '@icebreaker/mode-regular';
+import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes } from '@icebreaker/mode-regular';
 
 /** @typedef {import('@icebreaker/mode-regular').Project & { code: string, name: string, stages: { title: string, basic: string, advanced?: string, seconds: number }[], missions: readonly string[], detail: string }} ProjectView */
 
@@ -12,6 +12,17 @@ export function projectViews() {
     const lv = LEVELS[p.level].level;
     return { ...p, code: lv.code, name: lv.name, stages: lv.stages.map((/** @type {any} */ s) => ({ ...s.task, seconds: s.time })), missions: MISSIONS[p.level] ?? [], detail: DETAILS[p.level] ?? '' };
   });
+}
+
+/**
+ * The match of a training level (房间-11): its own cards (engine 关卡-7) for seat 0 with 基础专项's runes, nobody for
+ * seat 1 — the partner's operators are the level's (engine 波次-7); null for a level that is not a training level here.
+ * @param {string} level @param {number} seed @returns {import('@aue/schema').Match | null}
+ */
+export function trainingMatch(level, seed) {
+  const cards = TRAINING_LEVELS.includes(level) ? LEVELS[level]?.level.cards : null;
+  if (!cards) return null;
+  return { level, difficulty: 'NORMAL', seed, decks: [cards.operators.map((/** @type {any} */ o) => ({ id: o.key, build: o.build })), []], runes: [/** @type {any} */ (styleRunes(DEFAULT_STYLE)), []] };
 }
 
 /** The temporary recruits as box entries, each skill they have at the recruit's level. */

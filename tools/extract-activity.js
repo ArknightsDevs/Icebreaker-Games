@@ -1,12 +1,13 @@
 // Extracts what 常规项目 takes from the game's activity table (docs/spec/room.md, page.md): the steps' times and the
 // lineup's size, the temporary recruits, the playing styles (with their icons, 页面-5), the emotes (房间-7, with the
-// display table's emote data) and the mode of the co-op activity act1multi.
+// display table's emote data), the training levels with their tutorials (房间-11) and the mode of the co-op activity act1multi.
 // Usage: node tools/extract-activity.js --gamedata <ArknightsGameData checkout>
 // Writes packages/mode-regular/data/act1multi.json (the same input gives byte-identical output).
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { richText, storyOf } from '../packages/mode-regular/src/story.js';
 
 const ACTIVITY = 'act1multi';
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'mode-regular', 'data', `${ACTIVITY}.json`);
@@ -34,12 +35,6 @@ function trustOf(favor, points) {
 /** A blackboard as [key, value or text] pairs in order. @param {any[]} bb */
 const board = (bb) => bb.map((b) => [b.key, b.valueStr ?? b.value]);
 
-/**
- * The game's markup `<@style>text</>` as Unity rich text by the game's styles (`richTextStyles`, e.g. `<color=#D4133C>{0}</color>`);
- * a style it does not know keeps only its text; the text's written line breaks (`\n`) as line breaks.
- * @param {string} s @param {Record<string, string>} styles
- */
-export const richText = (s, styles) => s.replace(/<@([\w.]+)>([\s\S]*?)<\/>/g, (_, k, t) => (styles[k] ? styles[k].replace('{0}', t) : t)).replace(/\\n/g, '\n');
 
 /**
  * The title of a player who chose none (页面-6): the activity's first front part and first back part by their order
@@ -68,6 +63,34 @@ function emotesOf(meta, a) {
     if (missing.length) throw new Error(`the theme ${t} lacks ${missing.map((/** @type {any} */ e) => e.id).join(', ')}`);
   }
   return { themes: [...a.enabledEmoticonThemeIdList], scenes, text: Object.fromEntries(all.map((/** @type {any} */ e) => [e.id, e.desc])), cd: a.constData.chatCd, time: a.constData.chatTime };
+}
+
+/**
+ * The training levels (房间-11): each training mode in its levels' order — its mode, the mode's name and icon, its
+ * levels, the hint while it is locked —, the stories its levels' waves tell, by their path's last part, and the story
+ * variables (`$name`) their arguments use (story_variables.json).
+ * @param {string} gamedata @param {any} a the activity @param {any} stageTable @param {Record<string, string>} styles
+ */
+function trainingOf(gamedata, a, stageTable, styles) {
+  const types = Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.difficulty === 'TRAINING');
+  const sort = (/** @type {any} */ t) => a.mapDataDict[t.stageIdInModeList[0]]?.sortId ?? 0;
+  const modes = types.sort((x, y) => sort(x) - sort(y)).map((/** @type {any} */ t) => ({
+    id: t.modeId, mode: t.mode, name: a.mapModeDataDict[t.mode].name, icon: a.mapModeDataDict[t.mode].iconId, levels: [...t.stageIdInModeList], hint: richText(t.unlockHint ?? '', styles),
+  }));
+  /** @type {Record<string, ReturnType<typeof storyOf>>} */
+  const stories = {};
+  for (const m of modes.filter((x) => x.mode === 'NORMAL')) {
+    for (const id of m.levels) {
+      const level = readJson(join(gamedata, 'levels', `${String(stageTable[id].levelId).toLowerCase()}.json`));
+      const keys = level.waves.flatMap((/** @type {any} */ w) => w.fragments.flatMap((/** @type {any} */ f) => f.actions.filter((/** @type {any} */ x) => x.actionType === 'STORY').map((/** @type {any} */ x) => x.key)));
+      for (const k of keys) stories[String(k).split('/').pop() ?? k] = storyOf(readFileSync(join(gamedata, 'story', `${String(k).toLowerCase()}.txt`), 'utf8'), styles);
+    }
+  }
+  const known = readJson(join(gamedata, 'story', 'story_variables.json'));
+  const used = [...new Set(Object.values(stories).flat().flatMap((c) => Object.values(c.args)).filter((v) => typeof v === 'string' && v.startsWith('$')).map((v) => String(v).slice(1)))].sort();
+  const missing = used.filter((k) => !Object.hasOwn(known, k));
+  if (missing.length) throw new Error(`story variables not found: ${missing.join(', ')}`);
+  return { modes, stories: Object.fromEntries(Object.entries(stories).sort((x, y) => (x[0] < y[0] ? -1 : 1))), vars: Object.fromEntries(used.map((k) => [k, known[k]])) };
 }
 
 /** @param {string} root */
@@ -118,6 +141,7 @@ export function extract(root) {
         id: p.matchPos, name: p.name, desc: p.desc ?? '', toast: richText(p.posToast ?? '', styles), found: richText(p.matchDesc ?? '', styles), locked: !!p.unlockCond, hint: p.unlockCond?.unlockHint ?? '',
       })),
     },
+    training: trainingOf(join(root, 'zh_CN', 'gamedata'), a, stageTable, styles),
     styles: a.squadEffectList.map((/** @type {any} */ s) => ({
       id: s.id, name: s.name, icon: s.iconId, color: s.themeColor, buff: s.buffDesc, debuff: s.debuffDesc,
       device: { name: s.token.name, desc: s.token.desc },

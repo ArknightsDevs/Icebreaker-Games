@@ -65,7 +65,8 @@ export async function startLobby() {
   const lines = [];
   const kitsDir = kitDir(ROOT), kits = kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {};
   const battles = createBattles({ ...kits, log: (l) => lines.push(l), onEnd: (id) => lobby.rooms.ended(id) });
-  const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys) });
+  const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys),
+    startTraining: (m, key) => battles.start(m, [key], { absent: [1] }) });
   const onUpgrade = (/** @type {any} */ req, /** @type {any} */ socket, /** @type {Buffer} */ head) => { if (!lobby.upgrade(req, socket, head) && !battles.upgrade(req, socket, head)) socket.destroy(); };
   const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade, kitsDir, home: 'room' });
   await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));

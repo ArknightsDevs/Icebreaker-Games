@@ -7,6 +7,7 @@ import { TOASTS } from '@icebreaker/mode-regular';
 import { createRooms } from './rooms.js';
 import { createMatcher } from './match.js';
 import { addressOf } from './guard.js';
+import { trainingMatch } from './catalog.js';
 
 /** Largest message a browser may send to the lobby, in bytes (a squad of 30 operators fits). */
 export const MAX_LOBBY_MESSAGE = 16384;
@@ -32,6 +33,7 @@ const SHAPES = {
   ping: (m) => typeof m.at === 'number' && Number.isFinite(m.at),
   profile: (m) => typeof m.tag === 'string' && /^\d{4}$/.test(m.tag) && (m.avatar === '' || operatorId(m.avatar)) && assistPick(m.assist),
   join: (m) => shortText(m.code, 200),
+  train: (m) => shortText(m.level, 32),
   project: (m) => Number.isInteger(m.index),
   prepare: (m) => typeof m.on === 'boolean',
   inverse: (m) => typeof m.on === 'boolean',
@@ -41,7 +43,7 @@ const SHAPES = {
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
+const FIELDS = { hello: 'key,name', ping: 'at', train: 'level', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the
@@ -56,15 +58,32 @@ export function lobbyMessageProblem(m) {
 }
 
 /**
- * The lobby: its rooms and the upgrade of /lobby connections; `guard` and `trustProxy` as the server's (站点-2).
+ * 训练场 (房间-11): a training level's match for a session alone, the partner's seat absent; the page goes to it as to a
+ * room's match. Not from a room; a search for a mate ends.
+ * @param {{ o: { random?: () => number, startTraining?: (match: import('@aue/schema').Match, key: string) => Promise<string> | string },
+ *   rooms: { inRoom: (id: number) => boolean }, matcher: { drop: (id: number) => void }, key: string | undefined }} L
+ * @param {number} id @param {import('ws').WebSocket} ws @param {string} level
+ */
+async function train(L, id, ws, level) {
+  const reply = (/** @type {Record<string, unknown>} */ msg) => { if (ws.readyState === 1) ws.send(JSON.stringify(msg)); };
+  const match = trainingMatch(level, Math.floor((L.o.random ?? Math.random)() * 0x7fffffff));
+  if (L.rooms.inRoom(id)) { reply({ t: 'error', msg: '已在房间里，不能训练' }); return; }
+  if (!match || !L.key || !L.o.startTraining) { reply({ t: 'error', msg: '没有这个训练' }); return; }
+  L.matcher.drop(id);
+  try {
+    reply({ t: 'start', match: await L.o.startTraining(match, L.key), seat: 0, training: level });
+  } catch (e) { reply({ t: 'error', msg: `训练没能开始：${/** @type {Error} */ (e).message}` }); }
+}
+
+/**
+ * The lobby: its rooms and the upgrade of /lobby connections; `guard` and `trustProxy` as the server's (站点-2); a
+ * training's match started through `startTraining` (房间-11).
  * @param {Omit<import('./rooms.js').RoomsOptions, 'send' | 'now' | 'random' | 'wrongCode'> & { now?: () => number, random?: () => number, log?: (line: string) => void,
- *   guard?: ReturnType<typeof import('./guard.js').createGuard>, trustProxy?: boolean }} o
+ *   guard?: ReturnType<typeof import('./guard.js').createGuard>, trustProxy?: boolean, startTraining?: (match: import('@aue/schema').Match, key: string) => Promise<string> | string }} o
  */
 export function createLobby(o) {
-  /** @type {Map<number, import('ws').WebSocket>} */
-  const sockets = new Map();
-  /** Each connection's network address. @type {Map<number, string>} */
-  const addresses = new Map();
+  /** The connections, their network addresses and their sessions' keys once they said hello. @type {[Map<number, import('ws').WebSocket>, Map<number, string>, Map<number, string>]} */
+  const [sockets, addresses, keys] = [new Map(), new Map(), new Map()];
   let next = 1;
   const rooms = createRooms({
     ...o, now: o.now ?? (() => Date.now()), random: o.random ?? Math.random,
@@ -98,6 +117,7 @@ export function createLobby(o) {
     create: (id, _ws, _a, m) => { matcher.drop(id); rooms.message(id, m); },
     seek: (id, ws, _a, m) => { if (rooms.inRoom(id)) reply(ws, { t: 'error', msg: '已在房间里，不能匹配' }); else matcher.seek(id, m); },
     unseek: (id) => matcher.cancel(id),
+    train: (id, ws, _a, m) => { void train({ o, rooms, matcher, key: keys.get(id) }, id, ws, m.level); },
   };
 
   /** @param {import('ws').WebSocket} ws @param {string} addr */
@@ -115,11 +135,11 @@ export function createLobby(o) {
       try { m = JSON.parse(String(data)); } catch { m = null; }
       const why = lobbyMessageProblem(m);
       if (why) { ws.close(1008, why.slice(0, 120)); return; }
-      if (m.t === 'hello') { hello = true; rooms.hello(id, m.key, String(m.name).trim()); } else if (!hello) ws.close(1008, 'say hello first');
+      if (m.t === 'hello') { hello = true; keys.set(id, m.key); rooms.hello(id, m.key, String(m.name).trim()); } else if (!hello) ws.close(1008, 'say hello first');
       else if (Object.hasOwn(OWN, m.t)) OWN[m.t](id, ws, addr, m);
       else rooms.message(id, m);
     });
-    ws.on('close', () => { sockets.delete(id); addresses.delete(id); matcher.drop(id); if (hello) rooms.gone(id); });
+    ws.on('close', () => { sockets.delete(id); addresses.delete(id); keys.delete(id); matcher.drop(id); if (hello) rooms.gone(id); });
   }
 
   return {

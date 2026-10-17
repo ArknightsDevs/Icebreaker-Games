@@ -34,6 +34,8 @@ export const DEFAULT_MATCH = Object.freeze({
  * @property {(charIds: string[]) => Promise<{ kits: Record<string, any>, failed: string[] }>} [kits] loads the pinned kits of a match's
  *   operators (kits.js nodeKits); none: the operators fight on the engine's own (engine ADR 0058)
  * @property {string[]} [keys] each seat's key set beforehand (a room's members, room.md 房间-6): only it takes the seat
+ * @property {number[]} [absent] the seats nobody plays (a training's partner, engine 同步-14)
+ * @property {(seat: number, s: import('@aue/schema').Signal, now: number) => boolean} [signals] the mode's rule for the seats' signals (engine 同步-13)
  */
 
 /**
@@ -56,7 +58,7 @@ export function createBattleRoom(o = {}) {
   /** @type {Map<number, string>} */
   const keys = new Map((o.keys ?? []).map((k, seat) => [seat, k]));
   const host = new LockstepHost({
-    content: o.content ?? skeletonContent, seats, seed: o.seed ?? 1, match: o.match ?? null,
+    content: o.content ?? skeletonContent, seats, seed: o.seed ?? 1, match: o.match ?? null, ...(o.absent ? { absent: o.absent } : {}), ...(o.signals ? { signals: o.signals } : {}),
     send: (seat, msg) => { const ws = sockets.get(seat); if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); },
     onDesync: (d) => log(`desync seat ${d.seat} at frame ${d.frame}: ${d.theirs} != ${d.ours}`),
   });
@@ -72,6 +74,7 @@ export function createBattleRoom(o = {}) {
     pauseReply: (seat, m) => host.pauseReply(seat, m.accept, now()),
     resume: (seat) => host.resume(seat, now()),
     ready: (seat) => host.ready(seat, now()),
+    signal: (seat, m) => host.signal(seat, m.s, now()),
   };
 
   /** @param {import('ws').WebSocket} ws @param {number} seat @param {string} text */
@@ -107,7 +110,8 @@ export function createBattleRoom(o = {}) {
     /** Takes over an HTTP upgrade for /battle?seat=N. @param {import('node:http').IncomingMessage} req @param {import('node:stream').Duplex} socket @param {Buffer} head */
     upgrade(req, socket, head) {
       const url = new URL(req.url ?? '/', 'http://x'), seat = Number(url.searchParams.get('seat'));
-      if (url.pathname !== '/battle' || !Number.isInteger(seat) || seat < 0 || seat >= Math.min(seats, MAX_SEAT + 1)) { socket.destroy(); return; }
+      // an absent seat (a training's partner, engine 同步-14) is nobody's to take
+      if (url.pathname !== '/battle' || !Number.isInteger(seat) || seat < 0 || seat >= Math.min(seats, MAX_SEAT + 1) || o.absent?.includes(seat)) { socket.destroy(); return; }
       wss.handleUpgrade(req, socket, head, (ws) => {
         ws.on('message', (data, binary) => { if (binary) ws.close(1003, 'text only'); else onMessage(ws, seat, String(data)); });
         ws.on('close', () => { if (sockets.get(seat) === ws) { sockets.delete(seat); host.bye(seat, now()); log(`seat ${seat} left`); } });

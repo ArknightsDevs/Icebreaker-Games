@@ -506,6 +506,565 @@
    }
   ]
  },
+ "training": {
+  "modes": [
+   {
+    "id": "mode_normal_training",
+    "mode": "NORMAL",
+    "name": "常规项目",
+    "icon": "normal",
+    "levels": [
+     "act1multi_tr01"
+    ],
+    "hint": ""
+   },
+   {
+    "id": "mode_football_training",
+    "mode": "FOOTBALL",
+    "name": "阵地足球",
+    "icon": "football",
+    "levels": [
+     "act1multi_tr02"
+    ],
+    "hint": "【常规项目·训练赛】通关后解锁"
+   },
+   {
+    "id": "mode_defence_training",
+    "mode": "DEFENCE",
+    "name": "堡垒守御",
+    "icon": "defence",
+    "levels": [
+     "act1multi_tr03"
+    ],
+    "hint": "【常规项目·训练赛】通关后解锁"
+   }
+  ],
+  "stories": {
+   "training_multi_v3_01-01_a": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "博士，许久不见！欢迎再次来到促融共竞的比赛现场！"
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "与之前一样，促融共竞的所有项目都需要您与<color=#0098DC>一位协作者</color>共同参与，这次就还是让我来当博士的协作者吧！"
+    }
+   ],
+   "training_multi_v3_01-01_b": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "与之前一样，每场比赛分为两个阶段，每个阶段都有需要完成的目标。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "target": "panel_cooperate_normal_and_fortress_status",
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightRect",
+      "black": "$f_tut_black",
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "本场比赛第一阶段的目标是<color=#0098DC>生存</color>，我们需要在限定时间内抵挡敌方的进攻。"
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "虽然在同一片赛场上竞技，但我们各自需要防守不同的目标点。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -50,
+      "focusY": -70,
+      "focusWidth": 130,
+      "focusHeight": 130,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "博士，您需要防守的是蓝色的目标点。敌方进入蓝色目标点，将会扣减您的目标生命值。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 60,
+      "focusY": -70,
+      "focusWidth": 130,
+      "focusHeight": 130,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "墨绿色的目标点由协作者——也就是我来防守。敌方进入墨绿色目标点，则会扣减我的目标生命值。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 1
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 55,
+      "focusY": 85,
+      "focusWidth": 100,
+      "focusHeight": 100,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "对了！协作者部署的干员会用特殊的颜色标记出来，这样您就不会混淆双方的干员了。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -50,
+      "focusY": 170,
+      "focusWidth": 120,
+      "focusHeight": 120,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "与上一届赛事不同的是，本届赛事会存在<color=#0098DC>共同敌手</color>。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -15,
+      "focusY": 200,
+      "focusWidth": 120,
+      "focusHeight": 120,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "当带有这个标记的<color=#0098DC>共同敌手</color>进入任意一方的目标点时，我们双方都会扣减关卡生命。"
+    }
+   ],
+   "training_multi_v3_01-01_c": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "即使我们之中有一方的目标生命值归零，我们的队伍也不会立刻输掉比赛。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 2
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 40,
+      "focusY": -30,
+      "focusWidth": 150,
+      "focusHeight": 150,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "啊，敌方选手很快就要进入我负责防守的目标点了——我的目标生命值就要归零了……"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 55,
+      "focusY": 85,
+      "focusWidth": 100,
+      "focusHeight": 100,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "之后，我部署的干员会停止行动。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 40,
+      "focusY": -70,
+      "focusWidth": 150,
+      "focusHeight": 150,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "但此时，只要您坚守一段时间，阻止敌人继续进入我的目标点——"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 9.2
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 55,
+      "focusY": 85,
+      "focusWidth": 100,
+      "focusHeight": 100,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "——我就会再度回到赛场，与博士您并肩作战！"
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": false
+     }
+    }
+   ],
+   "training_multi_v3_01-01_d": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "为了方便协作者之间的交流互动，主办方还设置了两项辅助功能。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -73,
+      "focusY": 293,
+      "focusWidth": 144,
+      "focusHeight": 75,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightRect",
+      "black": 0.5,
+      "anchor": "BottomRight",
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "点击右下方的<color=#0098DC>请求费用</color>，就可以请求协作者向您支援至多15点部署费用。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "target": "btn_display_mark",
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightRect",
+      "black": "$f_tut_black",
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "<color=#0098DC>按住</color>左下方的<color=#0098DC>拖动标记</color>，并将其<color=#0098DC>拖动</color>到赛场上，就可以向协作者发送标记信号。"
+    }
+   ],
+   "training_multi_v3_01-01_e": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "随后，就来到了中场休整的时间。在场的所有干员都将<color=#0098DC>下场</color>休息，做好在第二阶段重新登场的准备。"
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "博士休息好了的话，我们就去挑战比赛的第二阶段吧！"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    }
+   ],
+   "training_multi_v3_01-01_f": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "target": "bg_timer_slider",
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightRect",
+      "black": "$f_tut_black",
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "本场比赛第二阶段的目标是<color=#0098DC>渗透</color>，我们需要深入敌阵，击倒特定的敌方选手。击倒三名拾荒者就可以达成目标！"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "target": "bg_timer_slider",
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightRect",
+      "black": "$f_tut_black",
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "如果博士还有余力，也可以向着<color=#0098DC>进阶目标</color>努力！击倒五名拾荒者，就可以在赛后获得额外的<color=#0098DC>嘉奖印章</color>！"
+    }
+   ],
+   "training_multi_v3_01-01_g": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 600,
+      "focusY": -300,
+      "focusWidth": 250,
+      "focusHeight": 250,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "实战中，您需要从多种专项中选择一个进入比赛。每个专项都会提供一种支援装置，让您在战斗中部署！"
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true,
+      "cardIndex": 0,
+      "validWidth": 112,
+      "validHeight": 116
+     }
+    },
+    {
+     "cmd": "Battle.LockFunction",
+     "args": {
+      "mask": "PAUSE_BUTTON_INTERACT"
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "waitForSignal": "put_down",
+      "dialogHead": "$avatar_amiya",
+      "animStyle": "Drag",
+      "startX": -130,
+      "startY": 60,
+      "startAnchor": "BottomRight",
+      "endAnchor": "Center",
+      "endX": 0,
+      "endY": 100
+     },
+     "text": "这是基础专项的支援装置<color=#0098DC>赛场啦啦队</color>，部署后可以使协作双方干员的<color=#0098DC>攻击力提升</color>！"
+    },
+    {
+     "cmd": "Battle.UnlockFunction",
+     "args": {
+      "mask": "PAUSE_BUTTON_INTERACT"
+     }
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "现在，我们一起击倒五名拾荒者，完成进阶目标吧！"
+    }
+   ]
+  },
+  "vars": {
+   "avatar_amiya": "char_002_amiya",
+   "f_lower_dialog_pos_x": -568,
+   "f_lower_dialog_pos_y": -217,
+   "f_tut_black": 0.6
+  }
+ },
  "styles": [
   {
    "id": "buff_1",

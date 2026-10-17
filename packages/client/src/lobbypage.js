@@ -5,7 +5,7 @@
 // own HTML room stays.
 import { createUi } from '@aue/ui';
 import { ROSTER, loadTraining } from '@aue/content';
-import { STYLES, TOASTS } from '@icebreaker/mode-regular';
+import { STYLES, TOASTS, TRAINING_LEVELS } from '@icebreaker/mode-regular';
 import { openPart, closePart, setSwitch, SEASON, PAGE_SCREENS } from './lobbykit.js';
 import { PAGES, pageOf, newLocal } from './lobbymap.js';
 import { createEntry } from './lobbyentry.js';
@@ -13,6 +13,7 @@ import { createSquad } from './lobbysquad.js';
 import { createPrepare } from './lobbyprepare.js';
 import { createFinish } from './lobbyfinish.js';
 import { createMatch } from './lobbymatch.js';
+import { createTraining, trainingProject } from './lobbytrain.js';
 import { createLobbySound } from './lobbysound.js';
 import { AFTER_TICK } from './lobby3d.js';
 import { startLobbyFx } from './lobbyfx.js';
@@ -221,7 +222,7 @@ function pageMakers(ui, H, G, L, K) {
   const A = H.A;
   return {
     entry: () => createEntry(ui, { create: () => A.send({ t: 'create' }), join: (code) => A.send({ t: 'join', code }), squad: () => { L.squad = true; draw(); },
-      match: () => { L.match = true; draw(); },
+      match: () => { L.match = true; draw(); }, train: () => { L.train = true; draw(); },
       squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; }, effects: G.effects }),
     squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, editBox: H.editBox, nameOf: A.nameOf,
       rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
@@ -232,10 +233,16 @@ function pageMakers(ui, H, G, L, K) {
       modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
       back: () => { if (H.S.seeking) A.send({ t: 'unseek' }); L.match = false; draw(); },
     }),
-    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level) => X.projects().find((p) => p.level === level) ?? null,
+    train: () => createTraining(ui, {
+      train: A.train, X, modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
+      back: () => { L.train = false; draw(); },
+    }),
+    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level) => X.projects().find((p) => p.level === level) ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : null),
       players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
       together: () => togetherOf(H), playTogether: () => A.send({ t: 'together' }),
-      done: () => { L.finish = null; draw(); }, quit: () => { L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
+      // after a training its room page again (房间-11)
+      done: () => { L.train = !!L.finish?.training; L.finish = null; draw(); },
+      quit: () => { L.train = !!L.finish?.training; L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
   };
 }
 
@@ -295,8 +302,8 @@ function lobbyOn(ui, H, G) {
       H.backButton(false);
     }
     if (S.view?.phase !== 'lineup') L.sub = 'sel';
-    // a room — a matched one too — ends the quick match page (房间-9)
-    if (S.view) L.match = false;
+    // a room — a matched one too — ends the quick match page and the training room page (房间-9, 房间-11)
+    if (S.view) { L.match = false; L.train = false; }
     members = memberToast(S.view, members, toast);
     page.c?.update?.(S, L);
   }
@@ -306,6 +313,7 @@ function lobbyOn(ui, H, G) {
     if (page.key === 'finish') { L.finish = null; draw(); return; }
     if (page.key === 'squad') { if (!page.c.back()) { L.squad = false; draw(); } return; }
     if (page.key === 'entry') { void page.c.back(); return; }
+    if (page.key === 'train') { L.train = false; draw(); return; }
     if (L.list) { L.list = false; draw(); return; }
     if (S.view?.phase !== 'lineup' || L.sub === 'sel') { X.leave(); return; }
     if (S.view.ready[S.view.you]) H.A.send({ t: 'ready', on: false });

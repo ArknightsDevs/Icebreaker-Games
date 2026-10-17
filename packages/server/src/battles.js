@@ -39,13 +39,14 @@ export function createBattles(o) {
     live,
     sweep,
     /**
-     * Starts a match whose seats only the given keys take; its id. @param {import('@aue/schema').Match} match @param {string[]} keys
+     * Starts a match whose seats only the given keys take — nobody the absent ones (a training's partner, engine
+     * 同步-14) —; its id. @param {import('@aue/schema').Match} match @param {string[]} keys @param {{ absent?: number[] }} [more]
      * @returns {Promise<string>}
      */
-    async start(match, keys) {
+    async start(match, keys, more = {}) {
       if (o.max && live.size >= o.max) throw new Error('服务器的对局已满');
       const id = randomBytes(6).toString('hex');
-      const room = await createMatchRoom(match, { keys, ...(o.kits ? { kits: o.kits } : {}), log: (line) => o.log?.(`[${id}] ${line}`) });
+      const room = await createMatchRoom(match, { keys, ...(o.kits ? { kits: o.kits } : {}), ...(more.absent ? { absent: more.absent } : {}), log: (line) => o.log?.(`[${id}] ${line}`) });
       live.set(id, { room, endedAt: 0, emptySince: now() });
       return id;
     },

@@ -43,6 +43,7 @@ if (file) {
 } else {
   const battles = createBattles({ ...kits, log, onEnd: (id) => lobby.rooms.ended(id), max: countOption(args, '--max-battles', LIMITS.battles) });
   const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys), log, guard, trustProxy,
+    startTraining: (m, key) => battles.start(m, [key], { absent: [1] }),
     maxRooms: countOption(args, '--max-rooms', LIMITS.rooms) });
   onUpgrade = (req, socket, head) => { if (!lobby.upgrade(req, socket, head) && !battles.upgrade(req, socket, head)) socket.destroy(); };
 }

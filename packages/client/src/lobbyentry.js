@@ -1,7 +1,8 @@
 // The activity's entry page (docs/spec/page.md 页面-6, engine ADR 0063): 组队参加 opens its room panel, where 发起！
 // makes a room and 加入！ joins one by its code (the invitation text pasted whole works too, 房间-1); 编队 opens the
-// squad page; 快速匹配 opens the quick match page (房间-9). The entries of systems the platform does not have — the
-// manual, milestones, rewards, training, medals, invitations, the guide book — are hidden, not left as dead ends.
+// squad page; 快速匹配 opens the quick match page (房间-9); the room panel's 训练场 the training room page (房间-11). The
+// entries of systems the platform does not have — the manual, milestones, rewards, medals, invitations, the guide
+// book — are hidden, not left as dead ends.
 import { openPart, closePart, inputOn, placeBottomBar, placeTopMenu, seasonLogo } from './lobbykit.js';
 import { startScene3d } from './lobby3d.js';
 import { PAGES } from './lobbymap.js';
@@ -13,7 +14,7 @@ export const ENTRY = '@view_ui/canvas_ui/canvas_group/state_root/panel_entry_sta
 export const ENTRY_HIDDEN = Object.freeze([
   'panel_main/panel_match/new_match', 'panel_main/panel_left/btn_seasonal_handbook', 'panel_main/panel_left/btn_milestone',
   'panel_main/panel_left/btn_reward', 'panel_main/panel_left/btn_mission', 'panel_main/group_upper_right/group_time', 'panel_main/group_upper_right/btn_medal',
-  'panel_main/btn_invite', 'panel_room/btn_train', 'panel_room/panel_right/btn_invite', 'btn_guidebook',
+  'panel_main/btn_invite', 'panel_room/btn_train/new_train', 'panel_room/panel_right/btn_invite', 'btn_guidebook',
 ].map((p) => `${ENTRY}/${p}`));
 
 /**
@@ -22,6 +23,7 @@ export const ENTRY_HIDDEN = Object.freeze([
  * @property {(code: string) => void} join joins a room by a code or an invitation text
  * @property {() => void} squad opens the squad page
  * @property {() => void} match opens the quick match page (房间-9)
+ * @property {() => void} train opens the training room page (房间-11)
  * @property {() => string | null} squadProblem why the save's 常规队 cannot be used (the 编队 button says 人数不足)
  * @property {(room: boolean) => void} roomPanel the room panel is shown or not (the page's back button follows it)
  * @property {Promise<unknown>} [effects] settles when the screens' particle effects are loaded (or will not be)
@@ -81,6 +83,7 @@ export function createEntry(ui, A) {
   p.tap(`${ENTRY}/panel_main/panel_match/btn_team_up/hotspot`, () => { void toRoom(true); });
   p.tap(`${ENTRY}/panel_main/panel_left/btn_formation/hotspot`, A.squad);
   p.tap(`${ENTRY}/panel_main/panel_match/btn_match/hotspot`, A.match);
+  p.tap(`${ENTRY}/panel_room/btn_train/hotspot`, A.train);
   p.tap(`${ENTRY}/panel_room/panel_right/btn_strat_room/hotspot`, A.create);
   p.tap(`${ENTRY}/panel_room/panel_right/btn_join_room/btn_search_room/panel_enable/hotspot`, () => join(code?.value() ?? ''));
   joining(false);

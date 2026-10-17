@@ -20,6 +20,8 @@ import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter }
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { controlSounds } from './sound.js';
 import { assetsUrl, siteUrl, socketUrl } from './site.js';
+import { createTutorial } from './tutorial.js';
+import { TRAINING, TRAINING_LEVELS } from '@icebreaker/mode-regular';
 
 const ASSETS = assetsUrl();
 
@@ -119,7 +121,7 @@ async function setUp(match, art, changed, joined, opening) {
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
   const ui = renderer && opened ? originalUi(match, content, avatar, opened) : null;
-  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders, foeDevices, early: joined < 0 };
+  return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders, foeDevices, early: joined < 0, avatar };
 }
 
 /**
@@ -196,7 +198,7 @@ function markField(game, pointer, marks) {
  *   pointer: { row: number, col: number } | null, hudNow: import('@aue/ui').HudState | null, hand: Hand | null,
  *   requests: import('./battlehud.js').Requests, audio: Awaited<ReturnType<typeof createBattleAudio>>, music: boolean, stamps: number[],
  *   battle: ReturnType<typeof startBattle>, mark: () => void, skills: ReturnType<typeof createSkillBar>, bar: () => void,
- *   panel: ReturnType<typeof createSettingsPanel> | undefined }} Page
+ *   panel: ReturnType<typeof createSettingsPanel> | undefined, tutorial: ReturnType<typeof createTutorial> | null }} Page
  */
 
 /** Where the room page leaves the stage of the match it sends the page to, for the loading screen at once (页面-6). */
@@ -218,7 +220,7 @@ async function main() {
   const art = await assets();
   /** @type {Page} */
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
-    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false, stamps: [] });
+    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false, stamps: [], tutorial: null });
   if (art) void startAudio(P);
   P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
   $('fps').hidden = !settings.showFps;
@@ -311,6 +313,7 @@ function onFrame(P, f) {
   stampsOf(P.stamps, events);
   if (end && MATCH) ended(Number(end['result']), P);
   for (const [id, k] of Object.entries(f.keys)) P.unitKeys.set(Number(id), k);
+  tutorialFrame(P.tutorial, f, end !== undefined);
   frameSound(P, f);
   P.players = view.players.length;
   P.costAsker = costAskerAfter(P.costAsker, events);
@@ -320,7 +323,7 @@ function onFrame(P, f) {
   if (game?.ui) {
     P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
     const level = /** @type {any} */ (game.content.level);
-    P.hudNow = hudState({ view, status, control: P.control, seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests,
+    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, requests: P.requests,
       offline: P.net === '重连中' });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
     P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
@@ -333,6 +336,20 @@ function onFrame(P, f) {
   }
   P.bar();
   P.lastView = view;
+}
+
+/** The control state the battle UI shows: a training's script holding the battle is not the player's pause (房间-11). @param {Page} P */
+const shownControl = (P) => (P.tutorial?.holding() && P.control ? { ...P.control, held: 0 } : P.control);
+
+/**
+ * A frame for a training's tutorials (房间-11, engine 波次-8): its stories, the frame, the end; nothing outside a training.
+ * @param {Page['tutorial']} t @param {{ view: import('@aue/schema').View, events: Record<string, string | number>[] }} f @param {boolean} end
+ */
+function tutorialFrame(t, f, end) {
+  if (!t) return;
+  for (const e of f.events) if (e['type'] === 'story') t.story(String(e['key']));
+  t.frame(f.view.frame);
+  if (end) t.end();
 }
 
 /** Each stage's stamps as it settles (engine 合作-6), for the room's result view (页面-6). @param {number[]} stamps @param {Record<string, string | number>[]} events */
@@ -371,7 +388,7 @@ function ended(result, P) {
   const back = document.createElement('a');
   back.href = 'room';
   back.className = 'back';
-  back.textContent = '返回房间';
+  back.textContent = TRAINING_LEVELS.includes(level) ? '返回训练场' : '返回房间';
   $('notice').append(' ', back);
 }
 
@@ -379,6 +396,7 @@ function ended(result, P) {
 function start(P, g) {
   if (!g.renderer) return;
   const renderer = g.renderer, field = /** @type {HTMLCanvasElement} */ ($('field'));
+  P.tutorial = TRAINING_LEVELS.includes(/** @type {any} */ (g.content.level).id) ? tutorialOn(P, g, field) : null;
   if (g.ui) P.hand = startOriginal(P, g, renderer, field);
   else startBars(P, g, renderer, field);
   // for end-to-end tests and measuring: where a point of the field is on the page; what the renderer and the UI hold
@@ -410,6 +428,23 @@ function start(P, g) {
 }
 
 /**
+ * A training's tutorials over the field (房间-11): its scripts and their variables, the battle's pause and resume, the
+ * speaker's head (its avatar), the battle UI's nodes by name (the first one shown). @param {Page} P
+ * @param {Awaited<ReturnType<typeof setUp>>} g @param {HTMLCanvasElement} field
+ */
+function tutorialOn(P, g, field) {
+  const rectOf = (/** @type {string} */ name) => {
+    for (const el of document.querySelectorAll(`#ui [data-name="${CSS.escape(name)}"]`)) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) return r;
+    }
+    return null;
+  };
+  return createTutorial($('app'), field, { stories: TRAINING.stories, vars: TRAINING.vars, pause: () => P.battle.pause(), resume: () => P.battle.resume(),
+    held: () => !!P.control?.held, frame: () => P.lastView?.frame ?? 0, head: (char) => g.avatar(char), rectOf });
+}
+
+/**
  * The original UI's taps: speed, pause or resume (同步-7, 同步-8), and the hand on the field (gestures.js).
  * @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g @param {any} renderer @param {HTMLCanvasElement} canvas
  */
@@ -421,7 +456,9 @@ function startOriginal(P, g, renderer, canvas) {
   o.hud.on('answer', (/** @type {string | undefined} */ v) => b.command({ type: 'answer', accept: v === 'yes' ? 1 : 0 }));
   o.hud.on('confirm', (/** @type {string | undefined} */ v) => b.pauseReply(v === 'yes'));
   const usable = (/** @type {string} */ id) => !!P.hudNow && cardViews(o.deck, P.hudNow).some((v) => v.id === id && v.usable);
-  return new Hand({ canvas, renderer, hud: o.hud, battle: b, level: g.content.level, seat, content: g.content, icons: o.icons, iconBase: o.iconBase,
+  // a deployment is what a training's drag waits for (房间-11)
+  const battle = { ...b, command: (/** @type {import('@aue/schema').Command} */ c) => { if (c.type === 'deploy') P.tutorial?.putDown(); b.command(c); } };
+  return new Hand({ canvas, renderer, hud: o.hud, battle, level: g.content.level, seat, content: g.content, icons: o.icons, iconBase: o.iconBase,
     view: () => P.lastView, usable, unitKey: (id) => P.unitKeys.get(id), focus: (key) => { void P.audio?.say(key.split('#')[0], 'FOCUS_CHAR'); } });
 }
 
@@ -432,7 +469,7 @@ function startOriginal(P, g, renderer, canvas) {
 function startBars(P, g, renderer, field) {
   field.addEventListener('click', (e) => {
     const tile = renderer.pick(e.clientX, e.clientY), sel = g.deck?.selected();
-    if (tile && sel) { P.battle.command({ type: 'deploy', op: sel.op, row: tile.row, col: tile.col, dir: sel.dir }); g.deck?.clear(); }
+    if (tile && sel) { P.battle.command({ type: 'deploy', op: sel.op, row: tile.row, col: tile.col, dir: sel.dir }); P.tutorial?.putDown(); g.deck?.clear(); }
   });
   field.addEventListener('pointermove', (e) => { P.pointer = renderer.pick(e.clientX, e.clientY); P.mark(); });
   field.addEventListener('pointerleave', () => { P.pointer = null; P.mark(); });

@@ -29,6 +29,7 @@ import { skillLevelText, trainingText } from './training.js';
  * @property {() => string | null} modeIcon the mode's icon URL (页面-5), null without it
  * @property {(id: string, theme: string) => void} emote sends an emote (房间-7)
  * @property {(classes: string[], pos: string, inverse: boolean) => void} seek starts 快速匹配 with the save's 常规队 and style (房间-9)
+ * @property {(level: string) => void} train starts a training level (房间-11)
  */
 
 /** A style as the room shows it: its small icon (页面-5) and its text. @param {RoomActions} A @param {string} id */

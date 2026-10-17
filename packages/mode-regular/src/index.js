@@ -62,6 +62,18 @@ export const INVERSE = Object.freeze({ ...data.inverse });
 export const MATCH = Object.freeze({ ...data.match });
 
 /**
+ * The training levels (房间-11): the training modes in the activity's order (常规项目, 阵地足球, 堡垒守御; only 常规项目's is
+ * played here) with their names, icons, levels and the hint while locked, and the tutorial scripts its levels' waves
+ * tell, by name: each command with its arguments and its text as rich text; the story variables (`$name`) they use.
+ * @type {Readonly<{ modes: readonly { id: string, mode: string, name: string, icon: string, levels: readonly string[], hint: string }[],
+ *   stories: Readonly<Record<string, readonly { cmd: string, args: Record<string, string | number | boolean>, text?: string }[]>>, vars: Readonly<Record<string, string | number>> }>}
+ */
+export const TRAINING = Object.freeze({ .../** @type {any} */ (data.training) });
+
+/** The training levels the platform plays (房间-11): those of 常规项目's training mode. */
+export const TRAINING_LEVELS = Object.freeze(data.training.modes.filter((m) => m.mode === 'NORMAL').flatMap((m) => m.levels));
+
+/**
  * The scene of the emotes a room phase allows (房间-7, INF-0019): the room's at 项目调整, the allocation's from the
  * coordination to 准备就绪, none at 项目确认 or in the match. @param {string | null | undefined} phase @returns {'room' | 'pick' | null}
  */

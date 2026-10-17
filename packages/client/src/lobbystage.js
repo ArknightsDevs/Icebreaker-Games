@@ -242,7 +242,7 @@ const GOAL_RIGHT = 12;
  * missions for it.
  * @param {Part} d @param {ProjectView} pr @param {StepCtx} X
  */
-function fillDetail(d, pr, X) {
+export function fillDetail(d, pr, X) {
   const f = d.view();
   d.text(f.stageCodeTxt, pr.code);
   // the code and the mode only, as the original's recording shows the title (IG-1 常规项目, without the stage's name)

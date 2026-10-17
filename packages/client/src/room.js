@@ -3,7 +3,7 @@
 // battle page comes back here when it ends. The lobby key stays in this tab (session.js), so a reload or the way back
 // takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5); with their
 // lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
-import { ROSTER, loadTraining } from '@aue/content';
+import { ROSTER, LEVELS, loadTraining } from '@aue/content';
 import { squadProblem, MODE, EMOTES, MATCH } from '@icebreaker/mode-regular';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf, profileOf, newTag } from './save.js';
@@ -42,11 +42,11 @@ let toastTimer;
 /** The original lobby screens when the assets have them (页面-6). @type {Awaited<ReturnType<typeof startLobby>>} */
 let lobby = null;
 
-/** @returns {{ match: string, seat: number, inverse?: boolean } | null} */
+/** @returns {{ match: string, seat: number, inverse?: boolean, training?: string } | null} */
 function readStarted() {
   try { return JSON.parse(sessionStorage.getItem(MATCH_KEY) ?? 'null'); } catch { return null; }
 }
-/** @param {{ match: string, seat: number, inverse?: boolean } | null} s */
+/** @param {{ match: string, seat: number, inverse?: boolean, training?: string } | null} s */
 function writeStarted(s) {
   try { if (s) sessionStorage.setItem(MATCH_KEY, JSON.stringify(s)); else sessionStorage.removeItem(MATCH_KEY); } catch { /* the way back is a convenience */ }
 }
@@ -86,6 +86,8 @@ const A = {
   emote: (id, theme) => { S.chatAt = performance.now(); send({ t: 'emote', id, theme }); draw(); setTimeout(draw, EMOTES.cd * 1000 + 50); },
   // 快速匹配 (房间-9): with the save's 常规队 and style, which the room confirms with when 项目确认 runs out (房间-10)
   seek: (classes, pos, inverse) => send({ t: 'seek', classes, pos, inverse, squad: squadOf(save), style: save.style }),
+  // 训练场 (房间-11): a training level's match of this player alone
+  train: (level) => send({ t: 'train', level }),
 };
 
 /** The end of a search (房间-9): found — the room comes next —, not found, cancelled. @param {any} m */
@@ -145,7 +147,8 @@ function takeResult() {
     raw = sessionStorage.getItem(RESULT_KEY); bg = sessionStorage.getItem(`${RESULT_KEY}.bg`);
     sessionStorage.removeItem(RESULT_KEY); sessionStorage.removeItem(`${RESULT_KEY}.bg`);
   } catch { /* no result kept */ }
-  const r0 = resultOf(raw), r = r0 && STARTED_AT_LOAD?.match === r0.match && STARTED_AT_LOAD.inverse ? { ...r0, inverse: true } : r0;
+  const r0 = resultOf(raw), mine = !!r0 && STARTED_AT_LOAD?.match === r0.match;
+  const r = r0 && mine ? { ...r0, ...(STARTED_AT_LOAD?.inverse ? { inverse: true } : {}), ...(STARTED_AT_LOAD?.training ? { training: true } : {}) } : r0;
   return r && bg?.startsWith('data:image/') ? { ...r, bg } : r;
 }
 
@@ -178,10 +181,12 @@ function onRoom(v) {
 
 /** The room's match started: to the battle page with the match and the seat (房间-6). @param {any} m */
 function onStart(m) {
-  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}) };
+  const training = typeof m.training === 'string' && Object.hasOwn(LEVELS, m.training) ? m.training : null;
+  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}), ...(training ? { training } : {}) };
   writeStarted(S.started);
-  // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6)
-  const pr = S.view ? S.lobby?.projects[S.view.project] : null;
+  // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6); a training's its level's
+  const lv = training ? /** @type {any} */ (LEVELS[training]).level : null;
+  const pr = lv ? { code: lv.code, name: lv.name } : S.view ? S.lobby?.projects[S.view.project] : null;
   try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name })); } catch { /* the battle page waits for the match */ }
   const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
   // with the lobby screens the countdown and the start play first (页面-6)

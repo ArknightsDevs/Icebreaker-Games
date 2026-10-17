@@ -7,6 +7,7 @@ import { STEP_MS, STEP_HINT_MS, PICTURES } from '@icebreaker/mode-regular';
 export const PAGES = Object.freeze({
   entry: 'dynload/act_multi_v3_entry_page', prepare: 'dynload/act_multi_v3_prepare_page', squad: 'dynload/act_multi_v3_squad_page',
   finish: 'dynload/act_multi_v3_battle_finish_view', notify: 'dynload/act_multi_v3_notify_view', dialog: 'dialog/confirm_dialog_view',
+  match: 'dynload/act_multi_v3_match_page',
 });
 
 /** The step screens of the prepare page by step (页面-6). */
@@ -26,7 +27,7 @@ export const LINEUP_VIEWS = Object.freeze({
 /**
  * What the lobby page keeps of its own: the lineup's sub-step, whether the stage list or the squad page is open, the
  * result to show after a match, whether the entry page shows its room panel.
- * @typedef {{ sub: 'sel' | 'skill' | 'check', list: boolean, squad: boolean, finish: MatchResult | null, room: boolean }} Local
+ * @typedef {{ sub: 'sel' | 'skill' | 'check', list: boolean, squad: boolean, finish: MatchResult | null, room: boolean, match: boolean }} Local
  */
 /**
  * A match's result as the battle page leaves it: won, the level, each stage's stamps, when it ended (ms), the field's
@@ -34,16 +35,16 @@ export const LINEUP_VIEWS = Object.freeze({
  */
 
 /** A new lobby page's own state. @returns {Local} */
-export const newLocal = () => ({ sub: 'sel', list: false, squad: false, finish: null, room: false });
+export const newLocal = () => ({ sub: 'sel', list: false, squad: false, finish: null, room: false, match: false });
 
 /**
- * The page a room state shows (页面-6): a match's result first; without a room the entry page (or the squad page the
- * player opened from it); in a room the prepare page.
- * @param {{ view: any }} S @param {Local} L @returns {'finish' | 'entry' | 'squad' | 'prepare'}
+ * The page a room state shows (页面-6): a match's result first; without a room the entry page (or the squad page or the
+ * quick match page the player opened from it, 房间-9); in a room the prepare page.
+ * @param {{ view: any }} S @param {Local} L @returns {'finish' | 'entry' | 'squad' | 'prepare' | 'match'}
  */
 export function pageOf(S, L) {
   if (L.finish) return 'finish';
-  if (!S.view) return L.squad ? 'squad' : 'entry';
+  if (!S.view) return L.squad ? 'squad' : L.match ? 'match' : 'entry';
   return 'prepare';
 }
 

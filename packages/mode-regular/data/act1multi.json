@@ -315,7 +315,10 @@
   "continuousClicks": "操作过于频繁，请稍后再试",
   "serverOverload": "当前服务繁忙，请稍后再试",
   "roomOwnerReviseMode": "已更换模式，等待协作者确认",
-  "roomCollaboratorReviseMode": "模式有变更，请确认后重新准备"
+  "roomCollaboratorReviseMode": "模式有变更，请确认后重新准备",
+  "matchNoProject": "请选择至少一个项目",
+  "matchAliveFailed": "匹配失败，请稍后再试",
+  "mentorLockTips": "在【高级赛】中有<@tutor>4</>关达到<@tutor>3</>枚嘉奖印章可解锁"
  },
  "title": "平凡的博士",
  "invite": "房间编号[{0}],Dr.{1}#{2}邀请您加入赛事，【粘贴到输入框可自动识别】",
@@ -442,6 +445,66 @@
  "inverse": {
   "on": false,
   "hint": "*互选模式下，将在游戏开始后与协作者交换编队及比赛风格"
+ },
+ "match": {
+  "seconds": 120,
+  "modes": [
+   {
+    "type": "DEFENCE",
+    "name": "堡垒守御"
+   },
+   {
+    "type": "FOOTBALL",
+    "name": "阵地足球"
+   },
+   {
+    "type": "NORMAL",
+    "name": "常规项目"
+   }
+  ],
+  "classes": [
+   {
+    "class": "ORDINARY",
+    "first": true
+   },
+   {
+    "class": "DIFFICULTY",
+    "first": false
+   },
+   {
+    "class": "EXTREMELY",
+    "first": false
+   }
+  ],
+  "positions": [
+   {
+    "id": "NORMAL",
+    "name": "常规选手",
+    "desc": "",
+    "toast": "已选择常规选手身份",
+    "found": "匹配到协作者",
+    "locked": false,
+    "hint": ""
+   },
+   {
+    "id": "STUDENT",
+    "name": "学员",
+    "desc": "当前为学员身份，只会匹配到提供帮助的教练",
+    "toast": "已选择学员身份，只会匹配到提供帮助的教练",
+    "found": "匹配到需要帮助的学员",
+    "locked": false,
+    "hint": ""
+   },
+   {
+    "id": "COACH",
+    "name": "教练",
+    "desc": "当前为教练身份，只会匹配到需要帮助的学员",
+    "toast": "已选择教练身份，只会匹配到需要帮助的学员",
+    "found": "匹配到提供帮助的教练",
+    "locked": true,
+    "hint": "参加【高级赛】，分别在4关中获得3枚嘉奖印章即可解锁"
+   }
+  ]
  },
  "styles": [
   {

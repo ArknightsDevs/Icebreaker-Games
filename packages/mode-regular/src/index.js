@@ -17,6 +17,9 @@ export const PROJECTS = Object.freeze(['act1multi_01', 'act1multi_06', 'act1mult
   return Object.freeze({ level, difficulty: /** @type {const} */ ('NORMAL'), class: cls, className: /** @type {Record<string, string>} */ (data.classes)[cls] });
 }));
 
+/** The activity's classes by type (训练场, 初级赛, 高级赛, 特级赛). @type {Readonly<Record<string, string>>} */
+export const CLASS_NAMES = Object.freeze({ ...data.classes });
+
 /** Each step's time in milliseconds (房间-2, 房间-4, 房间-5). */
 export const STEP_MS = Object.freeze({
   confirm: data.steps.ENTRANCE.seconds * 1000, pick: data.steps.CHAR_PICK.seconds * 1000, lineup: data.steps.SQUAD_CHECK.seconds * 1000,
@@ -48,6 +51,15 @@ export const EMOTES = Object.freeze({ ...data.emotes, themes: Object.freeze([...
 
 /** 互选模式 (房间-8): whether a room starts with it on and the hint the screens show while it is on. @type {Readonly<{ on: boolean, hint: string }>} */
 export const INVERSE = Object.freeze({ ...data.inverse });
+
+/**
+ * 快速匹配 (房间-9): how long a match is looked for (seconds), the classes of 常规项目 one may match for (and whether each
+ * is selected at first), the match positions (常规选手, 学员, 教练) with their texts and whether they need an unlock.
+ * The activity's modes in the match page's order (only 常规项目 is played here).
+ * @type {Readonly<{ seconds: number, modes: readonly { type: string, name: string }[], classes: readonly { class: string, first: boolean }[],
+ *   positions: readonly { id: string, name: string, desc: string, toast: string, found: string, locked: boolean, hint: string }[] }>}
+ */
+export const MATCH = Object.freeze({ ...data.match });
 
 /**
  * The scene of the emotes a room phase allows (房间-7, INF-0019): the room's at 项目调整, the allocation's from the

@@ -12,6 +12,7 @@ import { createEntry } from './lobbyentry.js';
 import { createSquad } from './lobbysquad.js';
 import { createPrepare } from './lobbyprepare.js';
 import { createFinish } from './lobbyfinish.js';
+import { createMatch } from './lobbymatch.js';
 import { createLobbySound } from './lobbysound.js';
 import { AFTER_TICK } from './lobby3d.js';
 import { startLobbyFx } from './lobbyfx.js';
@@ -220,12 +221,20 @@ function pageMakers(ui, H, G, L, K) {
   const A = H.A;
   return {
     entry: () => createEntry(ui, { create: () => A.send({ t: 'create' }), join: (code) => A.send({ t: 'join', code }), squad: () => { L.squad = true; draw(); },
+      match: () => { L.match = true; draw(); },
       squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; }, effects: G.effects }),
     squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, editBox: H.editBox, nameOf: A.nameOf,
       rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
     prepare: () => createPrepare(ui, X),
+    match: () => createMatch(ui, {
+      classes: () => [...new Map((H.S.lobby?.projects ?? []).map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
+      send: A.send, seek: A.seek, seeking: () => H.S.seeking, toast: X.toast,
+      modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
+      back: () => { if (H.S.seeking) A.send({ t: 'unseek' }); L.match = false; draw(); },
+    }),
     finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level) => X.projects().find((p) => p.level === level) ?? null,
       players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
+      together: () => togetherOf(H), playTogether: () => A.send({ t: 'together' }),
       done: () => { L.finish = null; draw(); }, quit: () => { L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
   };
 }
@@ -237,6 +246,15 @@ function pageMakers(ui, H, G, L, K) {
 function playersOf(H) {
   const v = H.S.view;
   return v ? [v.members[v.you] ?? null, v.members[1 - v.you] ?? null] : [H.card(), null];
+}
+
+/**
+ * 继续一起玩 after a matched match (房间-10): whether the room is still the matched one waiting for it, each seat's
+ * choice, and whether the room is there at all. @param {LobbyHost} H
+ */
+function togetherOf(H) {
+  const v = H.S.view;
+  return { matched: !!v?.matched, mine: !!v?.together?.[v.you], mate: !!v?.together?.[1 - v.you], room: !!v };
 }
 
 /** The likes on the last match's result (房间-6): whether this player gave one, and got one. @param {LobbyHost} H @returns {[boolean, boolean]} */
@@ -277,6 +295,8 @@ function lobbyOn(ui, H, G) {
       H.backButton(false);
     }
     if (S.view?.phase !== 'lineup') L.sub = 'sel';
+    // a room — a matched one too — ends the quick match page (房间-9)
+    if (S.view) L.match = false;
     members = memberToast(S.view, members, toast);
     page.c?.update?.(S, L);
   }
@@ -293,13 +313,17 @@ function lobbyOn(ui, H, G) {
     draw();
   }
 
-  runUi(ui, () => { if (page.key === 'prepare') page.c?.tick(S); });
+  runUi(ui, () => { if (page.key === 'prepare' || page.key === 'match') page.c?.tick(S); });
   return {
     ui, draw, toast, back,
     /** A match's result to show first. @param {import('./lobbymap.js').MatchResult} r */
     result: (r) => { L.finish = r; draw(); },
     /** An emote came (房间-7): its bubble shows on the next drawing. */
     emote: () => draw(),
+    /** The search for a mate started (房间-9): its banner. */
+    seeking: () => draw(),
+    /** The search ended (房间-9): its banner. @param {{ how: string, mate?: string }} m */
+    sought: (m) => { if (page.key === 'match') page.c?.sought(m); draw(); },
     /** A join that came to nothing. */
     failed: () => { if (page.key === 'entry') page.c.failed(); },
     /** Before the match: the countdown and its logo, then black (at most 8 seconds). */

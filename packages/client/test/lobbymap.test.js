@@ -13,11 +13,13 @@ test('[页面-6] the latency text: the colour of the highest threshold at or und
   assert.equal(pingText(250), '当前延迟<color=#ff3d3d>250</color>ms');
 });
 
-test('[页面-6] the page: a result first, the entry page (or its squad page) without a room, the prepare page in one', () => {
+test('[页面-6] [房间-9] the page: a result first, the entry page (or its squad or quick match page) without a room, the prepare page in one', () => {
   const L = newLocal();
-  assert.deepEqual(L, { sub: 'sel', list: false, squad: false, finish: null, room: false });
+  assert.deepEqual(L, { sub: 'sel', list: false, squad: false, finish: null, room: false, match: false });
   assert.equal(pageOf({ view: null }, L), 'entry');
   assert.equal(pageOf({ view: null }, { ...L, squad: true }), 'squad');
+  assert.equal(pageOf({ view: null }, { ...L, match: true }), 'match');
+  assert.equal(pageOf({ view: { phase: 'confirm' } }, { ...L, match: true }), 'prepare', 'a matched room');
   assert.equal(pageOf({ view: { phase: 'setup' } }, { ...L, squad: true }), 'prepare');
   assert.equal(pageOf({ view: { phase: 'setup' } }, { ...L, finish: { match: 'm', result: 1, level: 'x', stamps: [] } }), 'finish');
 });

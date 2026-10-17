@@ -2,7 +2,7 @@
 // says — 项目调整, 项目确认, 高顺位干员协调, 组建上场阵容 — and the match. Countdowns carry `data-until` (a
 // performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`. The mode and
 // the styles carry the activity's icons when the assets have them (页面-5).
-import { MODE, STYLES, EMOTES, INVERSE, emoteSceneOf } from '@icebreaker/mode-regular';
+import { MODE, STYLES, EMOTES, INVERSE, MATCH, emoteSceneOf } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText, cardName } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
@@ -14,7 +14,8 @@ import { skillLevelText, trainingText } from './training.js';
  * match this tab was sent to, the lobby's latency in ms (null until measured), the emote each seat sent last and until
  * when it shows, and when this player sent its last (房间-7; performance.now() times).
  * @typedef {{ conn: string, lobby: { name: string, projects: ProjectView[], recruits: BoxEntry[] } | null, view: any, at: number, draft: Pick[] | null,
- *   started: { match: string, seat: number, inverse?: boolean } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number }} RoomState
+ *   started: { match: string, seat: number, inverse?: boolean } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number,
+ *   seeking: { classes: string[], pos: string, inverse: boolean, until: number } | null }} RoomState
  */
 /**
  * @typedef {object} RoomActions
@@ -27,6 +28,7 @@ import { skillLevelText, trainingText } from './training.js';
  * @property {(icon: string, variant: '' | '_tiny') => string | null} icon a style icon's URL (页面-5), null without it
  * @property {() => string | null} modeIcon the mode's icon URL (页面-5), null without it
  * @property {(id: string, theme: string) => void} emote sends an emote (房间-7)
+ * @property {(classes: string[], pos: string, inverse: boolean) => void} seek starts 快速匹配 with the save's 常规队 and style (房间-9)
  */
 
 /** A style as the room shows it: its small icon (页面-5) and its text. @param {RoomActions} A @param {string} id */
@@ -50,13 +52,37 @@ export function entryIn(S, seat, id) {
   return [...(q?.high ?? []), ...(q?.low ?? []), ...(S.lobby?.recruits ?? [])].find((e) => e.id === id) ?? null;
 }
 
-/** Making a room or joining one. @param {RoomActions} A */
-function noRoom(A) {
+/** Making a room or joining one, or 快速匹配. @param {RoomState} S @param {RoomActions} A */
+function noRoom(S, A) {
   const code = /** @type {HTMLInputElement} */ (h('input', { placeholder: '房间编号或邀请文字', 'aria-label': '房间编号' }));
-  return h('div', { class: 'card' },
-    h('h2', {}, '组队参赛'),
-    h('div', { class: 'row' }, h('button', { class: 'primary', onclick: () => A.send({ t: 'create' }) }, '创建房间')),
-    h('div', { class: 'row' }, code, h('button', { onclick: () => A.send({ t: 'join', code: code.value }) }, '加入房间')));
+  return h('div', {},
+    h('div', { class: 'card' },
+      h('h2', {}, '组队参赛'),
+      h('div', { class: 'row' }, h('button', { class: 'primary', onclick: () => A.send({ t: 'create' }) }, '创建房间')),
+      h('div', { class: 'row' }, code, h('button', { onclick: () => A.send({ t: 'join', code: code.value }) }, '加入房间'))),
+    quickMatch(S, A));
+}
+
+/**
+ * 快速匹配 (房间-9): the classes of the lobby's projects (初级赛 checked at first), the position (教练 locked), 互选模式;
+ * while looking, the time left and 取消匹配. @param {RoomState} S @param {RoomActions} A
+ */
+function quickMatch(S, A) {
+  const sk = S.seeking;
+  if (sk) {
+    return h('div', { class: 'card seeking' }, h('h2', {}, '快速匹配'),
+      h('p', {}, '正在匹配协作者', h('span', { class: 'clock', 'data-until': String(sk.until) }, clock(sk.until - performance.now()))),
+      h('button', { onclick: () => A.send({ t: 'unseek' }) }, '取消匹配'));
+  }
+  const classes = [...new Map((S.lobby?.projects ?? []).map((p) => [p.class, p.className])).entries()];
+  const first = new Set(MATCH.classes.filter((c) => c.first).map((c) => c.class));
+  const boxes = classes.map(([c, name]) => h('label', {}, h('input', { type: 'checkbox', value: c, checked: first.has(c), 'aria-label': name }), ` ${name}`));
+  const pos = /** @type {HTMLSelectElement} */ (h('select', { 'aria-label': '参赛身份' }, MATCH.positions.map((p) => h('option', { value: p.id, disabled: p.locked }, p.locked ? `${p.name}（${p.hint}）` : p.name))));
+  const inverse = /** @type {HTMLInputElement} */ (h('input', { type: 'checkbox', 'aria-label': '匹配互选模式' }));
+  const go = () => A.seek(boxes.map((b) => /** @type {HTMLInputElement} */ (b.firstChild)).filter((b) => b.checked).map((b) => b.value), pos.value, inverse.checked);
+  return h('div', { class: 'card' }, h('h2', {}, '快速匹配'),
+    h('div', { class: 'row' }, ...boxes), h('div', { class: 'row' }, '参赛身份 ', pos, h('label', {}, inverse, ' 互选模式')),
+    h('button', { class: 'primary', onclick: go }, '开始匹配'));
 }
 
 /** The room's code, members and countdown. @param {RoomState} S @param {RoomActions} A */
@@ -64,14 +90,14 @@ function header(S, A) {
   const v = S.view, host = v.you === 0;
   return h('div', { class: 'card head' },
     h('h2', {}, `${PHASE_TITLES[v.phase]}`, v.step ? h('span', { class: 'step' }, ' 剩余 ', countdown(S, v.step)) : null),
-    h('p', {}, '房间编号 ', h('strong', { class: 'code' }, v.code), v.phase !== 'battle' ? h('span', { class: 'muted' }, '　房间剩余 ', countdown(S, v.left)) : null),
-    h('input', { class: 'invite', readOnly: true, value: inviteText(v.code, v.members[0]?.name ?? '', v.members[0]?.tag ?? ''), 'aria-label': '邀请文字', onfocus: (/** @type {Event} */ e) => /** @type {HTMLInputElement} */ (e.target).select() }),
+    v.matched ? h('p', { class: 'muted' }, '快速匹配的比赛：任何一方离开，房间就解散') : h('p', {}, '房间编号 ', h('strong', { class: 'code' }, v.code), v.phase !== 'battle' ? h('span', { class: 'muted' }, '　房间剩余 ', countdown(S, v.left)) : null),
+    v.matched ? null : h('input', { class: 'invite', readOnly: true, value: inviteText(v.code, v.members[0]?.name ?? '', v.members[0]?.tag ?? ''), 'aria-label': '邀请文字', onfocus: (/** @type {Event} */ e) => /** @type {HTMLInputElement} */ (e.target).select() }),
     h('ul', { class: 'members' }, v.members.map((/** @type {any} */ m, /** @type {number} */ i) =>
       h('li', { class: m.online ? '' : 'offline' }, `${i === 0 ? '房主' : '参加者'} · ${cardName(m)}${i === v.you ? '（你）' : ''}${m.online ? '' : ' · 掉线'}`, bubble(S, i)))),
     emoteBar(S, A),
     h('div', { class: 'row' },
-      h('button', { onclick: () => A.send({ t: 'leave' }) }, host ? '解散房间' : '离开房间'),
-      host && v.phase === 'setup' && v.members.length > 1 ? h('button', { onclick: () => A.send({ t: 'kick' }) }, '请离房间') : null));
+      h('button', { onclick: () => A.send({ t: 'leave' }) }, host || v.matched ? '解散房间' : '离开房间'),
+      host && !v.matched && v.phase === 'setup' && v.members.length > 1 ? h('button', { onclick: () => A.send({ t: 'kick' }) }, '请离房间') : null));
 }
 
 /** The emote a seat sent, while it shows (房间-7). @param {RoomState} S @param {number} seat */
@@ -172,6 +198,15 @@ function lineup(S, A) {
     h('p', { class: 'muted' }, `对方${v.ready[1 - v.you] ? '已准备就绪' : v.lineups[1 - v.you] ? '已提交阵容' : '正在组建阵容'}`));
 }
 
+/** After a matched match (房间-10): 继续一起玩, and whether the mate chose it. @param {RoomState} S @param {RoomActions} A */
+function together(S, A) {
+  const v = S.view, mine = !!v.together?.[v.you], mate = !!v.together?.[1 - v.you];
+  return h('div', { class: 'card' },
+    h('p', {}, '比赛结束。两人都选「继续一起玩」，就留在同一个房间里接着组队；否则房间解散。'),
+    h('p', { class: 'muted' }, mate ? '协作者想继续一起玩' : '协作者还没有选择'),
+    h('button', { class: 'primary', disabled: mine, onclick: () => A.send({ t: 'together' }) }, mine ? '等待协作者' : '继续一起玩'));
+}
+
 /** The match (房间-6): a way back into it. @param {RoomState} S */
 function battle(S) {
   const s = S.started;
@@ -183,8 +218,8 @@ function battle(S) {
 /** Draws the room page's room part. @param {HTMLElement} host @param {RoomState} S @param {RoomActions} A */
 export function renderRoom(host, S, A) {
   const v = S.view;
-  if (!v) { host.replaceChildren(noRoom(A)); return; }
+  if (!v) { host.replaceChildren(noRoom(S, A)); return; }
   /** @type {Record<string, () => HTMLElement>} */
-  const steps = { setup: () => setup(S, A), confirm: () => confirm(S, A), pick: () => pick(S, A), lineup: () => lineup(S, A), battle: () => battle(S) };
+  const steps = { setup: () => setup(S, A), confirm: () => confirm(S, A), pick: () => pick(S, A), lineup: () => lineup(S, A), battle: () => battle(S), together: () => together(S, A) };
   host.replaceChildren(header(S, A), steps[v.phase]());
 }

@@ -5,8 +5,11 @@
 import { STEP_MS, LINEUP, TOASTS, EMOTES, INVERSE, emoteSceneOf, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
 import { coordinate, pick, handOver, offer } from './allocation.js';
 
-/** How long a room lives without starting a match (房间-1), and each step's time (房间-2, 房间-4, 房间-5), in ms. */
-export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
+/**
+ * How long a room lives without starting a match (房间-1), each step's time (房间-2, 房间-4, 房间-5), and how long the
+ * players of a matched match have to choose 继续一起玩 (房间-10, INF-0021), in ms.
+ */
+export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS, together: 60_000 });
 
 /** @typedef {import('@icebreaker/mode-regular').Squad} Squad @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
 /** @typedef {import('./allocation.js').Picking} Picking @typedef {import('./allocation.js').Coordination} Coordination */
@@ -23,7 +26,7 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @typedef {object} Room
  * @property {string} code
  * @property {Member[]} members the host first
- * @property {'setup' | 'confirm' | 'pick' | 'lineup' | 'battle'} phase
+ * @property {'setup' | 'confirm' | 'pick' | 'lineup' | 'battle' | 'together'} phase `together`: after a matched match (房间-10)
  * @property {number} project the project's index
  * @property {boolean} inverse 互选模式 (房间-8): the seats swap their lineups and styles when the match starts
  * @property {boolean} prepared the guest's 准备参赛
@@ -32,6 +35,9 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {Options[]} options @property {(Pick[] | null)[]} lineups @property {boolean[]} ready
  * @property {string | null} match
  * @property {boolean[] | null} likes after a match, whether each seat liked the other on the result (房间-6); null before one
+ * @property {boolean} [matched] made by 快速匹配 (房间-9): it starts at 项目确认 and goes after its match (房间-10)
+ * @property {({ squad: Squad, style: string } | null)[] | null} [auto] a matched room's 常规队 and style each seat confirms with when its time runs out
+ * @property {boolean[] | null} [together] after a matched match, which seats chose 继续一起玩
  */
 /**
  * @typedef {object} RoomsOptions
@@ -74,6 +80,7 @@ function view(L, r, seat) {
     // each seat's skill and module for its lineup's operators, in their order (房间-6: both lineups shown in full)
     choices: r.lineups.map((l) => (l ? l.map((x) => ({ skill: x.skill, module: x.module })) : null)),
     likes: r.likes ?? [false, false],
+    matched: !!r.matched, together: r.together ?? null,
   };
 }
 /** @param {Lobby} L @param {Room} r */
@@ -121,11 +128,15 @@ function join(L, id, text) {
   push(L, r);
 }
 
-/** The host leaving closes the room; the guest leaving frees the seat (房间-1). @param {Lobby} L @param {number} id */
+/**
+ * The host leaving closes the room; the guest leaving frees the seat (房间-1); either leaving a matched room closes it
+ * (房间-10). @param {Lobby} L @param {number} id
+ */
 function leave(L, id) {
   const r = roomOf(L, id);
   if (!r) return;
   /** @type {Session} */ (L.sessions.get(id)).room = null;
+  if (r.matched) { close(L, r, 'dissolved'); return; }
   if (seatOf(r, id) === 0) { close(L, r, 'host left'); return; }
   r.members = r.members.filter((m) => m.id !== id);
   if (r.phase !== 'battle') toSetup(r);
@@ -149,10 +160,42 @@ function confirm(L, r, id, squad, style) {
   if (why) { fail(L, id, `常规队不符合要求：${why}`); return; }
   r.squads[seatOf(r, id)] = /** @type {Squad} */ (squad);
   r.styles[seatOf(r, id)] = style;
-  if (r.squads[0] && r.squads[1]) {
-    r.coord = coordinate(/** @type {[Squad, Squad]} */ (r.squads), L.o.random);
-    if (r.coord.picking) Object.assign(r, { phase: 'pick', due: L.o.now() + TIMES.pick });
-    else startLineups(L, r);
+  allocate(L, r);
+  push(L, r);
+}
+
+/** Both seats confirmed: the coordination, or straight the lineups (房间-4). @param {Lobby} L @param {Room} r */
+function allocate(L, r) {
+  if (!r.squads[0] || !r.squads[1]) return;
+  r.coord = coordinate(/** @type {[Squad, Squad]} */ (r.squads), L.o.random);
+  if (r.coord.picking) Object.assign(r, { phase: 'pick', due: L.o.now() + TIMES.pick });
+  else startLineups(L, r);
+}
+
+/**
+ * A matched pair's room (房间-9, 房间-10): the one who waited longer is the host, the project the matcher chose, 互选模式
+ * as both asked; it starts at 项目确认 and keeps each seat's 常规队 and style for its time running out.
+ * @param {Lobby} L @param {[{ id: number, inverse: boolean, squad: Squad, style: string }, { id: number, squad: Squad, style: string }]} pair @param {number} project
+ */
+function openMatched(L, pair, project) {
+  let code;
+  do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
+  const members = pair.map((p) => { const s = /** @type {Session} */ (L.sessions.get(p.id)); s.room = code; return { id: p.id, key: s.key, name: s.name, online: true, profile: s.profile }; });
+  const r = /** @type {Room} */ ({ code, members, project, inverse: pair[0].inverse, expires: L.o.now() + TIMES.room, likes: null, matched: true,
+    auto: pair.map((p) => ({ squad: p.squad, style: p.style })), together: null });
+  toSetup(r);
+  Object.assign(r, { phase: 'confirm', due: L.o.now() + TIMES.confirm });
+  L.rooms.set(code, r);
+  push(L, r);
+}
+
+/** 继续一起玩 (房间-10): once both seats chose it, the matched room becomes a team room at 项目调整. @param {Lobby} L @param {Room} r @param {number} id */
+function together(L, r, id) {
+  if (r.phase !== 'together' || !r.together) return;
+  r.together[seatOf(r, id)] = true;
+  if (r.together.every(Boolean)) {
+    toSetup(r);
+    Object.assign(r, { matched: false, auto: null, together: null, expires: L.o.now() + TIMES.room });
   }
   push(L, r);
 }
@@ -253,6 +296,14 @@ async function start(L, r) {
 
 /** The step whose time ran out (房间-2, 房间-4, 房间-5; INF-0002…0004). @param {Lobby} L @param {Room} r */
 function stepTimedOut(L, r) {
+  if (r.phase === 'together') { close(L, r, 'dissolved'); return; }
+  // a matched room confirms with what each seat came with (房间-10); a team room goes back to 项目调整
+  if (r.phase === 'confirm' && r.matched) {
+    r.auto?.forEach((a, seat) => { if (!r.squads[seat] && a) { r.squads[seat] = a.squad; r.styles[seat] = a.style; } });
+    allocate(L, r);
+    push(L, r);
+    return;
+  }
   if (r.phase === 'confirm') { toSetup(r); push(L, r); return; }
   if (r.phase === 'pick') { const p = /** @type {Picking} */ (r.coord?.picking); afterPick(L, r, pick(p, p.by, p.left[0])); return; }
   r.lineups = r.lineups.map((l, seat) => l ?? autoLineup(L, r, seat));
@@ -276,7 +327,7 @@ function sendEmote(L, r, id, emote, theme) {
 /** The host asks the guest to leave, at 项目调整 (房间-1). @param {Lobby} L @param {Room} r @param {number} id */
 function kick(L, r, id) {
   const guest = r.members[1];
-  if (seatOf(r, id) !== 0 || r.phase !== 'setup' || !guest) return;
+  if (seatOf(r, id) !== 0 || r.phase !== 'setup' || !guest || r.matched) return;
   leave(L, guest.id);
   if (guest.online) L.o.send(guest.id, { t: 'closed', why: 'kicked' });
 }
@@ -302,6 +353,7 @@ const IN_ROOM = {
   handover: (L, r, id) => { if (r.phase === 'pick') afterPick(L, r, handOver(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id))); },
   lineup: (L, r, id, m) => setLineup(L, r, id, m.lineup),
   emote: (L, r, id, m) => sendEmote(L, r, id, m.id, m.theme),
+  together: (L, r, id) => together(L, r, id),
   ready: (L, r, id, m) => setReady(L, r, id, m.on),
   // a like for the other seat on the last match's result, once each (房间-6)
   like: (L, r, id) => {
@@ -348,13 +400,17 @@ function message(L, id, m) {
   }
 }
 
-/** A room's match ended: back to 项目调整 with a new 15 minutes (房间-1, 房间-6). @param {Lobby} L @param {string} match */
+/**
+ * A room's match ended: back to 项目调整 with a new 15 minutes (房间-1, 房间-6); a matched room waits for 继续一起玩
+ * (房间-10). @param {Lobby} L @param {string} match
+ */
 function ended(L, match) {
   const r = [...L.rooms.values()].find((x) => x.match === match);
   if (!r) return;
   toSetup(r);
   r.expires = L.o.now() + TIMES.room;
   r.likes = [false, false];
+  if (r.matched) Object.assign(r, { phase: 'together', together: [false, false], due: L.o.now() + TIMES.together });
   push(L, r);
 }
 
@@ -387,5 +443,9 @@ export function createRooms(o) {
     /** @param {string} match */
     ended: (match) => ended(L, match),
     tick: () => tick(L),
+    /** Whether a session is in a room. @param {number} id */
+    inRoom: (id) => !!roomOf(L, id),
+    /** A matched pair's room (房间-9). @param {any} pair @param {number} project */
+    openMatched: (pair, project) => openMatched(L, pair, project),
   };
 }

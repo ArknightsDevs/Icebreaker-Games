@@ -1,7 +1,7 @@
 // What the room page says about a room (docs/spec/room.md): the steps' names, the countdowns, the invitation text, whose
 // turn it is, and the lineup a player starts from. Pure; roomview.js draws it.
 
-import { STYLES, PINGS, INVITE } from '@icebreaker/mode-regular';
+import { STYLES, PINGS, INVITE, TOASTS } from '@icebreaker/mode-regular';
 
 /** @typedef {import('@icebreaker/mode-regular').BoxEntry} BoxEntry */
 /** @typedef {{ kept: string[], drawn: string[], extra: string[] }} Options */
@@ -18,7 +18,10 @@ export function styleText(id) {
 }
 
 /** Each phase's name as the game shows it. @type {Record<string, string>} */
-export const PHASE_TITLES = { setup: '项目调整', confirm: '项目确认', pick: '高顺位干员协调', lineup: '组建上场阵容', battle: '比赛进行中' };
+export const PHASE_TITLES = { setup: '项目调整', confirm: '项目确认', pick: '高顺位干员协调', lineup: '组建上场阵容', battle: '比赛进行中', together: '比赛结束' };
+
+/** What the end of a search says (房间-9): found (with the mate's position's text), not found, cancelled. */
+export const SOUGHT = Object.freeze({ fail: '未能匹配到合适的协作者', cancel: '取消匹配成功' });
 
 /** Milliseconds as m:ss, rounded up. @param {number} ms */
 export function clock(ms) {
@@ -48,7 +51,7 @@ export const cardName = (m) => (m ? (m.tag ? `${m.name}#${m.tag}` : m.name) : ''
 export const turnText = (p, you) => (p.by === you ? `轮到你选择${p.yielded ? '（对方让出了这次选择）' : ''}` : '等待对方选择');
 
 /** Why a close of the room happened, as the page says it. @type {Record<string, string>} */
-export const CLOSED = { 'host left': '房主离开了，房间已关闭', time: '房间的存在时间到了，房间已关闭', kicked: '你被请离了房间' };
+export const CLOSED = { 'host left': '房主离开了，房间已关闭', time: '房间的存在时间到了，房间已关闭', kicked: '你被请离了房间', dissolved: TOASTS['matchPrepareRoomClose'] ?? '房间已解散' };
 
 /**
  * The lineup a player starts from (房间-5): its kept operators (at most 10), then its other options up to 6, each with

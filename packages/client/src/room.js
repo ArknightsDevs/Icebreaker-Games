@@ -4,12 +4,12 @@
 // takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5); with their
 // lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
 import { ROSTER, loadTraining } from '@aue/content';
-import { squadProblem, MODE, EMOTES } from '@icebreaker/mode-regular';
+import { squadProblem, MODE, EMOTES, MATCH } from '@icebreaker/mode-regular';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf, profileOf, newTag } from './save.js';
 import { createBoxView } from './boxview.js';
 import { renderRoom, entryIn } from './roomview.js';
-import { CLOSED, clock, startingLineup, inviteText } from './roomtext.js';
+import { CLOSED, SOUGHT, clock, startingLineup, inviteText } from './roomtext.js';
 import { loadRoomAtlas, styleIcon, modeIcon } from './roomart.js';
 import { createRoomMusic } from './roommusic.js';
 import { readSettings, writeSettings, VOLUMES } from './settings.js';
@@ -31,7 +31,7 @@ const ASSETS = assetsUrl(), ART = new URL('ui/room/', ASSETS).href;
 let atlas = null;
 const music = createRoomMusic(new URL('audio/', ASSETS).href, readSettings(store).music);
 /** @type {import('./roomview.js').RoomState} */
-const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted(), ping: null, emotes: [null, null], chatAt: -Infinity };
+const S = { conn: '连接中', lobby: null, view: null, at: 0, draft: null, started: readStarted(), ping: null, emotes: [null, null], chatAt: -Infinity, seeking: null };
 /** How often the page measures the lobby's latency (页面-6). */
 const PING_MS = 2000;
 /** @type {WebSocket | null} */
@@ -84,7 +84,18 @@ const A = {
   modeIcon: () => modeIcon(atlas, ART, MODE.type),
   // 表情交流 (房间-7): the server sends it back to both seats; the page holds its buttons for the cooldown
   emote: (id, theme) => { S.chatAt = performance.now(); send({ t: 'emote', id, theme }); draw(); setTimeout(draw, EMOTES.cd * 1000 + 50); },
+  // 快速匹配 (房间-9): with the save's 常规队 and style, which the room confirms with when 项目确认 runs out (房间-10)
+  seek: (classes, pos, inverse) => send({ t: 'seek', classes, pos, inverse, squad: squadOf(save), style: save.style }),
 };
+
+/** The end of a search (房间-9): found — the room comes next —, not found, cancelled. @param {any} m */
+function onSought(m) {
+  S.seeking = null;
+  lobby?.sought(m);
+  if (lobby) return;
+  if (m.how === 'found') toast(MATCH.positions.find((p) => p.id === m.mate)?.found ?? '匹配成功');
+  else toast(SOUGHT[/** @type {'fail' | 'cancel'} */ (m.how)] ?? '');
+}
 
 /** An emote a seat sent (房间-7): shown by that seat for its time. @param {any} m */
 function onEmote(m) {
@@ -179,7 +190,8 @@ function onStart(m) {
 
 /** The lobby's messages, each drawn after. @type {Record<string, (m: any) => void>} */
 const ON = {
-  lobby: (m) => { S.lobby = m; }, room: onRoom, emote: onEmote, start: onStart,
+  lobby: (m) => { S.lobby = m; }, room: onRoom, emote: onEmote, start: onStart, sought: onSought,
+  seeking: (m) => { S.seeking = { classes: m.classes, pos: m.pos, inverse: m.inverse, until: performance.now() + m.left }; lobby?.seeking(); },
   error: (m) => { lobby?.failed(); toast(m.msg); },
   closed: (m) => { S.view = null; S.draft = null; toast(CLOSED[m.why] ?? '房间已关闭'); },
 };

@@ -5,6 +5,7 @@
 import { WebSocketServer } from 'ws';
 import { TOASTS } from '@icebreaker/mode-regular';
 import { createRooms } from './rooms.js';
+import { createMatcher } from './match.js';
 import { addressOf } from './guard.js';
 
 /** Largest message a browser may send to the lobby, in bytes (a squad of 30 operators fits). */
@@ -25,7 +26,9 @@ const assistPick = (x) => x === null || (isRecord(x) && Object.keys(x).sort().jo
 const SHAPES = {
   hello: (m) => shortText(m.key, 64) && shortText(m.name, 16) && String(m.name).trim().length > 0,
   create: () => true, leave: () => true, kick: () => true, go: () => true, handover: () => true, like: () => true,
-  emote: (m) => shortText(m.id, 48) && shortText(m.theme, 48),
+  emote: (m) => shortText(m.id, 48) && shortText(m.theme, 48), unseek: () => true, together: () => true,
+  seek: (m) => Array.isArray(m.classes) && m.classes.length <= 8 && m.classes.every((c) => shortText(c, 16)) && shortText(m.pos, 16) && typeof m.inverse === 'boolean'
+    && isRecord(m.squad) && shortText(m.style, 16),
   ping: (m) => typeof m.at === 'number' && Number.isFinite(m.at),
   profile: (m) => typeof m.tag === 'string' && /^\d{4}$/.test(m.tag) && (m.avatar === '' || operatorId(m.avatar)) && assistPick(m.assist),
   join: (m) => shortText(m.code, 200),
@@ -38,7 +41,7 @@ const SHAPES = {
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on' };
+const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the
@@ -68,8 +71,34 @@ export function createLobby(o) {
     send: (id, msg) => { const ws = sockets.get(id); if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); },
     wrongCode: (id) => { const addr = addresses.get(id); if (addr !== undefined) o.guard?.wrongCode(addr); },
   });
+  // 快速匹配 (房间-9): who is looking for a mate; a pair gets its room
+  const matcher = createMatcher({
+    now: o.now ?? (() => Date.now()), random: o.random ?? Math.random, projects: /** @type {any} */ (o.projects),
+    send: (id, msg) => { const ws = sockets.get(id); if (ws?.readyState === 1) ws.send(JSON.stringify(msg)); },
+    open: (pair, project) => rooms.openMatched(pair, project),
+  });
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_LOBBY_MESSAGE });
-  const timer = setInterval(() => rooms.tick(), 250);
+  const timer = setInterval(() => { rooms.tick(); matcher.tick(); }, 250);
+
+  /** @param {import('ws').WebSocket} ws @param {Record<string, unknown>} msg */
+  const reply = (ws, msg) => ws.send(JSON.stringify(msg));
+  /**
+   * The messages of a session that said hello, besides the room's own: the latency the page shows (页面-6, its own time
+   * sent straight back), the name card, joining (held for an address past its wrong codes, 站点-2), 快速匹配 (房间-9).
+   * @type {Record<string, (id: number, ws: import('ws').WebSocket, addr: string, m: any) => void>}
+   */
+  const OWN = {
+    ping: (_id, ws, _a, m) => reply(ws, { t: 'pong', at: m.at }),
+    profile: (id, _ws, _a, m) => rooms.profile(id, { tag: m.tag, avatar: m.avatar, assist: m.assist }),
+    join: (id, ws, addr, m) => {
+      if (o.guard && !o.guard.mayJoin(addr)) { reply(ws, { t: 'error', msg: TOASTS['continuousClicks'] }); return; }
+      matcher.drop(id);
+      rooms.message(id, m);
+    },
+    create: (id, _ws, _a, m) => { matcher.drop(id); rooms.message(id, m); },
+    seek: (id, ws, _a, m) => { if (rooms.inRoom(id)) reply(ws, { t: 'error', msg: '已在房间里，不能匹配' }); else matcher.seek(id, m); },
+    unseek: (id) => matcher.cancel(id),
+  };
 
   /** @param {import('ws').WebSocket} ws @param {string} addr */
   function connect(ws, addr) {
@@ -87,17 +116,15 @@ export function createLobby(o) {
       const why = lobbyMessageProblem(m);
       if (why) { ws.close(1008, why.slice(0, 120)); return; }
       if (m.t === 'hello') { hello = true; rooms.hello(id, m.key, String(m.name).trim()); } else if (!hello) ws.close(1008, 'say hello first');
-      // the latency the page shows (页面-6): its own time sent straight back
-      else if (m.t === 'ping') ws.send(JSON.stringify({ t: 'pong', at: m.at }));
-      else if (m.t === 'profile') rooms.profile(id, { tag: m.tag, avatar: m.avatar, assist: m.assist });
-      else if (m.t === 'join' && o.guard && !o.guard.mayJoin(addr)) ws.send(JSON.stringify({ t: 'error', msg: TOASTS['continuousClicks'] }));
+      else if (Object.hasOwn(OWN, m.t)) OWN[m.t](id, ws, addr, m);
       else rooms.message(id, m);
     });
-    ws.on('close', () => { sockets.delete(id); addresses.delete(id); if (hello) rooms.gone(id); });
+    ws.on('close', () => { sockets.delete(id); addresses.delete(id); matcher.drop(id); if (hello) rooms.gone(id); });
   }
 
   return {
     rooms,
+    matcher,
     /** Takes over an upgrade for /lobby; false for any other path. @param {import('node:http').IncomingMessage} req @param {import('node:stream').Duplex} socket @param {Buffer} head */
     upgrade(req, socket, head) {
       if (new URL(req.url ?? '/', 'http://x').pathname !== '/lobby') return false;

@@ -16,8 +16,9 @@ import { cardName } from './roomtext.js';
  * What the finish view works with: the stage of a level, the room's players (this player first; the room's view, else
  * this player's own name card), the likes on the result (given, got: 房间-6), the steps' pictures and names, liking
  * the other player, going on to the room, leaving it.
+ * The room's 继续一起玩 after a matched match (房间-10): whether the room is matched, each seat's choice, choosing it.
  * @typedef {{ project: (level: string) => ProjectView | null, players: () => [Player | null, Player | null], likes: () => [boolean, boolean], X: StepCtx,
- *   like: () => void, done: () => void, quit: () => void }} FinishCtx
+ *   like: () => void, done: () => void, quit: () => void, together: () => { matched: boolean, mine: boolean, mate: boolean, room: boolean }, playTogether: () => void }} FinishCtx
  */
 
 /** The stamps won as stars, at most 3. @param {MatchResult} r */
@@ -95,13 +96,34 @@ function players(pd, r, pr, A) {
     '@panel_middle/report_toggle']) pd.show(g, false);
   // a match in 互选模式 carries its mark (房间-8)
   for (const g of [f.reverseBgGO, f.reverseTagGO]) pd.show(g, !!r.inverse);
-  pd.show(f.btnReturnRoomGO, true);
   if (f.bottomBarContainer && f.bottomBarPrefab) placeBottomBar(pd, f.bottomBarContainer, f.bottomBarPrefab);
   pd.tap(`${f.btnReturnRoomGO ?? '@panel_front/room_btn'}/hotspot`, A.done);
   pd.tap('@panel_front/quit_btn/hotspot', A.quit);
-  const likes = likesOn(pd, f, A, !!both[1]);
+  pd.tap(`${f.btnContinueCoopGO ?? '@panel_front/play_together_btn'}/hotspot`, A.playTogether);
+  const likes = likesOn(pd, f, A, !!both[1]), together = togetherOn(pd, f, A);
+  together();
   void pd.anim(f.enterAnim);
-  return { likes };
+  return { likes: () => { likes(); together(); } };
+}
+
+/**
+ * 继续一起玩 after a matched match (房间-10): its button instead of 返回房间, its two figures lit as each seat chooses
+ * it; once the room is a team room again, on to it. Returns what the room's views call. @param {Part} pd
+ * @param {Record<string, any>} f @param {FinishCtx} A
+ */
+function togetherOn(pd, f, A) {
+  const icon = '@panel_front/play_together_btn/group_icon';
+  let seen = { mine: false, mate: false }, gone = false;
+  return () => {
+    const t = A.together();
+    pd.show(f.btnContinueCoopGO, t.matched);
+    pd.show(f.btnReturnRoomGO, !t.matched);
+    if (!t.matched) { if (t.room && seen.mine && !gone) { gone = true; A.done(); } return; }
+    if (t.mine && !seen.mine) void pd.play(`${icon}/left`, 'battle_settle_btn_together_self');
+    if (t.mate && !seen.mate) void pd.play(`${icon}/right`, 'battle_settle_btn_together_partner');
+    if (!seen.mine && !seen.mate && (t.mine || t.mate)) void pd.anim(f.animWavingAnim);
+    seen = { mine: t.mine, mate: t.mate };
+  };
 }
 
 /**

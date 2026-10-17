@@ -186,13 +186,33 @@ function stars(m, r, pr) {
   (f.inactiveStarGOList ?? []).forEach((/** @type {string} */ s, /** @type {number} */ i) => m.show(s, i >= won));
   m.show(f.penaltyHintGO, false);
   m.show(f.newStarGO, false);
+  m.show(f.imgType, false);
+  const { got, bars } = r.fortress ? fortressRating(m, f, r.fortress, won) : stageRating(m, f, r, pr);
+  stagePanels(m, f, got, bars);
+  void m.anim(f.animEnter).then(() => Promise.all([f.animComplete1, f.animComplete2, f.animComplete3].map((a, i) => (got[i] ? m.anim(a) : null))));
+}
+
+/**
+ * 常规项目's rating: the last stage's task as the title and its goal as the description; the first stage's stamp, the
+ * second's two. @param {Part} m @param {Record<string, any>} f @param {MatchResult} r @param {import('./roomview.js').ProjectView | null} pr
+ */
+function stageRating(m, f, r, pr) {
   const task = pr?.stages[pr.stages.length - 1];
   m.text(f.textTitle, task?.title ?? '');
   m.text(f.textDesc, task?.basic ?? '');
-  m.show(f.imgType, false);
-  const s1 = r.stamps[0] ?? 0, s2 = r.stamps[1] ?? 0, got = [s1 > 0, s2 > 0, s2 > 1];
-  stagePanels(m, f, got, [s1, Math.min(2, s2) / 2]);
-  void m.anim(f.animEnter).then(() => Promise.all([f.animComplete1, f.animComplete2, f.animComplete3].map((a, i) => (got[i] ? m.anim(a) : null))));
+  const s1 = r.stamps[0] ?? 0, s2 = r.stamps[1] ?? 0;
+  return { got: [s1 > 0, s2 > 0, s2 > 1], bars: [s1, Math.min(2, s2) / 2] };
+}
+
+/**
+ * 堡垒守御's rating (房间-13): the waves defended as the title, the last wave's damage as the description; the first
+ * panel the stamp of 3 waves, the second those of 5 and 7. @param {Part} m @param {Record<string, any>} f
+ * @param {{ defended: number, damage: number }} fr @param {number} won
+ */
+function fortressRating(m, f, fr, won) {
+  m.text(f.textTitle, `守住 ${fr.defended} 波`);
+  m.text(f.textDesc, `最终波次伤害 ${fr.damage}`);
+  return { got: [won > 0, won > 1, won > 2], bars: [Math.min(1, fr.defended / 3), Math.min(1, Math.max(0, fr.defended - 3) / 4)] };
 }
 
 /**

@@ -106,3 +106,9 @@ test('[页面-6] a result keeps when its match ended; the finish view writes the
   assert.equal(resultOf(JSON.stringify({ match: 'm', result: 1, stamps: [], at: 'x' }))?.at, undefined);
   assert.equal(finishTime(new Date(2026, 9, 17, 8, 7, 4)), '2026/10/17 08:07:04');
 });
+
+test('[房间-13] a 堡垒守御 result: its difficulty, the stamps of the waves defended, those waves and the last wave\'s damage', () => {
+  const raw = JSON.stringify({ match: 'm', result: 1, level: 'act1multi_fortress_rm01', difficulty: 'FOUR_STAR', stamps: [2], fortress: { defended: 5, damage: 123456 }, at: 9 });
+  assert.deepEqual(resultOf(raw), { match: 'm', result: 1, level: 'act1multi_fortress_rm01', difficulty: 'FOUR_STAR', stamps: [2], fortress: { defended: 5, damage: 123456 }, at: 9 });
+  assert.equal(resultOf(JSON.stringify({ match: 'm', result: 0, level: 'x', stamps: [], fortress: { damage: 1 } }))?.fortress, undefined, 'no waves: none');
+});

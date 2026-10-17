@@ -4,6 +4,7 @@
 import data from '../data/act1multi.json' with { type: 'json' };
 
 export { SQUAD, squadProblem, entryProblem, buildOf } from './squads.js';
+export { MARKS, MARK_TYPES, markAllowed, signalRule } from './signals.js';
 /** @typedef {import('./squads.js').BoxEntry} BoxEntry @typedef {import('./squads.js').Squad} Squad */
 
 /** The activity's data as extracted, with its source. */

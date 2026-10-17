@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 import { clientMessageProblem, matchProblem, MAX_SEAT } from '@aue/schema';
 import { LockstepHost } from '@aue/net';
 import { skeletonContent, matchContent } from '@aue/content';
+import { signalRule } from '@icebreaker/mode-regular';
 
 /** Largest message a browser may send, in bytes. */
 export const MAX_MESSAGE = 4096;
@@ -39,7 +40,8 @@ export const DEFAULT_MATCH = Object.freeze({
  */
 
 /**
- * A room of a match (同步-9): its content is made from the settings first.
+ * A room of a match (同步-9): its content is made from the settings first; the seats' signals go by 常规项目's rule
+ * (marks and battle emotes, room.md 房间-12).
  * @param {import('@aue/schema').Match} match @param {Omit<BattleRoomOptions, 'content' | 'match' | 'seats' | 'seed'>} [o]
  */
 export async function createMatchRoom(match, o = {}) {
@@ -47,7 +49,8 @@ export async function createMatchRoom(match, o = {}) {
   if (why) throw new Error(`match settings: ${why}`);
   const loaded = o.kits ? await o.kits(match.decks.flat().map((e) => e.id)) : null;
   if (loaded?.failed.length) o.log?.(`kits not loaded: ${loaded.failed.join(', ')}`);
-  return createBattleRoom({ ...o, content: await matchContent(match, undefined, loaded?.kits ?? {}), match, seats: match.decks.length, seed: match.seed });
+  const content = await matchContent(match, undefined, loaded?.kits ?? {});
+  return createBattleRoom({ signals: signalRule(content.level), ...o, content, match, seats: match.decks.length, seed: match.seed });
 }
 
 /** @param {BattleRoomOptions} [o] */

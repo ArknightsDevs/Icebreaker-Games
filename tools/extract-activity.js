@@ -142,6 +142,8 @@ export function extract(root) {
       })),
     },
     training: trainingOf(join(root, 'zh_CN', 'gamedata'), a, stageTable, styles),
+    // 局内标记 (房间-12): the activity's mark constants as it names them (their reading: INF-0024)
+    marks: { markCd: a.constData.markCd, markCond1: a.constData.markCond1, markCond2: a.constData.markCond2 },
     styles: a.squadEffectList.map((/** @type {any} */ s) => ({
       id: s.id, name: s.name, icon: s.iconId, color: s.themeColor, buff: s.buffDesc, debuff: s.debuffDesc,
       device: { name: s.token.name, desc: s.token.desc },

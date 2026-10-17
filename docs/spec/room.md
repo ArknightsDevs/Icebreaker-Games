@@ -101,3 +101,12 @@
 - 比赛结束后显示结算，之后回到训练场。
 
 - 来源：[PRTS「促融共竞」oldid=377839](https://prts.wiki/index.php?title=%E4%BF%83%E8%9E%8D%E5%85%B1%E7%AB%9E&oldid=377839)「训练场可以进行单人训练，回顾比赛游玩方式」；[PRTS「IG-TR-1 规则教学-常规项目」oldid=430163](https://prts.wiki/index.php?oldid=430163)「固定编队」「已部署干员」「关卡内剧情」；数据：activity_table 的 `mapTypeDataDict`（`difficulty: TRAINING` 的三个项目与 `unlockHint`）、`mapModeDataDict`、story/activities/multiv3/training 的剧情脚本、story_variables.json；训练场页面与关卡详情的界面数据（页面-6）；关卡详情平铺在曲面屏的位置为推断 INF-0022，教学对话框的样子为推断 INF-0023
+
+### 房间-12 局内标记与局内表情
+
+两人比赛中双方可以互发信号（引擎 同步-13），服务器只放行下面两种，其余的丢弃：
+
+- **标记**：按住左下方的「拖动标记」拖到场地的格上松开，就标记这格（拖回卡上松开取消）；落在协作者干员所在的格上时，可以在格旁的菜单里选「注意！」或「撤退干员」（引擎 界面-37）。标记的格在双方画面上高亮 5 秒，协作者的为绿色（引擎 渲染-19）；协作者的注意、撤退标记在格旁显示它的图标。一方标记之后 3 秒内不能再标记，任意 5 秒内至多标记 2 次；冷却时卡上显示剩余秒数。
+- **局内表情**：点顶栏旁的表情按钮打开面板，左右翻看各套表情（基础、源石虫），每套是局内的三个表情（「干得漂亮」「谢谢」「抱歉」）；点一个就发送，在发送者那一侧弹出（引擎 界面-38）。发送后按钮变淡 5 秒；服务器限每方每 1 秒至多一次。
+
+- 来源：[PRTS「促融共竞」oldid=377839](https://prts.wiki/index.php?title=%E4%BF%83%E8%9E%8D%E5%85%B1%E7%AB%9E&oldid=377839)「标记」「局内表情」；activity_table 的 `constData`（`markCd` 3、`markCond1` 5、`markCond2` 2，`chatCd` 1）、`enabledEmoticonThemeIdList` 与 display_meta_table 的局内表情（`ACTMULTIV3_BATTLE`）；界面包的合作战斗插件（发送冷却 5 秒）；三个标记常数的含义与标记显示的时长为推断 INF-0024

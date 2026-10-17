@@ -21,6 +21,7 @@ import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { controlSounds } from './sound.js';
 import { assetsUrl, siteUrl, socketUrl } from './site.js';
 import { createTutorial } from './tutorial.js';
+import { createSignals, loadEmoteArt } from './battlesignals.js';
 import { TRAINING, TRAINING_LEVELS } from '@icebreaker/mode-regular';
 
 const ASSETS = assetsUrl();
@@ -198,7 +199,7 @@ function markField(game, pointer, marks) {
  *   pointer: { row: number, col: number } | null, hudNow: import('@aue/ui').HudState | null, hand: Hand | null,
  *   requests: import('./battlehud.js').Requests, audio: Awaited<ReturnType<typeof createBattleAudio>>, music: boolean, stamps: number[],
  *   battle: ReturnType<typeof startBattle>, mark: () => void, skills: ReturnType<typeof createSkillBar>, bar: () => void,
- *   panel: ReturnType<typeof createSettingsPanel> | undefined, tutorial: ReturnType<typeof createTutorial> | null }} Page
+ *   panel: ReturnType<typeof createSettingsPanel> | undefined, tutorial: ReturnType<typeof createTutorial> | null, signals: ReturnType<typeof createSignals> | null }} Page
  */
 
 /** Where the room page leaves the stage of the match it sends the page to, for the loading screen at once (页面-6). */
@@ -220,7 +221,7 @@ async function main() {
   const art = await assets();
   /** @type {Page} */
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
-    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false, stamps: [], tutorial: null });
+    requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false, stamps: [], tutorial: null, signals: null });
   if (art) void startAudio(P);
   P.mark = () => markField(P.game, P.pointer, (q) => P.battle.marks(q));
   $('fps').hidden = !settings.showFps;
@@ -256,6 +257,7 @@ async function main() {
       }
     },
     onControl: (c) => { for (const bank of controlSounds(P.control, c, seat)) void P.audio?.play(bank); P.control = c; P.bar(); },
+    onSignal: (from, s) => P.signals?.onSignal(from, s),
   });
   // for end-to-end tests and the console
   const b = P.battle;
@@ -397,13 +399,15 @@ function start(P, g) {
   if (!g.renderer) return;
   const renderer = g.renderer, field = /** @type {HTMLCanvasElement} */ ($('field'));
   P.tutorial = TRAINING_LEVELS.includes(/** @type {any} */ (g.content.level).id) ? tutorialOn(P, g, field) : null;
+  // marks and battle emotes between the two seats (房间-12)
+  if ((g.match.decks?.length ?? 1) === 2) void loadEmoteArt(ASSETS).then((emotes) => { P.signals = createSignals({ ui: g.ui?.ui ?? null, renderer, signal: (s) => P.battle.signal(s), seat, width: g.content.level.width, view: () => P.lastView, emotes }); });
   if (g.ui) P.hand = startOriginal(P, g, renderer, field);
   else startBars(P, g, renderer, field);
   // for end-to-end tests and measuring: where a point of the field is on the page; what the renderer and the UI hold
   Object.assign(/** @type {any} */ (globalThis).__battle, { pageOf: (/** @type {number} */ col, /** @type {number} */ row, /** @type {number} */ h) => {
     const p = renderer.screenOf(col, row, h), r = field.getBoundingClientRect();
     return [r.left + p[0], r.top + p[1]];
-  }, stats: () => ({ ...renderer.stats(), uiNodes: g.ui ? g.ui.ui.screens.reduce((n, s) => n + s.all.length, 0) : 0 }) });
+  }, stats: () => ({ ...renderer.stats(), uiNodes: g.ui ? g.ui.ui.screens.reduce((n, s) => n + s.all.length, 0) : 0 }), signals: () => P.signals?.state() ?? null });
   const fit = () => { renderer.resize(); g.ui?.ui.resize(field.clientWidth, field.clientHeight); };
   addEventListener('resize', fit);
   fit();
@@ -415,6 +419,7 @@ function start(P, g) {
     if (!gate(now)) { requestAnimationFrame(loop); return; }
     if (settings.showFps) fps.textContent = `${meter(now)} 帧/秒`;
     const t0 = performance.now();
+    P.signals?.frame();
     renderer.render();
     const t1 = performance.now();
     g.ui?.ui.tick(Math.min(0.1, (now - at) / 1000));

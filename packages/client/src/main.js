@@ -140,7 +140,7 @@ async function setUp(match, art, changed, joined, opening) {
   const opened = await early, pack = opened?.loaded ?? null;
   const { models, meshes, kit, effects, textures } = await artOf;
   const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures, view: content.level.view, models, leaders, foeDevices,
-    kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes, flyers }) : null;
+    kit, effects, skills: skillSlots(match), seat, bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes, flyers }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));

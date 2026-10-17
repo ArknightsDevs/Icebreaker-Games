@@ -5,8 +5,9 @@
 {
   /** The share of the progress the modules take, before the page's own steps. */
   const MODULES = 0.3;
-  /** How long the screen waits before the strip comes in (a page loaded at once never shows it), in milliseconds. */
-  const STRIP_AFTER = 300;
+  /** How long the screen is only a dark cover before the picture and the strip come in (a page loaded in that time never
+   * shows them), in milliseconds. */
+  const STRIP_AFTER = 600;
   const doc = document;
   const assets = new URL(doc.querySelector('meta[name="ig-assets"]')?.getAttribute('content') || 'assets/skeleton/', location.href).href;
   const lobby = `${assets}ui/lobby/`;

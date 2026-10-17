@@ -1,7 +1,8 @@
 /* The loading screen (docs/spec/page.md 页面-8): the activity's loading picture with the original's waiting strip from
    its reconnect panel — the LATEST NEWS tag, the turning arrows, the status in its orange — across the bottom; the strip
    filling with the progress. Sizes are the original's in its 1280 × 720 reference pixels (--u is one of them on this
-   screen); the strip comes in with the original's clip after a moment, so a page that loads at once never shows it. */
+   screen). Until a moment has passed it is only a dark cover in the pages' own colour: a page that loads at once never
+   shows the picture or the strip, so nothing bright flashes between pages. */
 .boot {
   --u: min(100vw / 1280, 100vh / 720);
   /* the picture's 16:9 frame covering the screen: its height */
@@ -9,7 +10,7 @@
   --orange: #d48f0b;
   --plate: #101010;
   position: fixed; inset: 0; z-index: 2147483000; overflow: hidden;
-  background: radial-gradient(ellipse at 50% 42%, #e9e9e9 0%, #cfcfcf 55%, #a9a9a9 100%);
+  background: #1b1d21;
   color: var(--orange);
   font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
   transition: opacity 0.3s ease-out;
@@ -23,7 +24,7 @@
   background: var(--boot-art, none) center / 100% 100% no-repeat;
   opacity: 0; transition: opacity 0.4s ease-out;
 }
-.boot-art.shown { opacity: 1; }
+.boot.in .boot-art.shown { opacity: 1; }
 .boot-band {
   position: absolute; left: 0; right: 0; bottom: 0; height: calc(242.4 * var(--u));
   background: var(--boot-doc, linear-gradient(to bottom, rgba(8, 8, 8, 0), rgba(8, 8, 8, 0.69))) center / 100% 100% no-repeat;

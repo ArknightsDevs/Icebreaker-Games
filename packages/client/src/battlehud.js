@@ -73,7 +73,7 @@ export function requestsAfter(r, f) {
 /**
  * What the HUD shows of a frame; in 堡垒守御 the builders' cards left and whether they may be deployed (a rest).
  * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, selected: string | null,
- *   stages?: any[], waves?: number, requests?: Requests, offline?: boolean }} o
+ *   stages?: any[], waves?: number, requests?: Requests, offline?: boolean, training?: boolean }} o
  * @returns {import('@aue/ui').HudState}
  */
 export function hudState(o) {
@@ -83,19 +83,27 @@ export function hudState(o) {
     ...(f ? { counts: f.pools[seat] ?? {}, building: f.phase === 'rest' } : {}),
     costTimer: ps.costTimer, costPeriod: secondsToFrames(o.options.costIncreaseTime), maxCost: o.options.maxCost, selected: o.selected,
     life: p.life, speed, paused, coop: view.players.length === 2 ? coopState(o, speed, paused) : undefined,
-    states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline }, stageStart: stageStartOf(status, o.stages ?? [], view.frame),
+    states: { result: status.result, down: ps.revive >= 0, offline: !!o.offline },
+    stageStart: stageStartOf(status, o.stages ?? [], view.frame, { training: !!o.training, waves: o.waves ?? 0 }),
   };
 }
 
 /**
- * A stage that has just begun (the engine's 界面-22): within a second of its start, its number and its task's texts
- * (关卡-5); else, or without texts, null.
- * @param {Status} s @param {any[]} stages @param {number} frame @returns {import('@aue/ui').StageStart | null}
+ * A stage that has just begun (the engine's 界面-22, 界面-40): within a second of its start, its number and its task's
+ * texts (关卡-5), in a training or not; in 堡垒守御 a wave whose defence has just begun, its number of the level's
+ * waves; else, or without texts, null.
+ * @param {Status} s @param {any[]} stages @param {number} frame @param {{ training: boolean, waves: number }} o
+ * @returns {import('@aue/ui').StageStart | null}
  */
-export function stageStartOf(s, stages, frame) {
+export function stageStartOf(s, stages, frame, o = { training: false, waves: 0 }) {
+  const f = s.fortress, training = o.training ? { training: true } : {};
+  if (f) {
+    if (f.phase !== 'defend' || frame < f.start || frame - f.start >= FPS) return null;
+    return { stage: f.wave + 1, title: '', basic: '', defence: { wave: f.wave + 1, waves: o.waves, last: f.wave === o.waves - 1 }, ...training };
+  }
   const task = stages[s.stage]?.task;
   if (!task || frame < s.start || frame - s.start >= FPS) return null;
-  return { stage: s.stage + 1, title: task.title, basic: task.basic, ...(task.advanced !== undefined ? { advanced: task.advanced } : {}) };
+  return { stage: s.stage + 1, title: task.title, basic: task.basic, ...(task.advanced !== undefined ? { advanced: task.advanced } : {}), ...training };
 }
 
 /**

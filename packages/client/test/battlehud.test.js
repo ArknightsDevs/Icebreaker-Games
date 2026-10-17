@@ -153,6 +153,15 @@ test('a stage that has just begun, with its task texts: within a second of its s
   assert.deepEqual(stageStartOf(st(0, 0), stages, 0), { stage: 1, title: '营救', basic: '保护4位' });
   assert.deepEqual(stageStartOf(st(1, 300), stages, 310), { stage: 2, title: '营救', basic: '保护3位', advanced: '保护5位' });
   assert.deepEqual([stageStartOf(st(1, 300), stages, 290), stageStartOf(st(1, 300), stages, 330), stageStartOf(st(2, 0), stages, 0)], [null, null, null]);
+  assert.equal(stageStartOf(st(0, 0), stages, 0, { training: true, waves: 0 })?.training, true, 'a training\'s (the engine\'s 界面-40)');
+});
+
+test('[房间-13] a 堡垒守御 wave whose defence has just begun (the engine\'s 界面-40): its number of the level\'s waves, the last or not; none in a rest or later', () => {
+  const at = (/** @type {Record<string, any>} */ f) => /** @type {any} */ ({ stage: 0, start: 0, fortress: { phase: 'defend', wave: 0, start: 100, ...f } });
+  const o = { training: false, waves: 7 };
+  assert.deepEqual(stageStartOf(at({}), [], 110, o), { stage: 1, title: '', basic: '', defence: { wave: 1, waves: 7, last: false } });
+  assert.deepEqual(stageStartOf(at({ wave: 6, start: 900 }), [], 900, o)?.defence, { wave: 7, waves: 7, last: true });
+  assert.deepEqual([stageStartOf(at({ phase: 'rest' }), [], 110, o), stageStartOf(at({}), [], 140, o), stageStartOf(at({}), [], 90, o)], [null, null, null]);
 });
 
 

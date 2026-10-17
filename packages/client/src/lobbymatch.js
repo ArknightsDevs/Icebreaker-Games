@@ -2,6 +2,7 @@
 // classes to choose from (a class without a project of the server locked), the other modes not open —, the match
 // position (教练 locked), 互选模式 with its effect, 开始匹配; while looking, the matching banner with the classes and
 // the time left, 取消匹配; its end in the original's banners (success with the mate's position, failure, cancelled).
+// 常规项目's header, the position panel and 互选模式's effect come and go with their clips and fades.
 // The page's curved billboard (a camera drawn onto a mesh) is not drawn.
 import { openPart, closePart, place, fillList, setSwitch, placeTopMenu, showInvert } from './lobbykit.js';
 import { MATCH, INVERSE, CLASS_NAMES } from '@icebreaker/mode-regular';
@@ -16,8 +17,10 @@ import { PAGES } from './lobbymap.js';
  */
 /**
  * The page and what it shows: the classes chosen, the position, 互选模式, whether the position panel is open, the
- * matching banner, the last drawn settings.
- * @typedef {{ p: Part, f: Record<string, any>, X: MatchCtx, chosen: Set<string>, pos: string, inverse: boolean, panel: boolean, matching: Part | null, shown: string }} Match
+ * matching banner, the last drawn settings; what is on the screen of the three that come and go with a clip or a fade
+ * (常规项目's header, the position panel, 互选模式's effect).
+ * @typedef {{ p: Part, f: Record<string, any>, X: MatchCtx, chosen: Set<string>, pos: string, inverse: boolean, panel: boolean, matching: Part | null, shown: string,
+ *   on: { header: boolean | null, panel: boolean, inverse: boolean } }} Match
  */
 
 const QM = '@view_ui/canvas_ui/state_root/quick_match_state';
@@ -43,10 +46,23 @@ function fillClass(item, name, on, locked) {
   item.show(f.starCountPartGO, false);
 }
 
+/**
+ * 常规项目's header while one of its classes is chosen: it slides in with its clip, and back out (页面-6); at once on the
+ * page's first drawing. @param {Match} M @param {Part} item @param {boolean} on
+ */
+function header(M, item, on) {
+  const at = '@normal_part/header', was = M.on.header;
+  M.on.header = on;
+  if (was === null || was === on) { item.show(at, on); return; }
+  const a = item.view().animSwitch;
+  if (on) { item.show(at, true); void item.anim(a); return; }
+  void item.play(a?.animationWrapper ?? at, a?.animationName ?? 'mode_group_item_switch', { reverse: true }).then(() => { if (!M.on.header) item.show(at, false); });
+}
+
 /** 常规项目's card: its classes, each a tap to choose. @param {Match} M @param {Part} item */
 function normalCard(M, item) {
   const v = item.view(), open = new Set(M.X.classes().map((c) => c.class)), names = new Map(M.X.classes().map((c) => [c.class, c.name]));
-  item.show('@normal_part/header', [...M.chosen].some((c) => open.has(c)));
+  header(M, item, [...M.chosen].some((c) => open.has(c)));
   for (const d of v.diffItemContainers ?? []) {
     const cls = classOf(d.diffType);
     item.show(d.trackGO, false);
@@ -81,7 +97,7 @@ function positions(M) {
   M.p.text(f.textCurrMatchPos, cur?.name ?? '');
   // the positions' icons come from an atlas the pack does not carry: not shown
   M.p.show(f.imgCurrMatchIcon, false);
-  M.p.show(f.matchPosListPanel, M.panel);
+  positionPanel(M);
   M.p.show(f.matchPosDescGO, !!cur?.desc);
   M.p.text(f.textPosDesc, cur?.desc ?? '');
   if (!M.panel) return;
@@ -101,6 +117,36 @@ function positions(M) {
       draw(M);
     });
   });
+}
+
+/**
+ * The position panel opening or closing (页面-6): it fades over the controller's time while the position button fades
+ * the other way with its switch clip.
+ * @param {Match} M
+ */
+function positionPanel(M) {
+  const f = M.f;
+  if (M.on.panel === M.panel) { M.p.show(f.matchPosListPanel, M.panel); return; }
+  M.on.panel = M.panel;
+  void M.p.fade(f.matchPosListPanel, M.panel, f.posPanelFadeDuration ?? 0);
+  const a = f.animBtnSelectPosSwitch;
+  if (a?.animationName) void M.p.play(a.animationWrapper ?? f.btnMatchPosGO, a.animationName, { reverse: M.panel });
+}
+
+/**
+ * 互选模式's effect (页面-6): turned on it fades in and plays its entry clip; turned off it fades out. @param {Match} M
+ */
+function inverseEffect(M) {
+  const f = M.f;
+  if (M.on.inverse === M.inverse) { showInvert(M.p, f.inverseEffectHandler, M.inverse); return; }
+  M.on.inverse = M.inverse;
+  if (M.inverse) {
+    showInvert(M.p, f.inverseEffectHandler, true);
+    void M.p.fade(f.inverseEffectHandler, true, f.inverseEffectFadeDuration ?? 0);
+    void M.p.anim(f.animInverseModeEnter);
+    return;
+  }
+  void M.p.fade(f.inverseEffectHandler, false, f.inverseEffectFadeDuration ?? 0).then(() => { if (!M.inverse) showInvert(M.p, f.inverseEffectHandler, false); });
 }
 
 /** The matching banner while looking (its classes, its cancel), placed once. @param {Match} M */
@@ -129,7 +175,7 @@ function draw(M) {
     M.shown = key;
     modes(M);
     positions(M);
-    showInvert(M.p, M.f.inverseEffectHandler, M.inverse);
+    inverseEffect(M);
     M.p.show(M.f.btnStartNormalGO, M.chosen.size > 0);
     M.p.show(M.f.btnStartDisableGO, M.chosen.size === 0);
   }
@@ -172,7 +218,8 @@ function wire(M) {
 export function createMatch(ui, X) {
   const p = openPart(ui, PAGES.match), f = p.view(QM);
   /** @type {Match} */
-  const M = { p, f, X, chosen: new Set(MATCH.classes.filter((c) => c.first).map((c) => c.class)), pos: MATCH.positions[0]?.id ?? 'NORMAL', inverse: false, panel: false, matching: null, shown: '' };
+  const M = { p, f, X, chosen: new Set(MATCH.classes.filter((c) => c.first).map((c) => c.class)), pos: MATCH.positions[0]?.id ?? 'NORMAL', inverse: false, panel: false, matching: null, shown: '',
+    on: { header: null, panel: false, inverse: false } };
   // the curved billboard is a camera drawn onto a mesh: not drawn here
   for (const r of f.billboardMeshImages ?? []) p.show(r, false);
   p.show('@view_billboard', false);

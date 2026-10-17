@@ -79,7 +79,35 @@ export class Part {
 
   /** Plays a clip the pack's controller data names ({ animationWrapper, animationName }). @param {{ animationWrapper?: string, animationName?: string } | undefined} a */
   anim(a) { return a?.animationName ? this.play(a.animationWrapper ?? '@', a.animationName) : Promise.resolve(); }
+
+  /**
+   * Fades a node in or out over a controller's fade time (页面-6): fading in it shows at once from transparent, fading
+   * out it is hidden at the end; its own opacity is kept. Resolves when done; a later fade of the node replaces this one.
+   * @param {string} r @param {boolean} on @param {number} seconds
+   */
+  fade(r, on, seconds) {
+    const s = this.node(r);
+    if (!s) return Promise.resolve();
+    const own = s.n.comps.group?.alpha ?? 1, from = on ? 0 : s.active ? s.alpha : 0, token = {};
+    fading.set(s, token);
+    if (on) { s.active = true; s.alpha = 0; }
+    const t0 = performance.now(), ms = Math.max(0, seconds) * 1000;
+    return new Promise((done) => {
+      const step = () => {
+        if (fading.get(s) !== token || this.scr.dead) { done(undefined); return; }
+        const k = ms > 0 ? Math.min(1, (performance.now() - t0) / ms) : 1;
+        s.alpha = from + ((on ? own : 0) - from) * k;
+        if (k < 1) { requestAnimationFrame(step); return; }
+        if (!on) { s.active = false; s.alpha = own; }
+        done(undefined);
+      };
+      step();
+    });
+  }
 }
+
+/** The fade under way on each node (the latest wins). @type {WeakMap<UiNode, object>} */
+const fading = new WeakMap();
 
 /**
  * A newly made prefab instance as the page shows it: the invert-mode effects it ships switched on are hidden until the

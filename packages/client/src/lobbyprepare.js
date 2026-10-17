@@ -276,20 +276,27 @@ function player(s, g, v, i, X) {
   return on;
 }
 
+/** How long a banner stays between its clips, in ms. */
+const BANNER_STAYS_MS = 900;
+
 /**
  * The banner of a new phase (页面-6): first or second pick, no coordination needed, the lineup; it comes in, stays a
- * moment, goes.
+ * moment, goes. No coordination needed switches on to the lineup with its switch clip before it goes (INF-0027).
  * @param {Part} page @param {'first' | 'second' | 'skip' | 'lineup'} kind
  */
 async function banner(page, kind) {
-  const f = page.view(`${MAIN}/banner_view`), b = `${MAIN}/banner_view`;
+  const f = page.view(`${MAIN}/banner_view`), b = `${MAIN}/banner_view`, stay = () => new Promise((done) => { setTimeout(done, BANNER_STAYS_MS); });
   page.show(b, true);
   setSwitch(page, f.blackToggle, kind === 'second');
   page.show(f.firstNode, kind === 'first');
   page.show(f.noCharPickNode, kind === 'skip');
   page.show(f.squadNode, kind === 'lineup');
   await page.anim(f.animIn);
-  await new Promise((done) => { setTimeout(done, 900); });
+  await stay();
+  if (kind === 'skip' && f.animSwitch?.animationName) {
+    await page.anim(f.animSwitch);
+    await stay();
+  }
   await page.anim(f.animOut);
   page.show(b, false);
 }

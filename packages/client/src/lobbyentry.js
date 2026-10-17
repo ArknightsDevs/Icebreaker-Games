@@ -1,8 +1,8 @@
 // The activity's entry page (docs/spec/page.md 页面-6, engine ADR 0063): 组队参加 opens its room panel, where 发起！
 // makes a room and 加入！ joins one by its code (the invitation text pasted whole works too, 房间-1); 编队 opens the
-// squad page; 快速匹配 opens the quick match page (房间-9); the room panel's 训练场 the training room page (房间-11). The
-// entries of systems the platform does not have — the manual, milestones, rewards, medals, invitations, the guide
-// book — are hidden, not left as dead ends.
+// squad page; 快速匹配 opens the quick match page (房间-9) once the main panel has given way; the room panel's 训练场 the
+// training room page (房间-11). The entries of systems the platform does not have — the manual, milestones, rewards,
+// medals, invitations, the guide book — are hidden, not left as dead ends.
 import { openPart, closePart, inputOn, placeBottomBar, placeTopMenu, seasonLogo } from './lobbykit.js';
 import { startScene3d } from './lobby3d.js';
 import { PAGES } from './lobbymap.js';
@@ -35,6 +35,20 @@ const TITLE = '@view_ui/canvas_ui/canvas_group/panel_entry_anim', TITLE_END = 2.
 const COVER = [46 / 255, 178 / 255, 167 / 255, 1], TITLE_WAIT_MS = 6000;
 /** Whether this page load has played the title: it plays on the first entry only, a later one starts after it. */
 let titled = false;
+
+/**
+ * 快速匹配 (页面-6): the main panel gives way with its clip — the camera comes in, the panels fade under the cover —,
+ * then the match page opens; not while the page is busy or on its room panel.
+ * @param {import('./lobbykit.js').Part} p @param {Record<string, any>} f @param {EntryActions} A @param {() => boolean} held
+ */
+function wireMatch(p, f, A, held) {
+  let going = false;
+  p.tap(`${ENTRY}/panel_main/panel_match/btn_match/hotspot`, () => {
+    if (going || held()) return;
+    going = true;
+    void p.anim(f.animMainToMatch).then(() => { going = false; if (!p.scr.dead) A.match(); });
+  });
+}
 
 /**
  * The entry page on the lobby UI.
@@ -82,7 +96,7 @@ export function createEntry(ui, A) {
   if (menu) menu.root.active = false;
   p.tap(`${ENTRY}/panel_main/panel_match/btn_team_up/hotspot`, () => { void toRoom(true); });
   p.tap(`${ENTRY}/panel_main/panel_left/btn_formation/hotspot`, A.squad);
-  p.tap(`${ENTRY}/panel_main/panel_match/btn_match/hotspot`, A.match);
+  wireMatch(p, f, A, () => busy || room);
   p.tap(`${ENTRY}/panel_room/btn_train/hotspot`, A.train);
   p.tap(`${ENTRY}/panel_room/panel_right/btn_strat_room/hotspot`, A.create);
   p.tap(`${ENTRY}/panel_room/panel_right/btn_join_room/btn_search_room/panel_enable/hotspot`, () => join(code?.value() ?? ''));

@@ -54,6 +54,11 @@ describe('phones', { skip: HAS_UI ? false : 'no UI packs in AUE_ASSETS_DIR' }, (
       assert.ok(found, 'a tile the operator fits');
       const t = { row: found.row, col: found.col, h: found.x.height === 'HIGHLAND' ? 1 : 0 };
       await until('cost for it', () => (stack.room.host.world.players[0].cost > d.cost ? true : undefined), 40000);
+      // the page's own view of the cost (it follows the server's a little later), and the stage's banner over the field
+      // gone (it takes a drop while it plays, the engine's 界面-22)
+      await until('the page has the cost', async () => ((await page.evaluate(() => /** @type {any} */ (globalThis).__battle.cost?.().ui ?? 0)) > d.cost ? true : undefined), 20000);
+      const banner = page.locator('.aue-n[data-name="container_conventional_mode"]');
+      await until('the stage banner gone', async () => ((await banner.count()) === 0 || !(await banner.first().isVisible()) ? true : undefined), 15000);
       const at = (/** @type {number} */ col, /** @type {number} */ row) => page.evaluate(([x, y, h]) => /** @type {number[]} */ (/** @type {any} */ (globalThis).__battle.pageOf(x, y, h)), [col, row, t.h])
         .then((p) => onScreen(p, w));
       const cards = page.locator('.aue-n[data-name="card_character"] .aue-n[data-name="image_underframe"]');

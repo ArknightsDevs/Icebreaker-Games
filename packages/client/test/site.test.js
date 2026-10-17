@@ -3,7 +3,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { assetsUrl, siteUrl, socketUrl } from '../src/site.js';
+import { assetsUrl, codeVersion, kitsUrl, moduleUrl, siteUrl, socketUrl } from '../src/site.js';
+import { bootCounter, bootDone, bootFail, bootStep } from '../src/boot.js';
 
 test('[站点-1] site URLs and socket URLs follow the page, under a prefix or at the root', () => {
   for (const prefix of ['', '/icebreaker']) {
@@ -32,4 +33,34 @@ test('[站点-1] no page source, page or style sheet names a path from the root'
       assert.equal(hit, null, `${sub}${f} has ${hit?.[0]}`);
     }
   }
+});
+
+test('[站点-4] the Worker and the kits under the version the modules of the page were loaded with; none without one', () => {
+  const page = 'https://x.test/icebreaker/play?seat=0', mod = 'https://x.test/icebreaker/m/~0123456789ab/@icebreaker/client/src/main.js';
+  assert.equal(codeVersion(mod), '~0123456789ab');
+  assert.equal(moduleUrl('@aue/worker/src/worker.js', mod, page).href, 'https://x.test/icebreaker/m/~0123456789ab/@aue/worker/src/worker.js');
+  assert.equal(kitsUrl(mod, page).href, 'https://x.test/icebreaker/k/~0123456789ab/');
+  const bare = 'https://x.test/icebreaker/m/@icebreaker/client/src/main.js';
+  assert.equal(codeVersion(bare), '');
+  assert.equal(moduleUrl('@aue/worker/src/worker.js', bare, page).href, 'https://x.test/icebreaker/m/@aue/worker/src/worker.js');
+  assert.equal(kitsUrl(bare, page).href, 'https://x.test/icebreaker/k/');
+});
+
+test('[页面-8] the page tells the loading screen its steps, a share spread over loads, the hand-over and a failure; nothing without it', () => {
+  /** @type {any[]} */
+  const heard = [];
+  const g = /** @type {any} */ (globalThis);
+  g.__boot = { up: true, step: (/** @type {string} */ w, /** @type {number} */ a) => heard.push([w, a]), done: () => heard.push('done'), fail: (/** @type {string} */ w) => heard.push(['fail', w]) };
+  try {
+    bootStep('正在连接对局', 0.52);
+    const one = bootCounter('正在载入', 0.5, 0.9, 4);
+    one(); one();
+    bootFail('载入失败');
+    bootDone();
+    assert.deepEqual(heard, [['正在连接对局', 0.52], ['正在载入', 0.5], ['正在载入', 0.6], ['正在载入', 0.7], ['fail', '载入失败'], 'done']);
+    g.__boot.up = false;
+    bootStep('x', 1);
+    assert.equal(heard.length, 6, 'the screen gone: nothing more');
+  } finally { delete g.__boot; }
+  bootDone();
 });

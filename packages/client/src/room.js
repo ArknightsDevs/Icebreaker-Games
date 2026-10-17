@@ -5,6 +5,7 @@
 // lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
 import { ROSTER, LEVELS, loadTraining } from '@aue/content';
 import { squadProblem, MODE, EMOTES, MATCH } from '@icebreaker/mode-regular';
+import { bootDone } from './boot.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf, profileOf, newTag } from './save.js';
 import { createBoxView } from './boxview.js';
@@ -162,6 +163,8 @@ async function lobbyMode() {
     setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
     backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }),
   }).catch((e) => { console.error(e); return null; });
+  // the lobby's entry screen, or the page's own room without the lobby pack, takes over from the loading screen (页面-8)
+  bootDone();
   if (!lobby) return;
   document.body.classList.add('lobby-on');
   $('lobby').hidden = false;
@@ -189,8 +192,9 @@ function onStart(m) {
   writeStarted(S.started);
   // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6); a training's its level's
   const lv = training ? /** @type {any} */ (LEVELS[training]).level : null;
-  const pr = lv ? { code: lv.code, name: lv.name } : S.view ? S.lobby?.projects[S.view.project] : null;
-  try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name })); } catch { /* the battle page waits for the match */ }
+  const pr = lv ? { code: lv.code, name: lv.name, level: training } : S.view ? S.lobby?.projects[S.view.project] : null;
+  // its level too: the loading screen's picture is the mode's (页面-8)
+  try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name, level: pr.level })); } catch { /* the battle page waits for the match */ }
   const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
   // with the lobby screens the countdown and the start play first (页面-6)
   void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));

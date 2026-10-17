@@ -12,6 +12,7 @@ import { KIT_SOURCE, loadKits, mappedUrl } from '@aue/content';
 import { isRejection, locateFile, rawPathname, splitPath } from './paths.js';
 import { allowReadOnly, etagOf, sendBody, sendRejection, sendText } from './respond.js';
 import { relativeUrl } from './rewrite.js';
+import { IMMUTABLE } from './assets.js';
 
 await init;
 
@@ -34,55 +35,62 @@ export function kitDir(rootDir) {
 
 /**
  * A content file's source with its imports of Stronghold engine modules pointed at the engine's compat modules under
- * /m/, relative to the file's own URL (站点-1); imports of other content files stay as they are.
- * @param {string} source @param {string} rel the file's path from the commit's root
+ * /m/, relative to the file's own URL (站点-1); imports of other content files stay as they are. Under a version of the
+ * code (/k/~<version>/, 站点-4) the compat modules are those under /m/~<version>/, the ones the page's modules import.
+ * @param {string} source @param {string} rel the file's path from the commit's root @param {string | null} [version]
  */
-export function rewriteKitImports(source, rel) {
-  const [imports] = parse(source);
-  const root = `${ORIGIN}${KIT_PREFIX}`, compat = `${ORIGIN}/m/@aue/content/src/compat/`;
+export function rewriteKitImports(source, rel, version = null) {
+  const [imports] = parse(source), at = version ? `~${version}/` : '';
+  const prefix = `${KIT_PREFIX}${at}`, root = `${ORIGIN}${prefix}`, compat = `${ORIGIN}/m/${at}@aue/content/src/compat/`;
   let out = source;
   for (const imp of [...imports].reverse()) {
     const spec = imp.specifier;
     if (typeof spec !== 'string' || !(spec.startsWith('./') || spec.startsWith('../'))) continue;
     const to = mappedUrl(root, new URL(spec, root + rel).href, compat);
     if (to === null) continue;
-    const path = relativeUrl(KIT_PREFIX + rel, to.slice(ORIGIN.length));
+    const path = relativeUrl(prefix + rel, to.slice(ORIGIN.length));
     out = out.slice(0, imp.start) + (imp.type === 'dynamic' ? JSON.stringify(path) : path) + out.slice(imp.end);
   }
   return out;
 }
 
 /**
- * The /k/ route: the pinned commit's content files, rewritten (cached by file while its mtime holds).
+ * The /k/ route: the pinned commit's content files, rewritten (cached by file and version while its mtime holds);
+ * /k/~<version>/ under a version of the code (站点-4), kept for a year when it is today's.
  * @param {string | null} dir the pinned commit, or null: every /k/ request is 404
+ * @param {() => string} [version] the code's version
  * @returns {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => boolean}
  */
-export function createKitHandler(dir) {
+export function createKitHandler(dir, version = () => '') {
   /** @type {Map<string, { mtimeMs: number, body: Buffer, etag: string }>} */
   const cache = new Map();
-  const prefix = KIT_PREFIX + CONTENT;
   return (req, res) => {
-    const path = rawPathname(req.url);
-    if (!path.startsWith(KIT_PREFIX)) return false;
-    if (dir === null || !path.startsWith(prefix)) { sendText(res, 404, 'not found'); return true; }
-    serve(req, res, path.slice(prefix.length)).catch(() => sendText(res, 500, 'internal error'));
+    const raw = rawPathname(req.url);
+    if (!raw.startsWith(KIT_PREFIX)) return false;
+    const m = /^\/k\/~([0-9a-f]{1,32})\//.exec(raw), v = m ? m[1] : null, path = m ? KIT_PREFIX + raw.slice(m[0].length) : raw;
+    if (dir === null || !path.startsWith(KIT_PREFIX + CONTENT)) { sendText(res, 404, 'not found'); return true; }
+    serve(req, res, path.slice(KIT_PREFIX.length + CONTENT.length), v).catch(() => sendText(res, 500, 'internal error'));
     return true;
   };
 
-  /** @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res @param {string} rest */
-  async function serve(req, res, rest) {
+  /**
+   * @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res @param {string} rest
+   * @param {string | null} v the version in the URL
+   */
+  async function serve(req, res, rest, v) {
     if (!allowReadOnly(req, res)) return;
     const segments = splitPath(rest);
     if (isRejection(segments)) return sendRejection(res, segments);
     const found = await locateFile(join(/** @type {string} */ (dir), CONTENT), segments, JS);
     if (isRejection(found)) return sendRejection(res, found);
-    let hit = cache.get(found.file);
+    const key = `${v ?? ''}:${found.file}`;
+    let hit = cache.get(key);
     if (hit?.mtimeMs !== found.mtimeMs) {
-      const body = Buffer.from(rewriteKitImports(await readFile(found.file, 'utf8'), CONTENT + segments.join('/')));
+      const body = Buffer.from(rewriteKitImports(await readFile(found.file, 'utf8'), CONTENT + segments.join('/'), v));
       hit = { mtimeMs: found.mtimeMs, body, etag: etagOf(body) };
-      cache.set(found.file, hit);
+      cache.set(key, hit);
     }
-    sendBody(req, res, { body: hit.body, type: found.type, etag: hit.etag });
+    sendBody(req, res, { body: hit.body, type: found.type, etag: hit.etag, ...(v !== null && v === version() ? { cache: IMMUTABLE } : {}) });
   }
 }
 

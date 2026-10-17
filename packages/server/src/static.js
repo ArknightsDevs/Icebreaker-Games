@@ -40,16 +40,19 @@ export const STATIC_TYPES = new Map([
  * @param {import('node:http').ServerResponse} res
  * @param {string} file
  * @param {string} type
- * @param {(text: string) => string} [edit]
+ * @param {(text: string) => string | Promise<string>} [edit]
  */
 export async function serveFixedFile(req, res, file, type, edit) {
   if (!allowReadOnly(req, res)) return;
+  /** @type {Buffer} */
+  let raw;
   try {
-    const raw = await readFile(file);
-    sendBody(req, res, { body: edit ? Buffer.from(edit(raw.toString('utf8'))) : raw, type });
+    raw = await readFile(file);
   } catch {
     sendText(res, 404, 'not found');
+    return;
   }
+  sendBody(req, res, { body: edit ? Buffer.from(await edit(raw.toString('utf8'))) : raw, type });
 }
 
 /**

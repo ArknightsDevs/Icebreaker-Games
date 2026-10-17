@@ -1,5 +1,7 @@
-// Response helpers shared by the module and static handlers: strong ETag, 304, HEAD, and the fixed headers.
+// Response helpers shared by the module and static handlers: strong ETag, 304, HEAD, the fixed headers, and text
+// compressed for clients that accept it (docs/spec/site.md 站点-4).
 import { createHash } from 'node:crypto';
+import { brotliCompress, constants as zlib, gzip } from 'node:zlib';
 
 /** @param {Buffer | string} body @returns {string} a strong ETag */
 export function etagOf(body) {
@@ -52,16 +54,60 @@ function matches(header, etag) {
  * @param {{ body: Buffer, type: string, etag?: string, cache?: string }} o `cache`: the Cache-Control (default no-cache)
  */
 export function sendBody(req, res, o) {
-  const etag = o.etag ?? etagOf(o.body);
+  const etag = o.etag ?? etagOf(o.body), coding = req.method === 'GET' && compressible(o.type, o.body.length) ? codingOf(req) : null;
+  const tag = coding ? `${etag.slice(0, -1)}-${coding}"` : etag;
   /** @type {import('node:http').OutgoingHttpHeaders} */
-  const headers = { ETag: etag, 'Cache-Control': o.cache ?? 'no-cache', 'X-Content-Type-Options': 'nosniff' };
-  if (matches(req.headers['if-none-match'], etag)) {
+  const headers = { ETag: tag, 'Cache-Control': o.cache ?? 'no-cache', 'X-Content-Type-Options': 'nosniff' };
+  if (compressible(o.type, o.body.length)) headers['Vary'] = 'Accept-Encoding';
+  if (matches(req.headers['if-none-match'], tag) || matches(req.headers['if-none-match'], etag)) {
     res.writeHead(304, headers);
     res.end();
     return;
   }
   headers['Content-Type'] = o.type;
-  headers['Content-Length'] = o.body.length;
-  res.writeHead(200, headers);
-  res.end(req.method === 'HEAD' ? undefined : o.body);
+  if (!coding) {
+    headers['Content-Length'] = o.body.length;
+    res.writeHead(200, headers);
+    res.end(req.method === 'HEAD' ? undefined : o.body);
+    return;
+  }
+  packedBody(o.body, etag, coding).then((body) => {
+    if (res.destroyed) return;
+    res.writeHead(200, { ...headers, 'Content-Encoding': coding, 'Content-Length': body.length });
+    res.end(body);
+  }, () => { if (!res.headersSent) { res.writeHead(200, { ...headers, 'Content-Length': o.body.length }); res.end(o.body); } });
+}
+
+/** Whether a response is worth compressing (站点-4): text, JSON, JavaScript, SVG of 1 KiB or more. @param {string} type @param {number} size */
+const compressible = (type, size) => size >= 1024 && /^(text\/|application\/(json|javascript)|image\/svg\+xml)/.test(type);
+
+/** The coding a request accepts, brotli before gzip; none. @param {import('node:http').IncomingMessage} req @returns {'br' | 'gzip' | null} */
+function codingOf(req) {
+  const a = String(req.headers['accept-encoding'] ?? '');
+  return /(^|[\s,])br([\s;,]|$)/.test(a) ? 'br' : /(^|[\s,])gzip([\s;,]|$)/.test(a) ? 'gzip' : null;
+}
+
+/** Compressed bodies by coding and ETag, the oldest dropped past PACKED_MAX bytes. @type {Map<string, Promise<Buffer>>} */
+const packed = new Map(), sizes = new Map();
+const PACKED_MAX = 256 * 1024 * 1024;
+let packedBytes = 0;
+
+/**
+ * A body compressed (brotli at quality 5, or gzip), off the event loop, kept for the next request of the same ETag.
+ * @param {Buffer} body @param {string} etag @param {'br' | 'gzip'} coding @returns {Promise<Buffer>}
+ */
+function packedBody(body, etag, coding) {
+  const key = `${coding}${etag}`, hit = packed.get(key);
+  if (hit) return hit;
+  const p = new Promise((done, fail) => {
+    const cb = (/** @type {Error | null} */ err, /** @type {Buffer} */ out) => (err ? fail(err) : done(out));
+    if (coding === 'br') brotliCompress(body, { params: { [zlib.BROTLI_PARAM_QUALITY]: 5, [zlib.BROTLI_PARAM_SIZE_HINT]: body.length } }, cb);
+    else gzip(body, { level: 6 }, cb);
+  });
+  packed.set(key, /** @type {Promise<Buffer>} */ (p));
+  p.then((out) => {
+    sizes.set(key, /** @type {Buffer} */ (out).length); packedBytes += /** @type {Buffer} */ (out).length;
+    for (const [k] of packed) { if (packedBytes <= PACKED_MAX) break; packedBytes -= sizes.get(k) ?? 0; sizes.delete(k); packed.delete(k); }
+  }, () => packed.delete(key));
+  return /** @type {Promise<Buffer>} */ (p);
 }

@@ -4,6 +4,7 @@
 // in its confirm dialog. The page logic stays the platform's room flow; without the pack (or with ?html) the page's
 // own HTML room stays.
 import { createUi } from '@aue/ui';
+import { bootCounter, bootStep } from './boot.js';
 import { ROSTER, loadTraining } from '@aue/content';
 import { STYLES, TOASTS, TRAINING_LEVELS } from '@icebreaker/mode-regular';
 import { openPart, closePart, setSwitch, SEASON, PAGE_SCREENS } from './lobbykit.js';
@@ -94,8 +95,10 @@ function addArt(pack, season) {
  */
 export async function startLobby(el, H) {
   if (new URLSearchParams(location.search).has('html')) return null;
+  bootStep('正在载入大厅界面', 0.32);
   const pack = await fetchJson(new URL('lobby.json', UI));
   if (!pack?.screens) return null;
+  bootStep('正在载入大厅界面', 0.45);
   const [battle, manifest, skills, atlas, portraits, equips, illusts, season, emoticons] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
     fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS)),
     fetchJson(new URL('uniequip/index.json', ASSETS)), fetchJson(new URL('charillust/index.json', ASSETS)), fetchJson(new URL('season/index.json', ASSETS)),
@@ -103,7 +106,7 @@ export async function startLobby(el, H) {
   addArt(pack, season);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
-  await ui.load();
+  await ui.load(bootCounter('正在载入大厅界面', 0.55, 0.97, Object.keys(pack.sprites).length));
   // the screens' particle effects, when the assets have them (页面-6)
   const effects = startLobbyFx(ui, UI).catch(() => null);
   const emotes = emoticons?.themes ? { base: new URL('emoticons/', UI).href, index: emoticons } : null;

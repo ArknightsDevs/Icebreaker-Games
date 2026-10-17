@@ -15,6 +15,7 @@
     "@aue/content": "workspace:*",
     "@aue/math": "workspace:*",
     "@aue/net": "workspace:*",
+    "@aue/render": "workspace:*",
     "@aue/schema": "workspace:*",
     "@icebreaker/mode-regular": "workspace:*",
     "es-module-lexer": "3.0.3",

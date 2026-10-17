@@ -7,7 +7,7 @@
 // (spine/index.json), else cards; the map is built from the level's tile kit (kits/index.json), else flat tiles. The
 // player's picture settings (settings.js, 页面-1) shape the drawing only.
 import { startBattle } from '@aue/worker';
-import { createBattleRenderer, loadTextures, loadSpineModels, loadDeviceMeshes, loadTileKit, loadEffectPack, createBattleAudio, leaderOf } from '@aue/render';
+import { createBattleRenderer, loadTextures, matchTextureKeys, loadSpineModels, loadDeviceMeshes, loadTileKit, loadEffectPack, createBattleAudio, leaderOf } from '@aue/render';
 import { matchContent } from '@aue/content';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
@@ -19,7 +19,8 @@ import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { controlSounds } from './sound.js';
-import { assetsUrl, siteUrl, socketUrl } from './site.js';
+import { assetsUrl, kitsUrl, moduleUrl, socketUrl } from './site.js';
+import { bootCounter, bootDone, bootFail, bootStep } from './boot.js';
 import { createTutorial } from './tutorial.js';
 import { createSignals, loadEmoteArt } from './battlesignals.js';
 import { startTurn } from './turn.js';
@@ -62,13 +63,19 @@ function drawHud(view, net, match) {
   }
 }
 
-/** The local assets: their manifest and textures, or null (and a notice) when the host has none. */
+/**
+ * The local assets: their manifest, or null (and a notice) when the host has none; the textures come with the match
+ * (fieldArt: only the match's, the engine's 渲染-23).
+ */
 async function assets() {
   const res = await fetch(new URL('manifest.json', ASSETS)).catch(() => null);
   if (!res?.ok) { notice('没有找到本地素材（主机需要设置 AUE_ASSETS_DIR）。没有贴图的东西不显示，所以战场不绘制，对局照常进行。'); return null; }
-  const manifest = await res.json();
-  return { manifest, textures: await loadTextures(manifest, ASSETS.href) };
+  return { manifest: /** @type {{ files: Record<string, { file: string }> }} */ (await res.json()) };
 }
+
+/** The content keys of a match's units: operators by character ID, enemies and devices by key. @param {any} content */
+const unitKeysOf = (content) => ({ operators: Object.entries(content.operators).map(([k, o]) => /** @type {any} */ (o).char ?? k.split('#')[0]),
+  enemies: Object.keys(content.enemies), devices: Object.keys(content.devices ?? {}) });
 
 /**
  * The Spine models of a match's operators, enemies and level devices the assets have; none without a model index.
@@ -98,9 +105,14 @@ async function tileKit(level) {
 /** Each deck operator's skill (1-based) by its character, for its skill's own effects (the engine's 渲染-11). @param {import('@aue/schema').Match} match */
 const skillSlots = (match) => Object.fromEntries((match.decks ?? []).flat().filter((d) => d.build.skill >= 0).map((d) => [d.id.split('#')[0], d.build.skill + 1]));
 
-/** The units' attack effects (the engine's 渲染-10), or null when the assets have none. */
-async function effectPack() {
-  const res = await fetch(new URL('fx/units.json', ASSETS)).catch(() => null);
+/**
+ * The attack effects of a match's units (the engine's 渲染-10): the host's pack cut down to them (站点-5), or null when
+ * the assets have none. @param {string[]} units
+ */
+async function effectPack(units) {
+  const url = new URL('fx/units.json', ASSETS);
+  url.searchParams.set('for', [...new Set(units)].sort().join(','));
+  const res = await fetch(url).catch(() => null);
   return res?.ok ? loadEffectPack(await res.json()) : null;
 }
 
@@ -116,8 +128,7 @@ async function setUp(match, art, changed, joined, opening) {
   const content = await matchContent(match);
   // the original UI opens first: its start panel is the loading screen while the field, the models and the effects load
   // (opened already when the room page left the stage for it)
-  const early = opening ?? earlyUi(art, stageOf(match, content, joined));
-  const { models, meshes, kit, effects } = await fieldArt(art, match, content);
+  const early = opening ?? earlyUi(art, stageOf(match, content, joined)), artOf = fieldArt(art, match, content);
   const enemies = /** @type {Record<string, { levelType?: string, motion?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
   // the flying enemies, drawn in the air (the engine's 渲染-21)
@@ -127,7 +138,8 @@ async function setUp(match, art, changed, joined, opening) {
   const foeDevices = new Set(Object.entries(devices).filter(([, d]) => d.side === 'ENEMY').map(([k]) => k));
   // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
   const opened = await early, pack = opened?.loaded ?? null;
-  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, foeDevices,
+  const { models, meshes, kit, effects, textures } = await artOf;
+  const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures, view: content.level.view, models, leaders, foeDevices,
     kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes, flyers }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
@@ -139,12 +151,17 @@ async function setUp(match, art, changed, joined, opening) {
 }
 
 /**
- * What the field draws with from the assets: the units' Spine models, the devices' meshes, the map theme's kit, the
- * attack effects; none without the assets. @param {Awaited<ReturnType<typeof assets>>} art @param {import('@aue/schema').Match} match @param {any} content
+ * What the field draws with from the assets, loaded at once: the match's textures (the engine's 渲染-23), the units'
+ * Spine models, the devices' meshes, the map theme's kit, the units' attack effects; none without the assets.
+ * @param {Awaited<ReturnType<typeof assets>>} art @param {import('@aue/schema').Match} match @param {any} content
  */
 async function fieldArt(art, match, content) {
-  if (!art) return { models: new Map(), meshes: new Map(), kit: null, effects: null };
-  return { models: await spineModels(content), meshes: await deviceMeshes(content), kit: await tileKit(match.level), effects: await effectPack() };
+  if (!art) return { models: new Map(), meshes: new Map(), kit: null, effects: null, textures: new Map() };
+  const units = unitKeysOf(content), part = bootCounter('正在载入干员、敌人与赛场', 0.55, 0.98, 5);
+  const each = (/** @type {Promise<any>} */ p) => p.finally(part);
+  const [textures, models, meshes, kit, effects] = await Promise.all([each(loadTextures(art.manifest, ASSETS.href, matchTextureKeys(content.level, units))),
+    each(spineModels(content)), each(deviceMeshes(content)), each(tileKit(match.level)), each(effectPack([...units.operators, ...units.enemies, ...units.devices]))]);
+  return { models, meshes, kit, effects, textures };
 }
 
 /**
@@ -166,6 +183,7 @@ const earlyUi = (art, stage) => (art && !BARS ? openEarlyUi(stage) : Promise.res
  * @param {{ code: string, name: string } | null} stage
  */
 async function openEarlyUi(stage) {
+  bootStep('正在载入战斗界面', 0.32);
   const loaded = await loadUiPack(ASSETS);
   if (!loaded) return null;
   const ui = createUi({ pack: loaded.pack, host: $('ui'), base: new URL('ui/', ASSETS).href });
@@ -175,7 +193,9 @@ async function openEarlyUi(stage) {
   let at = performance.now(), on = true;
   const loop = (/** @type {number} */ now) => { if (!on) return; ui.tick(Math.min(0.1, (now - at) / 1000)); at = now; requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
-  await ui.load();
+  await ui.load(bootCounter('正在载入战斗界面', 0.35, 0.5, Object.keys(loaded.pack.sprites).length));
+  // the original's own loading screen, the start panel, takes over (the engine's 界面-21)
+  if (start) bootDone();
   return { loaded, ui, start, stop: () => { on = false; } };
 }
 
@@ -241,6 +261,7 @@ async function main() {
   // straight from the room: the loading screen opens before anything loads (页面-6, the engine's 界面-21)
   const loading = BARS ? null : takeLoading(), opening = loading ? openEarlyUi(loading) : null;
   const art = await assets();
+  bootStep('正在连接对局', 0.52);
   /** @type {Page} */
   const P = /** @type {any} */ ({ game: null, net: '连接中', costAsker: -1, players: 1, control: null, lastView: null, unitKeys: new Map(), pointer: null, hudNow: null, hand: null,
     requests: { answer: null, pauseSince: -1, now: 0 }, audio: null, music: false, stamps: [], tutorial: null, signals: null });
@@ -267,15 +288,19 @@ async function main() {
   const controls = createControls($('controls'), (a) => acts[a]?.());
   P.bar = () => controls({ control: P.control, costAsker: P.costAsker, seat, mate: P.players === 2 ? 1 - seat : -1 });
   P.battle = startBattle({
-    workerUrl: siteUrl('m/@aue/worker/src/worker.js'),
+    workerUrl: moduleUrl('@aue/worker/src/worker.js'),
     wsUrl: socketUrl(`battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`),
-    seat, key, kits: siteUrl('k/'),
+    seat, key, kits: kitsUrl(),
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
       P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
       // loaded: the server may begin the battle (the engine's 同步-11)
       if (s.state === 'match' && s.match && !P.game) {
-        setUp(s.match, art, () => P.mark(), s.frame ?? -1, opening).then((g) => { P.game = g; start(P, g); prepareVoices(P); P.battle.ready(); }, (e) => notice(`出错了：${e instanceof Error ? e.message : String(e)}`));
+        setUp(s.match, art, () => P.mark(), s.frame ?? -1, opening).then((g) => { P.game = g; start(P, g); bootDone(); prepareVoices(P); P.battle.ready(); }, (e) => {
+          const why = e instanceof Error ? e.message : String(e);
+          notice(`出错了：${why}`);
+          bootFail(`载入对局失败：${why}。刷新页面重试`);
+        });
       }
     },
     onControl: (c) => { for (const bank of controlSounds(P.control, c, seat)) void P.audio?.play(bank); P.control = c; P.bar(); },

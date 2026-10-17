@@ -20,3 +20,21 @@ export function socketUrl(path, page = location.href) {
 export function assetsUrl(doc = globalThis.document, page = location.href) {
   return siteUrl(doc?.querySelector('meta[name="ig-assets"]')?.getAttribute('content') || 'assets/skeleton/', page);
 }
+
+/**
+ * The code's version in a module URL (站点-4: /m/~<version>/…), e.g. "~0123456789ab"; '' when the module was loaded
+ * without one. @param {string} [url] a module's URL
+ */
+export const codeVersion = (url = import.meta.url) => /\/m\/(~[0-9a-f]{1,32})\//.exec(url)?.[1] ?? '';
+
+/**
+ * A module of the site under the same version as this one (站点-4), from its path under m/ ("@aue/worker/src/worker.js").
+ * @param {string} path @param {string} [url] a module's URL @param {string} [page]
+ */
+export function moduleUrl(path, url = import.meta.url, page = location.href) {
+  const v = codeVersion(url);
+  return siteUrl(`m/${v ? `${v}/` : ''}${path}`, page);
+}
+
+/** The pinned kits' base under the same version as the modules (站点-4). @param {string} [url] @param {string} [page] */
+export const kitsUrl = (url = import.meta.url, page = location.href) => { const v = codeVersion(url); return siteUrl(`k/${v ? `${v}/` : ''}`, page); };

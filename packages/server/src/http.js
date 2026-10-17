@@ -2,6 +2,7 @@
 // The pages: the battle at /play, the lobby and its rooms at /room (docs/spec/room.md), and one of them at / .
 import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { assetBase, assetVersion, createAssetHandler } from './assets.js';
 import { createModuleHandler } from './modules.js';
@@ -42,6 +43,32 @@ function staticHandlers(rootDir, assetsDir) {
 }
 
 /**
+ * A page as the server sends it (站点-4): its module scripts under the code's version, and before them a preload link
+ * for every module they import statically, so the browser asks for all of them at once instead of one import level
+ * after another.
+ * @param {string} html @param {ReturnType<typeof createModuleHandler>} modules
+ */
+async function pageWithModules(html, modules) {
+  const v = `~${modules.version()}/`, entries = [...html.matchAll(/<script type="module" src="m\/([^"]+)"><\/script>/g)].map((m) => `/m/${m[1]}`);
+  const graphs = await Promise.all(entries.map((e) => modules.graph(e)));
+  const links = [...new Set(graphs.flat())].filter((p) => p.endsWith('.js')).map((p) => `<link rel="modulepreload" href="m/${v}${p.slice(3)}">`);
+  return html.replace(/(<script type="module" src="m\/)/g, `$1${v}`).replace('</head>', `${links.join('\n')}\n</head>`);
+}
+
+/**
+ * A page with its loading screen's style and script written into it (站点-4, 页面-8), so the screen shows at the first
+ * paint without waiting for any other request; a page without them, as it is.
+ * @param {string} html @param {string} dir the pages' directory
+ */
+async function withBoot(html, dir) {
+  const [css, js] = await Promise.all(['boot.css', 'boot.js'].map((f) => readFile(join(dir, f), 'utf8').catch(() => null)));
+  let out = html;
+  if (css !== null) out = out.replace('<link rel="stylesheet" href="static/boot.css">', () => `<style>${css}</style>`);
+  if (js !== null && !js.includes('</script')) out = out.replace('<script src="static/boot.js"></script>', () => `<script>${js}</script>`);
+  return out;
+}
+
+/**
  * Creates the server without listening.
  * @param {HttpOptions} options
  * @returns {import('node:http').Server}
@@ -50,9 +77,10 @@ export function createHttpServer(options) {
   const { rootDir } = options;
   const browserPackages = options.browserPackages ?? ['@icebreaker/client'];
   const modules = createModuleHandler({ workspace: readWorkspace(rootDir, browserPackages), browserPackages });
-  const kits = createKitHandler(options.kitsDir === undefined ? kitDir(rootDir) : options.kitsDir);
+  const kits = createKitHandler(options.kitsDir === undefined ? kitDir(rootDir) : options.kitsDir, modules.version);
   const files = staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR']), handlers = [modules, kits, ...files.handlers];
-  const meta = ASSET_META.replace('assets/skeleton/', assetBase(files.version)), withBase = (/** @type {string} */ html) => html.replace(ASSET_META, meta);
+  const meta = ASSET_META.replace('assets/skeleton/', assetBase(files.version));
+  const withBase = async (/** @type {string} */ html) => pageWithModules(await withBoot(html.replace(ASSET_META, meta), publicDir(rootDir)), modules);
   const pages = { '/play': join(publicDir(rootDir), 'index.html'), '/room': join(publicDir(rootDir), 'room.html') };
   const home = pages[`/${options.home ?? 'play'}`];
 

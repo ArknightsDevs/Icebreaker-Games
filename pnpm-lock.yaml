@@ -224,6 +224,9 @@ importers:
       '@aue/net':
         specifier: workspace:*
         version: link:../../engine/packages/net
+      '@aue/render':
+        specifier: workspace:*
+        version: link:../../engine/packages/render
       '@aue/schema':
         specifier: workspace:*
         version: link:../../engine/packages/schema

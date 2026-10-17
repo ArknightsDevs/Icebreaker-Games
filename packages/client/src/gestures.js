@@ -5,7 +5,7 @@
 // tap on one of this seat's operators opens its menu: start its skill, retreat it; a tap elsewhere closes it. A card
 // taken or an operator's menu opened is the player choosing it (its voice: the engine's 音频-5).
 import { DIR } from '@aue/schema';
-import { dragFacing } from '@aue/ui';
+import { dragFacing, groundOffset } from '@aue/ui';
 import { ownUnitAt, menuSkill } from './battlehud.js';
 
 /** @typedef {{ row: number, col: number }} Tile */
@@ -98,19 +98,23 @@ export class Hand {
     this.place(t);
   }
 
-  /** The facing a pointer points to from where the aiming drag started. @param {PointerEvent} e */
-  facingAt(e) {
+  /**
+   * The aiming drag so far: its page vector from where it started, and a tile east and a tile north of the selector's
+   * centre as they lie on the page. @param {PointerEvent} e
+   */
+  aimDrag(e) {
     const t = /** @type {Tile} */ (this.tile), h = this.height(t), r = this.o.renderer, c = r.screenOf(t.col, t.row, h);
-    const east = r.screenOf(t.col + 1, t.row, h), north = r.screenOf(t.col, t.row + 1, h), ex = [east[0] - c[0], east[1] - c[1]];
-    const from = /** @type {number[]} */ (this.from);
-    return dragFacing([e.clientX - from[0], e.clientY - from[1]], ex, [north[0] - c[0], north[1] - c[1]], 0.4 * Math.hypot(ex[0], ex[1]));
+    const east = r.screenOf(t.col + 1, t.row, h), north = r.screenOf(t.col, t.row + 1, h), from = /** @type {number[]} */ (this.from);
+    return { d: [e.clientX - from[0], e.clientY - from[1]], ex: [east[0] - c[0], east[1] - c[1]], ny: [north[0] - c[0], north[1] - c[1]] };
   }
 
   /** @param {PointerEvent} e */
   move(e) {
     if (this.mode === 'drag') { const t = this.pick(e); this.mark(t, 0); this.place(t); return; }
     if (this.mode !== 'aim' || !this.from) return;
-    const f = this.facingAt(e);
+    // the drag handle follows the drag on the ground; the facing is where the drag goes furthest (the engine's 界面-13)
+    const a = this.aimDrag(e), f = dragFacing(a.d, a.ex, a.ny, 0.4 * Math.hypot(a.ex[0], a.ex[1]));
+    this.o.hud.direction.drag?.(groundOffset(a.d, a.ex, a.ny));
     if (f === this.facing) return;
     this.facing = f;
     this.o.hud.direction.point(f);
@@ -120,7 +124,7 @@ export class Hand {
 
   /** @param {PointerEvent} e */
   up(e) {
-    if (this.mode === 'aim') { if (this.from) { this.from = null; this.deploy(); } return; }
+    if (this.mode === 'aim') { this.letGo(); return; }
     if (this.mode === 'drag' && onUi(e)) { this.mode = 'pick'; return; }
     if (onUi(e)) return;
     const t = this.pick(e);
@@ -134,6 +138,14 @@ export class Hand {
     this.showMenu(u);
     const key = this.o.unitKey(u.id);
     if (key) this.o.focus?.(key);
+  }
+
+  /** The aiming drag let go: the drag handle back at the centre, the operator deployed facing the pointed facing. */
+  letGo() {
+    if (!this.from) return;
+    this.from = null;
+    this.o.hud.direction.drag?.(null);
+    this.deploy();
   }
 
   /** Deploys the selected operator facing the pointed facing. */

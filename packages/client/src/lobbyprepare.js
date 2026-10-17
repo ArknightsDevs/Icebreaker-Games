@@ -3,14 +3,15 @@
 // it (names, styles once shown, who has confirmed, 请离房间, the room's time left), the banner of a new phase, the
 // step views in its step container (项目确认 leaving with the entrance show), the countdown before the match, the
 // lost-connection view, the emotes (lobbychat.js, 房间-7).
-import { openPart, closePart, place, setSwitch, screenKey, placeAvatar } from './lobbykit.js';
-import { PLAYER_TITLE } from '@icebreaker/mode-regular';
+import { openPart, closePart, place, setSwitch, screenKey, placeAvatar, showInvert } from './lobbykit.js';
+import { PLAYER_TITLE, INVERSE } from '@icebreaker/mode-regular';
 import { PAGES, STEP_SCREENS, stepOf, countdownOf, bannerOf } from './lobbymap.js';
 import { createStage, createStageList, createConfirm, playEntrance, classIcon, openStageDialog } from './lobbystage.js';
 import { createPick } from './lobbypick.js';
 import { createLineup } from './lobbylineup.js';
 import { clock, pingText, cardName } from './roomtext.js';
 import { createChat } from './lobbychat.js';
+
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./lobbystage.js').StepCtx} StepCtx */
 
@@ -172,7 +173,6 @@ function createSteps(page, at, X, entered, cover) {
 function wireTop(t, f, X) {
   t.tap('@bkg/btn_exit/hot_spot', X.leave);
   t.tap('@bkg/panel_horz_grp/panel_pre_btn/btn_return', X.back);
-  t.show(f.invertTipObj, false);
 }
 
 /**
@@ -183,6 +183,8 @@ function wireTop(t, f, X) {
  */
 function topUpdate(t, f, S, step, X) {
   const p = X.projects()[S.view.project];
+  // 互选模式's hint on the bar from the coordination on: 项目调整's panel shows its own (房间-8)
+  showInvert(t, f.invertTipObj, !!S.view.inverse && step !== 'stage', INVERSE.hint);
   if (p) {
     t.text(f.stageCode, p.code);
     t.text(f.stageName, p.name);

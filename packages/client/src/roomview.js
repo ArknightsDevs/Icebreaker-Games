@@ -2,7 +2,7 @@
 // says — 项目调整, 项目确认, 高顺位干员协调, 组建上场阵容 — and the match. Countdowns carry `data-until` (a
 // performance.now() time) and are kept up by room.js. Everything a player does goes out through `send`. The mode and
 // the styles carry the activity's icons when the assets have them (页面-5).
-import { MODE, STYLES, EMOTES, emoteSceneOf } from '@icebreaker/mode-regular';
+import { MODE, STYLES, EMOTES, INVERSE, emoteSceneOf } from '@icebreaker/mode-regular';
 import { h } from './dom.js';
 import { PHASE_TITLES, clock, inviteText, turnText, lineupCount, styleText, cardName } from './roomtext.js';
 import { skillLevelText, trainingText } from './training.js';
@@ -14,7 +14,7 @@ import { skillLevelText, trainingText } from './training.js';
  * match this tab was sent to, the lobby's latency in ms (null until measured), the emote each seat sent last and until
  * when it shows, and when this player sent its last (房间-7; performance.now() times).
  * @typedef {{ conn: string, lobby: { name: string, projects: ProjectView[], recruits: BoxEntry[] } | null, view: any, at: number, draft: Pick[] | null,
- *   started: { match: string, seat: number } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number }} RoomState
+ *   started: { match: string, seat: number, inverse?: boolean } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number }} RoomState
  */
 /**
  * @typedef {object} RoomActions
@@ -100,16 +100,27 @@ function setup(S, A) {
   return h('div', { class: 'card' },
     h('div', { class: 'projects' }, projects.map((p, i) => h('button', { 'aria-pressed': String(v.project === i), disabled: !host, onclick: () => A.send({ t: 'project', index: i }) }, `${p.code} ${p.name}`))),
     projects[v.project] ? projectInfo(projects[v.project], A) : null,
+    inverseSwitch(v, A),
     host
       ? h('button', { class: 'primary', disabled: v.members.length < 2 || !v.prepared, onclick: () => A.send({ t: 'go' }) }, v.members.length < 2 ? '等待参加者加入' : v.prepared ? '前往' : '等待参加者准备')
       : h('button', { class: 'primary', 'aria-pressed': String(v.prepared), onclick: () => A.send({ t: 'prepare', on: !v.prepared }) }, v.prepared ? '取消准备' : '准备参赛'));
 }
+
+/** 互选模式 (房间-8): the host's switch, the guest's view of it, and its hint while it is on. @param {any} v @param {RoomActions} A */
+function inverseSwitch(v, A) {
+  const box = h('input', { type: 'checkbox', checked: !!v.inverse, disabled: v.you !== 0, 'aria-label': '互选模式', onchange: () => A.send({ t: 'inverse', on: !v.inverse }) });
+  return h('p', { class: v.inverse ? 'inverse on' : 'inverse' }, h('label', {}, box, ' 互选模式'), v.inverse ? h('small', {}, ` ${INVERSE.hint}`) : null);
+}
+
+/** The hint of 互选模式 on the later steps (房间-8). @param {any} v */
+const inverseHint = (v) => (v.inverse ? h('p', { class: 'inverse on' }, INVERSE.hint) : null);
 
 /** 项目确认 (房间-2, 房间-3). @param {RoomState} S @param {RoomActions} A */
 function confirm(S, A) {
   const v = S.view, p = S.lobby?.projects[v.project], why = A.squadProblem(), mine = v.confirmed[v.you];
   return h('div', { class: 'card' },
     p ? projectInfo(p, A) : null,
+    inverseHint(v),
     h('p', {}, v.confirmed.map((/** @type {boolean} */ c, /** @type {number} */ i) => `${i === v.you ? '你' : '对方'}${c ? '已确认' : '未确认'}`).join(' · ')),
     why ? h('p', { class: 'bad' }, `常规队不能参赛：${why}`) : null,
     h('p', {}, '比赛风格：', styleLine(A, A.style())),
@@ -150,6 +161,7 @@ function lineup(S, A) {
   const rows = [...o.kept.map((/** @type {string} */ id) => optionRow(S, A, id, '编队')), ...o.drawn.map((/** @type {string} */ id) => optionRow(S, A, id, '可选')),
     ...o.extra.map((/** @type {string} */ id) => optionRow(S, A, id, recruits.has(id) ? '临时招募' : '可选'))];
   return h('div', { class: 'card' },
+    inverseHint(v),
     h('table', { class: 'lineup' }, h('tbody', {}, rows)),
     h('p', { class: why ? 'bad' : 'ok' }, why ?? `上场 ${draft.length} 名`),
     h('div', { class: 'row' },

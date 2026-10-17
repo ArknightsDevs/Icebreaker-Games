@@ -2,7 +2,8 @@
 // look, the operators left as large cards (a tap keeps one) and, when it may, the card that hands the pick over; the
 // turn's notice when the turn changes (the mate's handing over said); what this player has kept so far in the reserve
 // view; a kept operator shown as it comes.
-import { place, fillList, setSwitch } from './lobbykit.js';
+import { place, fillList, setSwitch, showInvert } from './lobbykit.js';
+import { INVERSE } from '@icebreaker/mode-regular';
 import { holderCard } from './lobbycards.js';
 import { pickView } from './lobbymap.js';
 
@@ -17,7 +18,6 @@ export function cardOf(X, S, seat, id, from) {
 /** @param {Part} p @param {StepCtx} X */
 export function createPick(p, X) {
   const f = p.view(), cv = p.view('@panel_choose_view'), rv = p.view('@panel_reverse_view'), gv = p.view('@panel_got_char_view');
-  p.showAll(cv.invertTips, false);
   void p.anim(f.entryAnim);
   let key = '', turn = -1, kept = 0, open = false;
   /** @type {any} */
@@ -41,6 +41,7 @@ export function createPick(p, X) {
     /** @param {any} S */
     update(S) {
       S0 = S;
+      for (const r of cv.invertTips ?? []) showInvert(p, r, !!S.view.inverse, INVERSE.hint);
       const pv = pickView(S.view), k = `${pv.mine}|${pv.yielded}|${pv.left.join(',')}`;
       setSwitch(p, '@panel_choose_view', pv.mine);
       p.text(cv.pickCnt, String(pv.left.length));

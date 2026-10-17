@@ -313,7 +313,9 @@
   "roomCollaboratorReviseMap": "项目内容有变更，请确认后重新准备",
   "matchPrepareRoomClose": "房间已解散",
   "continuousClicks": "操作过于频繁，请稍后再试",
-  "serverOverload": "当前服务繁忙，请稍后再试"
+  "serverOverload": "当前服务繁忙，请稍后再试",
+  "roomOwnerReviseMode": "已更换模式，等待协作者确认",
+  "roomCollaboratorReviseMode": "模式有变更，请确认后重新准备"
  },
  "title": "平凡的博士",
  "invite": "房间编号[{0}],Dr.{1}#{2}邀请您加入赛事，【粘贴到输入框可自动识别】",
@@ -436,6 +438,10 @@
   },
   "cd": 1,
   "time": 3
+ },
+ "inverse": {
+  "on": false,
+  "hint": "*互选模式下，将在游戏开始后与协作者交换编队及比赛风格"
  },
  "styles": [
   {

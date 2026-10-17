@@ -69,3 +69,6 @@ body.lobby-on #box { position: fixed; inset: 48px 5vw 5vh; z-index: 30; overflow
 .emotes { flex-wrap: wrap; gap: 4px; }
 .emote-btn { font-size: 0.85em; padding: 2px 8px; }
 .members .emote { color: #d2284b; font-weight: 600; }
+
+/* 互选模式 (房间-8) */
+.inverse.on { color: #1b9fb0; font-weight: 600; }

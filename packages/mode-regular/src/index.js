@@ -46,6 +46,9 @@ export const TOASTS = Object.freeze({ ...data.toasts });
  */
 export const EMOTES = Object.freeze({ ...data.emotes, themes: Object.freeze([...data.emotes.themes]), scenes: Object.freeze({ ...data.emotes.scenes }), text: Object.freeze({ ...data.emotes.text }) });
 
+/** 互选模式 (房间-8): whether a room starts with it on and the hint the screens show while it is on. @type {Readonly<{ on: boolean, hint: string }>} */
+export const INVERSE = Object.freeze({ ...data.inverse });
+
 /**
  * The scene of the emotes a room phase allows (房间-7, INF-0019): the room's at 项目调整, the allocation's from the
  * coordination to 准备就绪, none at 项目确认 or in the match. @param {string | null | undefined} phase @returns {'room' | 'pick' | null}

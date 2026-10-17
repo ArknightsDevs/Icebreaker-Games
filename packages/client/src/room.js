@@ -22,6 +22,8 @@ const MATCH_KEY = 'ice.match', RESULT_KEY = 'ice.result';
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const store = localStore(), key = tabKey(LOBBY_KEY);
 let save = readSave(store);
+/** The match this tab was sent to when the page opened: its result shows first (页面-6). */
+const STARTED_AT_LOAD = readStarted();
 // a 代号 of its own from the first visit on (房间-1), kept with the save
 if (!save.tag) { save = { ...save, tag: newTag() }; writeSave(store, save); }
 const ASSETS = assetsUrl(), ART = new URL('ui/room/', ASSETS).href;
@@ -40,11 +42,11 @@ let toastTimer;
 /** The original lobby screens when the assets have them (页面-6). @type {Awaited<ReturnType<typeof startLobby>>} */
 let lobby = null;
 
-/** @returns {{ match: string, seat: number } | null} */
+/** @returns {{ match: string, seat: number, inverse?: boolean } | null} */
 function readStarted() {
   try { return JSON.parse(sessionStorage.getItem(MATCH_KEY) ?? 'null'); } catch { return null; }
 }
-/** @param {{ match: string, seat: number } | null} s */
+/** @param {{ match: string, seat: number, inverse?: boolean } | null} s */
 function writeStarted(s) {
   try { if (s) sessionStorage.setItem(MATCH_KEY, JSON.stringify(s)); else sessionStorage.removeItem(MATCH_KEY); } catch { /* the way back is a convenience */ }
 }
@@ -132,7 +134,7 @@ function takeResult() {
     raw = sessionStorage.getItem(RESULT_KEY); bg = sessionStorage.getItem(`${RESULT_KEY}.bg`);
     sessionStorage.removeItem(RESULT_KEY); sessionStorage.removeItem(`${RESULT_KEY}.bg`);
   } catch { /* no result kept */ }
-  const r = resultOf(raw);
+  const r0 = resultOf(raw), r = r0 && STARTED_AT_LOAD?.match === r0.match && STARTED_AT_LOAD.inverse ? { ...r0, inverse: true } : r0;
   return r && bg?.startsWith('data:image/') ? { ...r, bg } : r;
 }
 
@@ -165,7 +167,7 @@ function onRoom(v) {
 
 /** The room's match started: to the battle page with the match and the seat (房间-6). @param {any} m */
 function onStart(m) {
-  S.started = { match: m.match, seat: m.seat };
+  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}) };
   writeStarted(S.started);
   // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6)
   const pr = S.view ? S.lobby?.projects[S.view.project] : null;

@@ -91,8 +91,10 @@ function players(pd, r, pr, A) {
   const f = pd.view(), X = A.X, both = A.players();
   both.forEach((m, i) => playerSide(pd, f, X, m, i === 0));
   stageInfo(pd, f, r, pr, X);
-  for (const g of [f.reverseBgGO, f.reverseTagGO, f.newPhotoGO, f.btnReportGO, f.reportSuccGO, f.btnContinueMatchGO, f.btnContinueCoopGO, f.btnCompleteTrainingGO,
+  for (const g of [f.newPhotoGO, f.btnReportGO, f.reportSuccGO, f.btnContinueMatchGO, f.btnContinueCoopGO, f.btnCompleteTrainingGO,
     '@panel_middle/report_toggle']) pd.show(g, false);
+  // a match in 互选模式 carries its mark (房间-8)
+  for (const g of [f.reverseBgGO, f.reverseTagGO]) pd.show(g, !!r.inverse);
   pd.show(f.btnReturnRoomGO, true);
   if (f.bottomBarContainer && f.bottomBarPrefab) placeBottomBar(pd, f.bottomBarContainer, f.bottomBarPrefab);
   pd.tap(`${f.btnReturnRoomGO ?? '@panel_front/room_btn'}/hotspot`, A.done);

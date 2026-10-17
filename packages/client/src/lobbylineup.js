@@ -2,7 +2,8 @@
 // operators drawn for this player (随机分配了以下干员), then three views — choosing the lineup from the options (6–10),
 // each one's skill and module, and both lineups with 准备就绪 / 取消准备. The lineup goes to the room when the player
 // leaves the skill view; 上一步 goes back a view.
-import { place, fillList, setSwitch } from './lobbykit.js';
+import { place, fillList, setSwitch, showInvert } from './lobbykit.js';
+import { INVERSE } from '@icebreaker/mode-regular';
 import { holderCard, fillCard } from './lobbycards.js';
 import { LINEUP_VIEWS, lineupOptions } from './lobbymap.js';
 import { lineupCount } from './roomtext.js';
@@ -27,7 +28,8 @@ export function createLineup(p, X) {
         cur = { sub: L.sub, part: place(p, f.procViewContainer, /** @type {Record<string, string>} */ (LINEUP_VIEWS)[L.sub]), key: '' };
         const view = cur.part?.view();
         if (cur.part && view) {
-          cur.part.showAll([view.invertTips], false);
+          showInvert(cur.part, view.invertTips, !!v.inverse, INVERSE.hint);
+          showInvert(p, p.view('@main_view').invertClrBkg, !!v.inverse);
           void cur.part.anim(view.entryAnim);
           // choosing the lineup: the options' row comes up too
           if (L.sub === 'sel') void cur.part.anim(view.reserveAnim);

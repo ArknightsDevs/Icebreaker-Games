@@ -13,7 +13,7 @@ const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'packages', '
 const ELITE = Object.freeze({ PHASE_0: 0, PHASE_1: 1, PHASE_2: 2 });
 /** The toasts of the activity's room flow the lobby screens show (页面-6), and the server's refusals (站点-2). */
 const TOASTS = Object.freeze(['noRoom', 'fullRoom', 'roomIdFormatError', 'roomIdCopySuccess', 'roomCollaboratorJoinRoom', 'roomCollaboratorExitRoom',
-  'roomOwnerReviseMap', 'roomCollaboratorReviseMap', 'matchPrepareRoomClose', 'continuousClicks', 'serverOverload']);
+  'roomOwnerReviseMap', 'roomCollaboratorReviseMap', 'matchPrepareRoomClose', 'continuousClicks', 'serverOverload', 'roomOwnerReviseMode', 'roomCollaboratorReviseMode']);
 
 /** @param {string} file @returns {any} */
 const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
@@ -103,6 +103,8 @@ export function extract(root) {
       skillLevel: c.mainSkillLevel + c.specializeLevel,
     })),
     emotes: emotesOf(readJson(join(excel, 'display_meta_table.json')).emoticonData, a),
+    // 互选模式 (房间-8): whether a room starts with it on, and its hint
+    inverse: { on: a.constData.isMatchDefaultInverse, hint: a.constData.inverseModeHint },
     styles: a.squadEffectList.map((/** @type {any} */ s) => ({
       id: s.id, name: s.name, icon: s.iconId, color: s.themeColor, buff: s.buffDesc, debuff: s.debuffDesc,
       device: { name: s.token.name, desc: s.token.desc },

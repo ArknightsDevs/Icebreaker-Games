@@ -82,8 +82,8 @@ export class Part {
 }
 
 /**
- * A newly made prefab instance as the page shows it: the invert-mode effects it ships switched on are hidden (the page
- * has no invert mode, ADR 0063), and a plain transform holding UI (a node with no rect of its own, e.g. the one over a
+ * A newly made prefab instance as the page shows it: the invert-mode effects it ships switched on are hidden until the
+ * room is in 互选模式 (房间-8, showInvert), and a plain transform holding UI (a node with no rect of its own, e.g. the one over a
  * screen canvas) fills its parent instead of taking the default 100 × 100 rect — the engine's UI does that only for a
  * screen's root and for canvases (界面-28; INF-0009) — and a stencil-shaped writer is not drawn.
  * @param {UiNode} s
@@ -95,6 +95,23 @@ function settle(s) {
   // (界面-4): the card waves it masks are particles, not drawn yet, so it would show as a white block
   if (s.n.comps.mask === 'stencil' && /stencil/i.test(s.n.comps.img?.ref ?? '')) s.stHide = true;
   for (const k of s.kids) settle(k);
+}
+
+/**
+ * A node of 互选模式 (房间-8) shown or hidden with it: the node itself, the invert-mode effects under it (root_invert…,
+ * root_fx_invert…, which settle hides) and, given a hint, its hint texts (text_tip). @param {Part} p
+ * @param {string | undefined} at @param {boolean} on @param {string} [hint]
+ */
+export function showInvert(p, at, on, hint) {
+  const walk = (/** @type {UiNode} */ s) => {
+    if (/^root_(fx_)?invert/.test(s.n.name)) s.active = on;
+    if (hint && s.n.name === 'text_tip') setText(s, hint);
+    for (const k of s.kids) walk(k);
+  };
+  const n = at ? p.node(at) : null;
+  if (!n) return;
+  n.active = on;
+  walk(n);
 }
 
 /** The page's lobby screen of a prefab, opened on the UI. @param {any} ui @param {string} key @param {number} [z] */

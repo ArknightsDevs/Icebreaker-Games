@@ -31,13 +31,14 @@ const SHAPES = {
   join: (m) => shortText(m.code, 200),
   project: (m) => Number.isInteger(m.index),
   prepare: (m) => typeof m.on === 'boolean',
+  inverse: (m) => typeof m.on === 'boolean',
   ready: (m) => typeof m.on === 'boolean',
   confirm: (m) => isRecord(m.squad) && shortText(m.style, 16),
   pick: (m) => shortText(m.id, 32),
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme' };
+const FIELDS = { hello: 'key,name', ping: 'at', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the

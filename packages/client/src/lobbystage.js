@@ -2,9 +2,9 @@
 // the stage in the stage list and goes on; the guest prepares), 项目确认 on the stage confirm part of the entrance show
 // panel (the stage's detail and both players' confirmations), and the start of the match on its show part (both
 // players' name cards and styles). The room flow is the platform's (房间-2, 房间-6).
-import { openPart, closePart, place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar } from './lobbykit.js';
+import { openPart, closePart, place, unplace, fillList, setSwitch, placeTopMenu, placeBottomBar, seasonLogo, placePicture, placeAvatar, showInvert } from './lobbykit.js';
 import { stagePanel, ownerStatus, pictureOf } from './lobbymap.js';
-import { STYLES, MODE, TOASTS, PLAYER_TITLE } from '@icebreaker/mode-regular';
+import { STYLES, MODE, TOASTS, PLAYER_TITLE, INVERSE } from '@icebreaker/mode-regular';
 import { cardName } from './roomtext.js';
 
 /** @typedef {import('./lobbykit.js').Part} Part @typedef {import('./roomview.js').ProjectView} ProjectView */
@@ -75,7 +75,7 @@ export function createStage(p, X) {
   /** @type {any} */
   let last = null;
   p.tap('@owner_guest_toggle/group_guest/group_btn_prepared_g/has_map_toggle/has_map', () => X.send({ t: 'prepare', on: !last?.prepared }));
-  p.show('@group_top_deco/group_invert', false);
+  const mode = createModeSwitch(p, f, X, () => last);
   /** @type {number} */
   let shown = -1, entered = false;
   return {
@@ -85,6 +85,7 @@ export function createStage(p, X) {
       if (!entered) { entered = true; void p.anim(sp.owner ? f.ownerInAnim : f.guestInAnim); }
       if (shown >= 0 && shown !== v.project) X.toast(sp.owner ? TOASTS.roomOwnerReviseMap : TOASTS.roomCollaboratorReviseMap);
       last = v;
+      mode.update(v, sp.owner);
       p.showAll(f.emptyMapObjs, false);
       p.showAll(f.selectedMapObjs, true);
       p.showAll(f.ownerObjs, sp.owner);
@@ -106,6 +107,34 @@ export function createStage(p, X) {
         classIcon(p, f.mapDiffIconViewContainer, f.mapDiffIconViewPrefab, pr, f.mapDiffScale ?? 1);
       }
       shown = v.project;
+    },
+  };
+}
+
+/**
+ * 互选模式 on the stage panel (房间-8): the owner's mode toggle (常规模式 / 互选模式, unlocked) turns it; the panel's top
+ * shows its highlight and hint while it is on, switching with its clips; a change is toasted to both.
+ * @param {Part} p @param {Record<string, any>} f @param {StepCtx} X @param {() => any} last the room view last drawn
+ */
+function createModeSwitch(p, f, X, last) {
+  const toggle = f.inverseToggleViewContainer ? place(p, f.inverseToggleViewContainer, f.inverseToggleViewPrefab) : null, tf = toggle?.view() ?? {};
+  if (toggle) {
+    setSwitch(toggle, tf.inverseUnlockState ?? '@bg/group_flip_lock_toggle', true);
+    toggle.show(tf.newTrackGO ?? '@new_track_root', false);
+    toggle.tap('@bg/hotspot', () => { const v = last(); if (v) X.send({ t: 'inverse', on: !v.inverse }); });
+  }
+  /** @type {boolean | null} */
+  let on = null;
+  return {
+    /** @param {any} v @param {boolean} owner */
+    update(v, owner) {
+      if (on === v.inverse) return;
+      const at = on === null ? Infinity : 0;
+      if (on !== null) X.toast(owner ? TOASTS.roomOwnerReviseMode : TOASTS.roomCollaboratorReviseMode);
+      on = !!v.inverse;
+      showInvert(p, '@group_top_deco/group_invert', on, INVERSE.hint);
+      void p.play('@group_top_deco', on ? 'mode_switch_invert' : 'mode_switch_normal', { from: at });
+      if (toggle) void toggle.play('@', 'mode_toggle_switch', { reverse: !on, from: at });
     },
   };
 }
@@ -252,7 +281,6 @@ export function createConfirm(p, X) {
   const f = p.view();
   p.show(f.entranceShowRoot, false);
   p.show('@multi_v3_stage_confirm', true);
-  p.showAll(f.invertObjs, false);
   void p.anim(f.mapConfirmEnterAnim);
   let detail = false;
   /** @type {any} */
@@ -268,6 +296,7 @@ export function createConfirm(p, X) {
     update(S) {
       const v = S.view, pr = X.projects()[v.project];
       last = v;
+      for (const r of f.invertObjs ?? []) showInvert(p, r, !!v.inverse);
       if (!detail && pr) {
         detail = true;
         const d = f.stageDetailContainer && f.stageDetailPrefab ? place(p, f.stageDetailContainer, f.stageDetailPrefab) : null;
@@ -291,13 +320,13 @@ export async function playEntrance(p, X, v) {
   const f = p.view();
   p.show('@multi_v3_stage_confirm', false);
   p.show(f.entranceShowRoot, true);
-  p.showAll(f.invertObjs, false);
+  for (const r of f.invertObjs ?? []) showInvert(p, r, !!v.inverse);
   // the season's logo in the corner, which the game fills at run time (INF-0018)
   seasonLogo(p, f.seasonIconImg2, 'start');
   if (f.bottomBarContainer) placeBottomBar(p, f.bottomBarContainer);
   showPlayer(p, f, X, v, [v.you, f.selfAssitIllustContainer, f.selfEffectIcon, f.selfEffectNameTxt, f.selfNameCardContainer]);
   showPlayer(p, f, X, v, [1 - v.you, f.partnerAssitIllustContainer, f.partnerEffectIcon, f.partnerEffectNameTxt, f.partnerNameCardContainer]);
-  await p.anim(f.normEnterAnim);
+  await p.anim(v.inverse ? f.flipEnterAnim ?? f.normEnterAnim : f.normEnterAnim);
   await new Promise((done) => { setTimeout(done, SHOW_HOLD_MS); });
   await p.anim(f.showExitAnim);
 }

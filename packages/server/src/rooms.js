@@ -2,7 +2,7 @@
 // squads, the coordination of shared operators, each seat's lineup, and the match they start. Pure state over the
 // lobby's sessions: messages come in already checked (lobby.js lobbyMessageProblem), what goes out goes through
 // `send`, time through `now`, chance through `random`, and a match is started through `startMatch`.
-import { STEP_MS, LINEUP, TOASTS, EMOTES, emoteSceneOf, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
+import { STEP_MS, LINEUP, TOASTS, EMOTES, INVERSE, emoteSceneOf, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
 import { coordinate, pick, handOver, offer } from './allocation.js';
 
 /** How long a room lives without starting a match (房间-1), and each step's time (房间-2, 房间-4, 房间-5), in ms. */
@@ -25,6 +25,7 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS });
  * @property {Member[]} members the host first
  * @property {'setup' | 'confirm' | 'pick' | 'lineup' | 'battle'} phase
  * @property {number} project the project's index
+ * @property {boolean} inverse 互选模式 (房间-8): the seats swap their lineups and styles when the match starts
  * @property {boolean} prepared the guest's 准备参赛
  * @property {number} expires @property {number} due the current step's end (0: none)
  * @property {(Squad | null)[]} squads @property {string[]} styles each seat's play style (房间-3) @property {Coordination | null} coord
@@ -63,7 +64,7 @@ const until = (L, at) => Math.max(0, at - L.o.now());
 function view(L, r, seat) {
   const p = r.phase === 'pick' ? r.coord?.picking ?? null : null, shown = r.phase === 'pick' || r.phase === 'lineup' || r.phase === 'battle';
   return {
-    t: 'room', code: r.code, you: seat, phase: r.phase, project: r.project, prepared: r.prepared,
+    t: 'room', code: r.code, you: seat, phase: r.phase, project: r.project, inverse: r.inverse, prepared: r.prepared,
     members: r.members.map((m) => ({ name: m.name, online: m.online, ...m.profile })), left: until(L, r.expires), step: r.due ? until(L, r.due) : 0,
     confirmed: r.squads.map((s) => s !== null),
     picking: p ? { left: p.left, by: p.by, yielded: p.yielded, won: p.won } : null,
@@ -100,7 +101,7 @@ function create(L, id) {
   if (s.room) leave(L, id);
   let code;
   do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
-  const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true, profile: s.profile }], project: 0, expires: L.o.now() + TIMES.room, likes: null });
+  const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true, profile: s.profile }], project: 0, inverse: INVERSE.on, expires: L.o.now() + TIMES.room, likes: null });
   toSetup(r);
   L.rooms.set(code, r);
   s.room = code;
@@ -227,11 +228,15 @@ function autoLineup(L, r, seat) {
   return ids.map((x) => ({ id: x, skill: /** @type {BoxEntry} */ (entryOf(L, r, seat, x)).skills.length > 0 ? 0 : -1, module: -1 }));
 }
 
-/** The match of a room's lineups (房间-6, engine 同步-9), started; the room waits in battle. @param {Lobby} L @param {Room} r */
+/**
+ * The match of a room's lineups (房间-6, engine 同步-9), started; the room waits in battle. In 互选模式 each seat fights
+ * with the other's lineup and style (房间-8). @param {Lobby} L @param {Room} r
+ */
 async function start(L, r) {
   const project = L.o.projects[r.project];
-  const decks = r.lineups.map((l, seat) => /** @type {Pick[]} */ (l).map((x) => ({ id: x.id, build: buildOf(/** @type {BoxEntry} */ (entryOf(L, r, seat, x.id)), x.skill, x.module) })));
-  const runes = r.styles.map((s) => /** @type {NonNullable<ReturnType<typeof styleRunes>>} */ (styleRunes(s)));
+  const own = r.lineups.map((l, seat) => /** @type {Pick[]} */ (l).map((x) => ({ id: x.id, build: buildOf(/** @type {BoxEntry} */ (entryOf(L, r, seat, x.id)), x.skill, x.module) })));
+  const styles = r.styles.map((s) => /** @type {NonNullable<ReturnType<typeof styleRunes>>} */ (styleRunes(s)));
+  const decks = r.inverse ? [...own].reverse() : own, runes = r.inverse ? [...styles].reverse() : styles;
   const match = { level: project.level, difficulty: project.difficulty, seed: Math.floor(L.o.random() * 0x7fffffff), decks, runes };
   Object.assign(r, { phase: 'battle', due: 0 });
   push(L, r);
@@ -285,6 +290,12 @@ const IN_ROOM = {
     push(L, r);
   },
   prepare: (L, r, id, m) => { if (seatOf(r, id) === 1 && r.phase === 'setup') { r.prepared = m.on; push(L, r); } },
+  // 互选模式 (房间-8): the host turns it on or off at 项目调整; a change undoes the guest's 准备参赛
+  inverse: (L, r, id, m) => {
+    if (seatOf(r, id) !== 0 || r.phase !== 'setup' || r.inverse === m.on) return;
+    Object.assign(r, { inverse: m.on, prepared: false });
+    push(L, r);
+  },
   go: (L, r, id) => go(L, r, id),
   confirm: (L, r, id, m) => confirm(L, r, id, m.squad, m.style),
   pick: (L, r, id, m) => { if (r.phase === 'pick') afterPick(L, r, pick(/** @type {Picking} */ (r.coord?.picking), seatOf(r, id), m.id)); },

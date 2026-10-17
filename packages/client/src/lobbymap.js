@@ -30,7 +30,7 @@ export const LINEUP_VIEWS = Object.freeze({
  */
 /**
  * A match's result as the battle page leaves it: won, the level, each stage's stamps, when it ended (ms), the field's
- * last frame blurred (a data URL). @typedef {{ match: string, result: number, level: string, stamps: number[], at?: number, bg?: string }} MatchResult
+ * last frame blurred (a data URL), whether it was in 互选模式 (房间-8). @typedef {{ match: string, result: number, level: string, stamps: number[], at?: number, bg?: string, inverse?: boolean }} MatchResult
  */
 
 /** A new lobby page's own state. @returns {Local} */

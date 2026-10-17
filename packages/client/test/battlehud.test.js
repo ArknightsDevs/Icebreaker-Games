@@ -1,7 +1,7 @@
 // What the original battle UI shows, worked out from a frame (the engine's docs/spec/ui.md 界面-10…14).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { KIND, SKILL_STATE } from '@aue/schema';
+import { KIND, SKILL_STATE, STATUS_BIT } from '@aue/schema';
 import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars, stageStartOf, fortressOf } from '../src/battlehud.js';
 
 /** A view unit. @param {Record<string, number>} v @returns {import('@aue/schema').ViewUnit} */
@@ -49,7 +49,9 @@ test('the HUD\'s state of a frame: the deck, the cost and its next point, lives,
 
 test('the operator menu\'s skill: icon, charging, ready, running with the time left, stoppable; none without a skill', () => {
   const op = { skill: { id: 'skchr_beagle_1', type: 'MANUAL', duration: 10, stoppable: false } }, icons = { skchr_beagle_1: 'skchr_beagle_1.webp' }, base = 'http://h/skills/';
-  assert.deepEqual(menuSkill(unit({}), op, icons, base), { icon: 'http://h/skills/skchr_beagle_1.webp', manual: true, state: 'charging', share: 0.25, stoppable: false });
+  assert.deepEqual(menuSkill(unit({}), op, icons, base), { icon: 'http://h/skills/skchr_beagle_1.webp', manual: true, state: 'charging', share: 0.25, stoppable: false, blocked: false });
+  assert.deepEqual([STATUS_BIT.freeze, STATUS_BIT.stun, STATUS_BIT.silence, STATUS_BIT.cold].map((b) => menuSkill(unit({ status: b | STATUS_BIT.weaken }), op, icons, base)?.blocked),
+    [true, true, true, false], 'frozen, stunned, silenced: blocked; cold: not');
   assert.equal(menuSkill(unit({ skill: SKILL_STATE.READY }), op, icons, base)?.state, 'ready');
   assert.equal(menuSkill(unit({ skill: SKILL_STATE.READY }), op, icons, base)?.share, 1);
   const run = menuSkill(unit({ skill: SKILL_STATE.RUNNING, skillLeft: 150 }), { skill: { ...op.skill, type: 'AUTO', stoppable: true } }, icons, base);
@@ -121,10 +123,20 @@ test('the units\' bars: the drawn units at their feet, operator, enemy or leader
   const bars = unitBars(view, { leaders: new Set(['boss']), keyOf: (id) => keys.get(id)?.split('#')[0], shows: (id) => id !== 4, at: (u) => [u.x * 10, u.y * 10],
     operators: { 'op#0': { skill: { id: 's', duration: 10 } } }, unitKey: (id) => keys.get(id) });
   assert.deepEqual(bars.map((b) => b.id), [1, 2, 3, 5], 'only the drawn ones');
-  assert.deepEqual(bars[0], { id: 1, at: [20, 30], kind: 'char', hp: 0.5, sp: { state: 'charging', share: 0.5 }, el: { element: 3, share: 0.25, burst: false } });
+  assert.deepEqual(bars[0], { id: 1, at: [20, 30], kind: 'char', hp: 0.5, sp: { state: 'charging', share: 0.5 }, el: { element: 3, share: 0.25, burst: false }, mark: null });
   assert.deepEqual([bars[1].kind, bars[1].hp, bars[1].sp, bars[1].el], ['enemy', 1, null, { element: 2, share: 0.5, burst: true }]);
   assert.deepEqual([bars[2].kind, bars[2].hp, bars[2].el], ['boss', 0, null]);
   assert.equal(bars[3].sp, null, 'no skill, no SP bar');
+});
+
+test('the units\' bars: this seat\'s operators their skill mark — ready by hand, stoppable while running; none blocked, auto or the mate\'s', () => {
+  const manual = { skill: { id: 's', type: 'MANUAL', duration: 10, stoppable: true } }, auto = { skill: { id: 'a', type: 'AUTO', duration: 10 } };
+  const view = /** @type {any} */ ({ frame: 0, players: [], units: [unit({ id: 1, skill: SKILL_STATE.READY }), unit({ id: 2, skill: SKILL_STATE.RUNNING, skillLeft: 30 }),
+    unit({ id: 3, skill: SKILL_STATE.READY, status: STATUS_BIT.freeze }), unit({ id: 4, skill: SKILL_STATE.READY }), unit({ id: 5, owner: 1, skill: SKILL_STATE.READY }),
+    unit({ id: 6, skill: SKILL_STATE.CHARGING })] });
+  const keys = new Map([[1, 'm'], [2, 'm'], [3, 'm'], [4, 'a'], [5, 'm'], [6, 'm']]);
+  const bars = unitBars(view, { leaders: new Set(), keyOf: (id) => keys.get(id), shows: () => true, at: (u) => [u.x, u.y], operators: { m: manual, a: auto }, unitKey: (id) => keys.get(id), seat: 0 });
+  assert.deepEqual(bars.map((b) => b.mark), ['ready', 'stop', null, null, null, null]);
 });
 
 test('the units\' bars of level devices (engine 装置-3): one on our side has an operator\'s bar with no SP, one on the enemies\' side an enemy\'s', () => {

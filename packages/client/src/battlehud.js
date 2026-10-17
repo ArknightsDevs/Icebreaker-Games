@@ -4,7 +4,7 @@
 // and the server's control state.
 import { secondsToFrames } from '@aue/math';
 import { ROSTER } from '@aue/content';
-import { KIND, SKILL_STATE } from '@aue/schema';
+import { KIND, NO_SKILL, SKILL_STATE } from '@aue/schema';
 import { costAsk, placeSummons } from '@aue/ui';
 
 const FPS = 30;
@@ -157,7 +157,8 @@ export function costInput(o) {
 
 /**
  * The operator menu's skill of a unit: its icon, how it starts, its state and share (SP gathered, or time left of its
- * run), whether it may be stopped; null without a skill.
+ * run), whether it may be stopped, whether a status keeps the operator from starting it (the engine's 界面-14); null
+ * without a skill.
  * @param {import('@aue/schema').ViewUnit} u @param {any} op the operator's content @param {Record<string, string>} icons @param {string} base the icons' URL
  * @returns {import('@aue/ui').MenuSkill | null}
  */
@@ -167,15 +168,17 @@ export function menuSkill(u, op, icons, base) {
   const icon = icons[sk.id] ? new URL(icons[sk.id], base).href : null, run = sk.duration > 0 ? secondsToFrames(sk.duration) : 0;
   const state = u.skill === SKILL_STATE.RUNNING ? 'running' : u.skill === SKILL_STATE.READY ? 'ready' : 'charging';
   const share = state === 'running' ? (run > 0 && u.skillLeft >= 0 ? Math.min(1, u.skillLeft / run) : 1) : state === 'ready' ? 1 : u.spCost > 0 ? Math.min(1, u.sp / u.spCost) : 0;
-  return { icon, manual: sk.type === 'MANUAL', state, share, stoppable: !!sk.stoppable };
+  return { icon, manual: sk.type === 'MANUAL', state, share, stoppable: !!sk.stoppable, blocked: (u.status & NO_SKILL) !== 0 };
 }
 
 /**
  * The units' bars (the engine's 界面-19, 界面-20): each drawn unit with where its feet are on the canvas, its kind (an
- * operator or a device on our side, an enemy or a device on theirs, a leader), its HP share, an operator's skill (state and share) and its element.
+ * operator or a device on our side, an enemy or a device on theirs, a leader), its HP share, an operator's skill (state and share) and its element;
+ * an operator of this seat its skill mark: ready when its manual skill can start, stop while a skill that may be stopped runs (neither while a
+ * status keeps it from its skill).
  * @param {import('@aue/schema').View} view
  * @param {{ leaders: Set<string>, foeDevices?: Set<string>, keyOf: (id: number) => string | undefined, shows: (id: number) => boolean, at: (u: import('@aue/schema').ViewUnit) => number[],
- *   operators: Record<string, any>, unitKey: (id: number) => string | undefined }} o
+ *   operators: Record<string, any>, unitKey: (id: number) => string | undefined, seat?: number }} o
  * @returns {import('@aue/ui').UnitBar[]}
  */
 export function unitBars(view, o) {
@@ -187,9 +190,13 @@ export function unitBars(view, o) {
       hp: u.maxHp > 0 ? Math.max(0, Math.min(1, u.hp / u.maxHp)) : 0,
       sp: s ? { state: s.state, share: s.share } : null,
       el: u.element > 0 ? { element: u.element, share: u.ep, burst: u.burst === 1 } : null,
+      mark: s && u.owner === o.seat ? skillMark(s) : null,
     };
   });
 }
+
+/** An operator's skill mark (the engine's 界面-19) from its menu skill. @param {import('@aue/ui').MenuSkill} s @returns {'ready' | 'stop' | null} */
+const skillMark = (s) => (s.blocked ? null : s.state === 'ready' && s.manual ? 'ready' : s.state === 'running' && s.stoppable ? 'stop' : null);
 
 /** This seat's operator standing on a tile, or null. @param {import('@aue/schema').View} view @param {number} seat @param {{ row: number, col: number }} t */
 export const ownUnitAt = (view, seat, t) => view.units.find((u) => u.kind === KIND.OPERATOR && u.owner === seat && Math.round(u.x) === t.col && Math.round(u.y) === t.row) ?? null;

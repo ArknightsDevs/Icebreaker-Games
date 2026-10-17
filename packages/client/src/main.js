@@ -118,15 +118,17 @@ async function setUp(match, art, changed, joined, opening) {
   // (opened already when the room page left the stage for it)
   const early = opening ?? earlyUi(art, stageOf(match, content, joined));
   const { models, meshes, kit, effects } = await fieldArt(art, match, content);
-  const enemies = /** @type {Record<string, { levelType?: string }>} */ (/** @type {any} */ (content).enemies);
+  const enemies = /** @type {Record<string, { levelType?: string, motion?: string }>} */ (/** @type {any} */ (content).enemies);
   const leaders = new Set(Object.entries(enemies).filter(([, e]) => e.levelType === 'BOSS').map(([k]) => k));
+  // the flying enemies, drawn in the air (the engine's 渲染-21)
+  const flyers = new Set(Object.entries(enemies).filter(([, e]) => e.motion === 'FLY').map(([k]) => k));
   // the level devices on the enemies' side (the engine's 装置-3): their bars and stand-in blocks in the enemies' colour
   const devices = /** @type {Record<string, { side?: string }>} */ (/** @type {any} */ (content).devices ?? {});
   const foeDevices = new Set(Object.entries(devices).filter(([, d]) => d.side === 'ENEMY').map(([k]) => k));
   // with the original UI the units' bars are its own (the engine's 界面-19), not the renderer's
   const opened = await early, pack = opened?.loaded ?? null;
   const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures: art.textures, view: content.level.view, models, leaders, foeDevices,
-    kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes }) : null;
+    kit, effects, skills: skillSlots(match), bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes, flyers }) : null;
   const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
@@ -348,7 +350,7 @@ function onFrame(P, f) {
       offline: P.net === '重连中' });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
     P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
-      at: (u) => r.screenOf(u.x, u.y, u.z).map((v) => v / k), operators: game.content.operators, unitKey: (id) => P.unitKeys.get(id) });
+      at: (u) => r.barsAt(u).map((v) => v / k), operators: game.content.operators, unitKey: (id) => P.unitKeys.get(id), seat });
     game.ui.hud.update(P.hudNow);
     P.hand?.frame(view);
   } else {

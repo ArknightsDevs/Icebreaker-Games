@@ -234,8 +234,8 @@ importers:
         specifier: workspace:*
         version: link:../mode-regular
       es-module-lexer:
-        specifier: 3.0.3
-        version: 3.0.3
+        specifier: 3.0.4
+        version: 3.0.4
       ws:
         specifier: 8.22.0
         version: 8.22.0
@@ -393,8 +393,8 @@ packages:
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
 
-  es-module-lexer@3.0.3:
-    resolution: {integrity: sha512-yWGe1O/j+almnV4hOYrmZo8u58JdnmXEMneRQAYkWtqSiT86yoMIEKF4rpqEDj52tbYl3xceBD3DQIBwcsC9Pw==}
+  es-module-lexer@3.0.4:
+    resolution: {integrity: sha512-BldNY5mwkVu+cQ5Ymn3e6hB9Sx8XHx4ZevWbiUyZbfKxJxYO27Hf0wfzkxIaD5CAJMaGl3YspKELj0ff/7nCMA==}
 
   escape-string-regexp@4.0.0:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
@@ -776,7 +776,7 @@ snapshots:
 
   deep-is@0.1.4: {}
 
-  es-module-lexer@3.0.3: {}
+  es-module-lexer@3.0.4: {}
 
   escape-string-regexp@4.0.0: {}
 

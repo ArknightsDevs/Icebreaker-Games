@@ -5,11 +5,32 @@
 /** A URL of the site, from a path relative to its pages (no leading slash). @param {string} path @param {string} [page] */
 export const siteUrl = (path, page = location.href) => new URL(path, page);
 
-/** The WebSocket URL of a path of the site: ws: beside http:, wss: beside https:. @param {string} path @param {string} [page] */
-export function socketUrl(path, page = location.href) {
+/**
+ * The WebSocket URL of a path of the site: ws: beside http:, wss: beside https:; on another node's host when one is given
+ * (站点-6: the room's node), the path the same.
+ * @param {string} path @param {string} [page] @param {string | null} [host]
+ */
+export function socketUrl(path, page = location.href, host = null) {
   const u = siteUrl(path, page);
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+  if (host) u.host = host;
   return u.href;
+}
+
+/**
+ * Whether a host is a node the page may connect to (站点-6): one under the page's own name — the nodes of
+ * play.example.org are <node>.play.example.org — and not the page's own host (that is no other node).
+ * @param {unknown} host @param {string} [page]
+ */
+export function nodeHost(host, page = location.href) {
+  const own = new URL(page).hostname;
+  return typeof host === 'string' && /^[a-z0-9.-]+$/.test(host) && host.endsWith(`.${own}`) && !host.slice(0, -own.length - 1).includes('.');
+}
+
+/** The node a page's address names (站点-6): its `server` parameter when it is one (nodeHost), else null. @param {string} [page] */
+export function pageNode(page = location.href) {
+  const s = new URL(page).searchParams.get('server');
+  return nodeHost(s, page) ? s : null;
 }
 
 /**

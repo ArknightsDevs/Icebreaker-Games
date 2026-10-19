@@ -19,7 +19,7 @@ import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { controlSounds } from './sound.js';
-import { assetsUrl, kitsUrl, moduleUrl, socketUrl } from './site.js';
+import { assetsUrl, kitsUrl, moduleUrl, socketUrl, pageNode } from './site.js';
 import { bootCounter, bootDone, bootFail, bootStep } from './boot.js';
 import { createTutorial } from './tutorial.js';
 import { createSignals, loadEmoteArt } from './battlesignals.js';
@@ -106,7 +106,7 @@ async function tileKit(level) {
 const skillSlots = (match) => Object.fromEntries((match.decks ?? []).flat().filter((d) => d.build.skill >= 0).map((d) => [d.id.split('#')[0], d.build.skill + 1]));
 
 /**
- * The attack effects of a match's units (the engine's 渲染-10): the host's pack cut down to them (站点-5), or null when
+ * The attack effects of a match's units (the engine's 渲染-10): the host's pack cut down to them (站点-6), or null when
  * the assets have none. @param {string[]} units
  */
 async function effectPack(units) {
@@ -289,7 +289,8 @@ async function main() {
   P.bar = () => controls({ control: P.control, costAsker: P.costAsker, seat, mate: P.players === 2 ? 1 - seat : -1 });
   P.battle = startBattle({
     workerUrl: moduleUrl('@aue/worker/src/worker.js'),
-    wsUrl: socketUrl(`battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`),
+    // the battle is on its room's node (站点-6): the page's `server` when the room was on another one
+    wsUrl: socketUrl(`battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`, location.href, pageNode()),
     seat, key, kits: kitsUrl(),
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {

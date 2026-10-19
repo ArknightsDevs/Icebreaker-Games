@@ -19,7 +19,7 @@ import { skillLevelText, trainingText } from './training.js';
  * match this tab was sent to, the lobby's latency in ms (null until measured), the emote each seat sent last and until
  * when it shows, and when this player sent its last (房间-7; performance.now() times).
  * @typedef {{ conn: string, lobby: { name: string, projects: ProjectView[], recruits: BoxEntry[] } | null, view: any, at: number, draft: Pick[] | null,
- *   started: { match: string, seat: number, inverse?: boolean } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number,
+ *   started: { match: string, seat: number, inverse?: boolean, server?: string } | null, ping: number | null, emotes: ({ id: string, theme: string, until: number } | null)[], chatAt: number,
  *   seeking: { classes: string[], pos: string, inverse: boolean, until: number } | null }} RoomState
  */
 /**
@@ -223,7 +223,7 @@ function battle(S) {
   const s = S.started;
   return h('div', { class: 'card' },
     h('p', {}, '比赛进行中。比赛结束后，房间回到项目调整。'),
-    s ? h('a', { class: 'button primary', href: `play?match=${encodeURIComponent(s.match)}&seat=${s.seat}` }, '回到比赛') : null);
+    s ? h('a', { class: 'button primary', href: `play?match=${encodeURIComponent(s.match)}&seat=${s.seat}${s.server ? `&server=${encodeURIComponent(s.server)}` : ''}` }, '回到比赛') : null);
 }
 
 /** Draws the room page's room part. @param {HTMLElement} host @param {RoomState} S @param {RoomActions} A */

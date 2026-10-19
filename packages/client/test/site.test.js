@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { assetsUrl, codeVersion, kitsUrl, moduleUrl, siteUrl, socketUrl } from '../src/site.js';
+import { assetsUrl, codeVersion, kitsUrl, moduleUrl, siteUrl, socketUrl, nodeHost, pageNode } from '../src/site.js';
 import { bootCounter, bootDone, bootFail, bootStep } from '../src/boot.js';
 
 test('[站点-1] site URLs and socket URLs follow the page, under a prefix or at the root', () => {
@@ -14,6 +14,15 @@ test('[站点-1] site URLs and socket URLs follow the page, under a prefix or at
     assert.equal(socketUrl('battle?seat=1', page), `wss://x.test${prefix}/battle?seat=1`);
     assert.equal(socketUrl('lobby', `http://192.168.1.2:8700${prefix}/`), `ws://192.168.1.2:8700${prefix}/lobby`);
   }
+});
+
+test('[站点-6] another node: a host one level under the page name only; its sockets keep the path', () => {
+  const page = 'https://play.example.org/icebreaker/room';
+  assert.deepEqual(['tyo.play.example.org', 'play.example.org', 'a.tyo.play.example.org', 'evil.org', 'tyo.play.example.org.evil.org', 'x.play.example.org:444', 'TYO.play.example.org', 42, null]
+    .map((h) => nodeHost(h, page)), [true, false, false, false, false, false, false, false, false]);
+  assert.equal(socketUrl('lobby', page, 'tyo.play.example.org'), 'wss://tyo.play.example.org/icebreaker/lobby');
+  assert.equal(socketUrl('battle?seat=1', 'https://play.example.org/icebreaker/play?match=m1&seat=1', null), 'wss://play.example.org/icebreaker/battle?seat=1');
+  assert.deepEqual([pageNode(`${page}?server=lon.play.example.org`), pageNode(`${page}?server=evil.org`), pageNode(page)], ['lon.play.example.org', null, null]);
 });
 
 test('[站点-3] the asset base is the one the page names, else assets/skeleton/', () => {

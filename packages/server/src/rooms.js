@@ -4,6 +4,7 @@
 // `send`, time through `now`, chance through `random`, and a match is started through `startMatch`.
 import { STEP_MS, LINEUP, TOASTS, EMOTES, INVERSE, emoteSceneOf, squadProblem, buildOf, styleRunes } from '@icebreaker/mode-regular';
 import { coordinate, pick, handOver, offer } from './allocation.js';
+import { newCode, elsewhere } from './nodes.js';
 
 /**
  * How long a room lives without starting a match (房间-1), each step's time (房间-2, 房间-4, 房间-5), and how long the
@@ -47,6 +48,7 @@ export const TIMES = Object.freeze({ room: 15 * 60_000, ...STEP_MS, together: 60
  * @property {Project[]} projects @property {BoxEntry[]} recruits the temporary recruits (房间-5)
  * @property {number} [maxRooms] how many rooms the server holds at most (站点-2); none: no limit
  * @property {(session: number) => void} [wrongCode] a session tried a room code no room has (站点-2)
+ * @property {import('./nodes.js').Node | null} [node] this server as one node of several (站点-6): its rooms' codes begin with its digit
  */
 /** @typedef {{ key: string, name: string, room: string | null, profile: Profile, chatAt?: number }} Session */
 /** A name card before the page sent its own. @type {Profile} */
@@ -101,13 +103,12 @@ function close(L, r, why) {
   }
 }
 
-/** A new room: a 6-digit code none uses (房间-1), the session its host. @param {Lobby} L @param {number} id */
+/** A new room: a 6-digit code none uses (房间-1; a node's begins with its digit, 站点-6), the session its host. @param {Lobby} L @param {number} id */
 function create(L, id) {
   const s = /** @type {Session} */ (L.sessions.get(id));
   if (L.rooms.size >= (L.o.maxRooms ?? Infinity)) { fail(L, id, TOASTS['serverOverload'] ?? ''); return; }
   if (s.room) leave(L, id);
-  let code;
-  do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
+  const code = newCode(L.o.node, L.o.random, (c) => L.rooms.has(c));
   const r = /** @type {Room} */ ({ code, members: [{ id, key: s.key, name: s.name, online: true, profile: s.profile }], project: 0, inverse: INVERSE.on, expires: L.o.now() + TIMES.room, likes: null });
   toSetup(r);
   L.rooms.set(code, r);
@@ -115,9 +116,15 @@ function create(L, id) {
   push(L, r);
 }
 
-/** Joins the room whose code a player typed: the digits in [brackets] when there are any (房间-1). @param {Lobby} L @param {number} id @param {string} text */
+/**
+ * Joins the room whose code a player typed: the digits in [brackets] when there are any (房间-1). A code of another node
+ * is no wrong code: the page is told that node's host and the code, and joins there (站点-6).
+ * @param {Lobby} L @param {number} id @param {string} text
+ */
 function join(L, id, text) {
-  const r = L.rooms.get(/\[(\d{6})\]/.exec(text)?.[1] ?? text.trim()), s = /** @type {Session} */ (L.sessions.get(id));
+  const code = /\[(\d{6})\]/.exec(text)?.[1] ?? text.trim(), r = L.rooms.get(code), s = /** @type {Session} */ (L.sessions.get(id));
+  const host = r ? null : elsewhere(L.o.node, code);
+  if (host) { L.o.send(id, { t: 'elsewhere', code, host }); return; }
   if (!r) { L.o.wrongCode?.(id); fail(L, id, '没有这个房间编号'); return; }
   if (s.room === r.code) { push(L, r); return; }
   if (r.members.length >= 2) { fail(L, id, '房间已满'); return; }
@@ -178,8 +185,7 @@ function allocate(L, r) {
  * @param {Lobby} L @param {[{ id: number, inverse: boolean, squad: Squad, style: string }, { id: number, squad: Squad, style: string }]} pair @param {number} project
  */
 function openMatched(L, pair, project) {
-  let code;
-  do code = String(Math.floor(L.o.random() * 1e6)).padStart(6, '0'); while (L.rooms.has(code));
+  const code = newCode(L.o.node, L.o.random, (c) => L.rooms.has(c));
   const members = pair.map((p) => { const s = /** @type {Session} */ (L.sessions.get(p.id)); s.room = code; return { id: p.id, key: s.key, name: s.name, online: true, profile: s.profile }; });
   const r = /** @type {Room} */ ({ code, members, project, inverse: pair[0].inverse, expires: L.o.now() + TIMES.room, likes: null, matched: true,
     auto: pair.map((p) => ({ squad: p.squad, style: p.style })), together: null });

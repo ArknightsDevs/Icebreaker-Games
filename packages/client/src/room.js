@@ -16,7 +16,7 @@ import { createRoomMusic } from './roommusic.js';
 import { readSettings, writeSettings, VOLUMES } from './settings.js';
 import { startLobby } from './lobbypage.js';
 import { resultOf } from './lobbymap.js';
-import { assetsUrl, socketUrl } from './site.js';
+import { assetsUrl, socketUrl, nodeHost } from './site.js';
 import { startTurn } from './turn.js';
 
 /** Where this tab's last match is kept, for a way back into it; where the battle page leaves its result (页面-6). */
@@ -41,6 +41,22 @@ const PING_MS = 2000;
 /** @type {WebSocket | null} */
 let ws = null;
 let retry = 0;
+/** Where the room is (站点-6): another node's host this tab keeps while its room is there, else null (this node). */
+let server = keptServer();
+/** A code to join once connected to its node (站点-6). @type {string | null} */
+let pendingJoin = null;
+
+/** The node this tab keeps for its room (sessionStorage ice.server), when it is one the page may connect to. */
+function keptServer() {
+  try { const h = sessionStorage.getItem('ice.server'); return nodeHost(h) ? h : null; } catch { return null; }
+}
+/** Connects the lobby to a node — another one's host, or null for this one — at once (站点-6). @param {string | null} host */
+function moveTo(host) {
+  server = host;
+  try { if (host) sessionStorage.setItem('ice.server', host); else sessionStorage.removeItem('ice.server'); } catch { /* this tab only */ }
+  retry = 0;
+  ws?.close(1000);
+}
 /** @type {ReturnType<typeof setTimeout> | undefined} */
 let toastTimer;
 /** The original lobby screens when the assets have them (页面-6). @type {Awaited<ReturnType<typeof startLobby>>} */
@@ -188,14 +204,14 @@ function onRoom(v) {
 /** The room's match started: to the battle page with the match and the seat (房间-6). @param {any} m */
 function onStart(m) {
   const training = typeof m.training === 'string' && Object.hasOwn(LEVELS, m.training) ? m.training : null;
-  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}), ...(training ? { training } : {}) };
+  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}), ...(training ? { training } : {}), ...(server ? { server } : {}) };
   writeStarted(S.started);
   // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6); a training's its level's
   const lv = training ? /** @type {any} */ (LEVELS[training]).level : null;
   const pr = lv ? { code: lv.code, name: lv.name, level: training } : S.view ? S.lobby?.projects[S.view.project] : null;
   // its level too: the loading screen's picture is the mode's (页面-8)
   try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name, level: pr.level })); } catch { /* the battle page waits for the match */ }
-  const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}`;
+  const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}${server ? `&server=${encodeURIComponent(server)}` : ''}`;
   // with the lobby screens the countdown and the start play first (页面-6)
   void Promise.all([lobby?.start(), music.leave()]).then(() => location.assign(to));
 }
@@ -205,7 +221,13 @@ const ON = {
   lobby: (m) => { S.lobby = m; }, room: onRoom, emote: onEmote, start: onStart, sought: onSought,
   seeking: (m) => { S.seeking = { classes: m.classes, pos: m.pos, inverse: m.inverse, until: performance.now() + m.left }; lobby?.seeking(); },
   error: (m) => { lobby?.failed(); toast(m.msg); },
-  closed: (m) => { S.view = null; S.draft = null; toast(CLOSED[m.why] ?? '房间已关闭'); },
+  closed: (m) => { S.view = null; S.draft = null; toast(CLOSED[m.why] ?? '房间已关闭'); if (server) moveTo(null); },
+  // the room is on another node (站点-6): connect there and join it; a node the page may not connect to is a code of no room here
+  elsewhere: (m) => {
+    if (!nodeHost(m.host) || typeof m.code !== 'string') { lobby?.failed(); toast('这个房间在另一台服务器上，请从游戏入口页进入后再加入'); return; }
+    pendingJoin = m.code;
+    moveTo(m.host);
+  },
 };
 
 /** @param {any} m */
@@ -216,9 +238,13 @@ function onMessage(m) {
 }
 
 function connect() {
-  const sock = new WebSocket(socketUrl('lobby'));
+  const sock = new WebSocket(socketUrl('lobby', location.href, server));
   ws = sock;
-  sock.onopen = () => { retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); sendCard(true); ping(); draw(); };
+  sock.onopen = () => {
+    retry = 0; S.conn = '已连接'; sock.send(JSON.stringify({ t: 'hello', key, name: playerName() })); sendCard(true); ping();
+    if (pendingJoin) { sock.send(JSON.stringify({ t: 'join', code: pendingJoin })); pendingJoin = null; }
+    draw();
+  };
   sock.onmessage = (e) => onMessage(JSON.parse(String(e.data)));
   sock.onclose = (e) => {
     S.conn = '重连中';

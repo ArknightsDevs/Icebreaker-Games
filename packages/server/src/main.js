@@ -5,7 +5,8 @@
 // 127.0.0.1 unless --host says otherwise (--host 0.0.0.0 for players on the local network). The guard (docs/spec/site.md
 // 站点-2) limits each address's sockets and wrong room codes and the server's rooms and battles (--max-rooms,
 // --max-battles: fewer on a small machine); behind a reverse proxy that sets X-Real-IP to the address it saw,
-// --trust-proxy takes the address from there.
+// --trust-proxy takes the address from there. As one node of several (site.md 站点-6) the environment names the node:
+// NCN_GAME_DIGIT and NCN_GAME_PEERS (nodes.js).
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
@@ -16,6 +17,7 @@ import { createLobby } from './lobby.js';
 import { projectViews, recruits } from './catalog.js';
 import { kitDir, nodeKits } from './kits.js';
 import { createGuard, guardUpgrades, countOption, LIMITS } from './guard.js';
+import { nodeOf } from './nodes.js';
 
 /** @param {string[]} argv @returns {number} */
 export function parsePort(argv) {
@@ -42,7 +44,9 @@ if (file) {
   onUpgrade = (await createMatchRoom(JSON.parse(readFileSync(file, 'utf8')), { log, ...kits })).upgrade;
 } else {
   const battles = createBattles({ ...kits, log, onEnd: (id) => lobby.rooms.ended(id), max: countOption(args, '--max-battles', LIMITS.battles) });
-  const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys), log, guard, trustProxy,
+  const node = nodeOf(process.env, log);
+  if (node) console.log(`node ${node.digit} of ${Object.keys(node.peers).length}: room codes begin with ${node.digit}`);
+  const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys), log, guard, trustProxy, node,
     startTraining: (m, key) => battles.start(m, [key], { absent: [1] }),
     maxRooms: countOption(args, '--max-rooms', LIMITS.rooms) });
   onUpgrade = (req, socket, head) => { if (!lobby.upgrade(req, socket, head) && !battles.upgrade(req, socket, head)) socket.destroy(); };

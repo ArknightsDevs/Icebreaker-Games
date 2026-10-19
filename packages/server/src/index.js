@@ -11,3 +11,4 @@ export { projectViews, recruits, trainingMatch } from './catalog.js';
 export { kitDir, nodeKits, KIT_PREFIX } from './kits.js';
 export { createGuard, guardUpgrades, addressOf, countOption, LIMITS } from './guard.js';
 export { createMatcher, seekProblem, mayPair } from './match.js';
+export { nodeOf, newCode, elsewhere } from './nodes.js';

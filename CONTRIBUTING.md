@@ -17,7 +17,7 @@
 | 报告服务器安全漏洞 | [私下报告](../../security/advisories/new)（见 [SECURITY.md](SECURITY.md)），不要公开发 issue |
 | 权利人要求删除内容 | [Issue →「权利人通知」](../../issues/new?template=rights.yml) |
 
-引擎本身（模拟、渲染、数据）的问题，请到 [Arknights-Universal-Engine](https://github.com/Cloudnyco/Arknights-Universal-Engine) 提。
+引擎本身（模拟、渲染、数据）的问题，请到 [Arknights-Universal-Engine](https://github.com/ArknightsDevs/Arknights-Universal-Engine) 提。
 
 ## Issue 标准
 

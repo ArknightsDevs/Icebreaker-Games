@@ -1,6 +1,6 @@
 # 玩法规范
 
-促融共竞各模式的规则写在这里，比如常规项目的关卡目标、一局两关的流程、嘉奖印章、比赛风格。条款格式和检查方式与引擎相同，见 [引擎的规范说明](https://github.com/Cloudnyco/Arknights-Universal-Engine/blob/main/docs/spec/README.md)。
+促融共竞各模式的规则写在这里，比如常规项目的关卡目标、一局两关的流程、嘉奖印章、比赛风格。条款格式和检查方式与引擎相同，见 [引擎的规范说明](https://github.com/ArknightsDevs/Arknights-Universal-Engine/blob/main/docs/spec/README.md)。
 
 - 每条都有编号（`<领域>-<序号>`）和 `- 来源：` 一行。
 - 测试名里写上它验证的条款编号。

@@ -19,7 +19,7 @@
 - **保存**：本机存不了时（隐私模式等），选择只在这一页有效；存的内容不完整或有误时，那一项用默认值。
 - 设置只影响画面，战斗照常每秒 30 帧（引擎 时间-1）。
 
-- 来源：设计决定，见引擎 [ADR 0059](https://github.com/Cloudnyco/Arknights-Universal-Engine/blob/main/docs/adr/0059-player-chosen-performance.md)
+- 来源：设计决定，见引擎 [ADR 0059](https://github.com/ArknightsDevs/Arknights-Universal-Engine/blob/main/docs/adr/0059-player-chosen-performance.md)
 
 ### 页面-2 本地存档与 box 录入
 

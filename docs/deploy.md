@@ -11,7 +11,7 @@
 
 ## 1. 完整包
 
-1. 在仓库的 [Releases](https://github.com/Cloudnyco/Icebreaker-Games/releases) 页面下载 `Icebreaker-Games-v<版本>.zip`。完整包里有：
+1. 在仓库的 [Releases](https://github.com/ArknightsDevs/Icebreaker-Games/releases) 页面下载 `Icebreaker-Games-v<版本>.zip`。完整包里有：
    - 平台和引擎的程序；
    - 运行需要的第三方库；
    - 全部素材：战斗界面、Spine 模型、特效、音效、关卡战斗曲，还有中文-普通话、日语和联动三种干员语音；
@@ -40,12 +40,12 @@
 1. 取得源代码，安装依赖：
 
    ```sh
-   git clone --recurse-submodules https://github.com/Cloudnyco/Icebreaker-Games.git
+   git clone --recurse-submodules https://github.com/ArknightsDevs/Icebreaker-Games.git
    cd Icebreaker-Games
    pnpm install
    ```
 
-2. 素材：在 [Releases](https://github.com/Cloudnyco/Icebreaker-Games/releases) 下载与代码**同一版本**的 `Icebreaker-Games-v<版本>-assets.zip`，解压到任意位置，得到 `Icebreaker-Games-assets/assets/skeleton/…`。不同版本的素材和代码可能对不上。
+2. 素材：在 [Releases](https://github.com/ArknightsDevs/Icebreaker-Games/releases) 下载与代码**同一版本**的 `Icebreaker-Games-v<版本>-assets.zip`，解压到任意位置，得到 `Icebreaker-Games-assets/assets/skeleton/…`。不同版本的素材和代码可能对不上。
 3. 干员 kit：运行 `pnpm exec aue-check oracle`。它把引擎固定的 [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol) 提交取到 `engine/.cache/oracle/`，服务器默认就从那里读。也可以自己取一份这个提交，用 `AUE_KITS_DIR` 指过去。没有 kit 时，干员按引擎自己的实现作战。
 4. 启动：
 

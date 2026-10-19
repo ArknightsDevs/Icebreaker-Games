@@ -9,7 +9,7 @@ Copyright (C) 2026 Icebreaker-Games contributors
 本项目自己编写的源代码与文档文字以 **GNU Affero 通用公共许可证第 3 版或（由你选择）任何更新版本**（AGPL-3.0-or-later）发布，全文见 [LICENSE](LICENSE)。
 
 - **第 13 条（远程网络交互）**：如果你修改了本项目，并让用户通过网络与修改后的版本交互（例如架设联机服务器），就必须向这些用户提供修改后版本的对应源代码。
-- **引擎**：`engine/` 是明日方舟通用引擎（[Arknights-Universal-Engine](https://github.com/Cloudnyco/Arknights-Universal-Engine)）的 git 子模块，以 GPL-3.0-or-later 发布，见它自己的 LICENSE 和 NOTICE。
+- **引擎**：`engine/` 是明日方舟通用引擎（[Arknights-Universal-Engine](https://github.com/ArknightsDevs/Arknights-Universal-Engine)）的 git 子模块，以 GPL-3.0-or-later 发布，见它自己的 LICENSE 和 NOTICE。
 - **第三方库**：通过 pnpm 安装的第三方库（Release 完整包的 `node_modules/` 里是 three.js、ws、es-module-lexer）各自保留原许可证。
 - **干员 kit**：对局中运行的干员 kit 来自 [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol)（GPL-3.0-or-later，版权归其作者）的一个固定提交（见引擎的 `packages/content/data/kits.json`）。它们不在本仓库中：开服时由主机另行取得，原样使用，服务器只改写其中的导入路径（引擎 ADR 0058）。Release 的完整包附带了这个提交里对局运行需要的文件（`kits/stronghold-<提交>/`，连同它的 LICENSE 和 NOTICE），仍按 GPL-3.0-or-later 授权；完整源代码见该文件夹里的 `SOURCE.md`。
 
@@ -17,7 +17,7 @@ Copyright (C) 2026 Icebreaker-Games contributors
 
 《明日方舟》及「促融共竞」相关的全部**名称、角色、美术、Spine 模型、界面、特效、音乐音效、文本与游戏数据**，版权归上海鹰角网络科技有限公司及其授权方所有。
 
-- 这些素材**不在本仓库中**。为了方便开服，[Releases](https://github.com/Cloudnyco/Icebreaker-Games/releases) 里的完整包（`Icebreaker-Games-v<版本>.zip`）和素材包（`Icebreaker-Games-v<版本>-assets.zip`）附带了它们（`assets/**`），同样按本声明使用。**下载即视为同意本声明**；请勿把素材用于本项目以外的用途，也不要单独再分发。
+- 这些素材**不在本仓库中**。为了方便开服，[Releases](https://github.com/ArknightsDevs/Icebreaker-Games/releases) 里的完整包（`Icebreaker-Games-v<版本>.zip`）和素材包（`Icebreaker-Games-v<版本>-assets.zip`）附带了它们（`assets/**`），同样按本声明使用。**下载即视为同意本声明**；请勿把素材用于本项目以外的用途，也不要单独再分发。
 - 素材的来源：
   - 干员与召唤物的战斗 Spine：[HX0922/ArknightsSpine](https://github.com/HX0922/ArknightsSpine)（固定提交 dc788e3）；
   - 敌人的 Spine：[isHarryh/Ark-Models](https://github.com/isHarryh/Ark-Models)（固定提交 8a3857c）；

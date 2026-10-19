@@ -6,9 +6,9 @@
 
 ![license](https://img.shields.io/badge/code%20license-AGPL--3.0--or--later-blue)
 ![node](https://img.shields.io/badge/node-22%20%7C%2024-339933)
-[![CI](https://github.com/Cloudnyco/Icebreaker-Games/actions/workflows/ci.yml/badge.svg)](https://github.com/Cloudnyco/Icebreaker-Games/actions/workflows/ci.yml)
+[![CI](https://github.com/ArknightsDevs/Icebreaker-Games/actions/workflows/ci.yml/badge.svg)](https://github.com/ArknightsDevs/Icebreaker-Games/actions/workflows/ci.yml)
 
-《明日方舟》限时玩法「促融共竞」（国际服名 *Icebreaker Games*）的同人复刻。两名玩家在局域网里组队参赛，在同一张地图上实时合作打完一场比赛。活动界面、战斗画面和比赛流程都按原版还原，战斗由 [明日方舟通用引擎](https://github.com/Cloudnyco/Arknights-Universal-Engine) 计算。
+《明日方舟》限时玩法「促融共竞」（国际服名 *Icebreaker Games*）的同人复刻。两名玩家在局域网里组队参赛，在同一张地图上实时合作打完一场比赛。活动界面、战斗画面和比赛流程都按原版还原，战斗由 [明日方舟通用引擎](https://github.com/ArknightsDevs/Arknights-Universal-Engine) 计算。
 
 ## 开始游玩
 
@@ -51,7 +51,7 @@
 需要 Node.js 22.12 或更新的版本、pnpm（版本由 `package.json` 的 `packageManager` 固定；装了 corepack 会自动使用，没有时运行 `npx pnpm@11.28.0`）和 Git。
 
 ```sh
-git clone --recurse-submodules https://github.com/Cloudnyco/Icebreaker-Games.git
+git clone --recurse-submodules https://github.com/ArknightsDevs/Icebreaker-Games.git
 cd Icebreaker-Games
 pnpm install
 pnpm run ci
@@ -89,7 +89,7 @@ AUE_ASSETS_DIR=<解压的位置>/Icebreaker-Games-assets/assets node packages/se
 
 ## 致谢
 
-- [明日方舟通用引擎](https://github.com/Cloudnyco/Arknights-Universal-Engine)：战斗、画面、界面和联机。
+- [明日方舟通用引擎](https://github.com/ArknightsDevs/Arknights-Universal-Engine)：战斗、画面、界面和联机。
 - [Stronghold Protocol](https://github.com/sganggs/Stronghold-Protocol)：72 名六星干员的脚本（GPL-3.0-or-later）。
 - [PRTS](https://prts.wiki/) 与 [Kengxxiao/ArknightsGameData](https://github.com/Kengxxiao/ArknightsGameData)：机制与游戏数据。
 - Release 包里素材的各个来源，列在 [NOTICE.md](NOTICE.md)。

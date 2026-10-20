@@ -37,15 +37,16 @@ export async function until(what, fn, timeout = 15000) {
 
 /**
  * The server with a room of a match (default: the default match), on a free port of 127.0.0.1; with the pinned kits
- * when they are installed (engine ADR 0058).
- * @param {Parameters<typeof createMatchRoom>[0]} [match]
+ * when they are installed (engine ADR 0058); with the host's mods when given (站点-7).
+ * @param {Parameters<typeof createMatchRoom>[0]} [match] @param {{ mods?: import('@icebreaker/server').HostMods }} [o]
  */
-export async function startStack(match = DEFAULT_MATCH) {
+export async function startStack(match = DEFAULT_MATCH, o = {}) {
   /** @type {string[]} */
   const lines = [];
   const kitsDir = kitDir(ROOT);
-  const room = await createMatchRoom(match, { log: (l) => lines.push(l), ...(kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {}) });
-  const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade: room.upgrade, kitsDir });
+  const room = await createMatchRoom(match, { log: (l) => lines.push(l), ...(kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {}),
+    ...(o.mods ? { source: o.mods.source } : {}) });
+  const server = createHttpServer({ rootDir: ROOT, assetsDir: process.env['AUE_ASSETS_DIR'] ?? '', onUpgrade: room.upgrade, kitsDir, ...(o.mods ? { mods: o.mods } : {}) });
   await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
   const port = /** @type {import('node:net').AddressInfo} */ (server.address()).port;
   const stop = async () => {

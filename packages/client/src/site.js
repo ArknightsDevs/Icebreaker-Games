@@ -57,5 +57,8 @@ export function moduleUrl(path, url = import.meta.url, page = location.href) {
   return siteUrl(`m/${v ? `${v}/` : ''}${path}`, page);
 }
 
+/** Where the host serves its mods (站点-7). @param {string} [page] */
+export const modsUrl = (page = location.href) => siteUrl('mods/', page);
+
 /** The pinned kits' base under the same version as the modules (站点-4). @param {string} [url] @param {string} [page] */
 export const kitsUrl = (url = import.meta.url, page = location.href) => { const v = codeVersion(url); return siteUrl(`k/${v ? `${v}/` : ''}`, page); };

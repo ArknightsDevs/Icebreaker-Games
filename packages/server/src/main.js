@@ -1,6 +1,7 @@
 // CLI: node packages/server/src/main.js [--port 8700] [--host 127.0.0.1] [--match <file.json>] [--trust-proxy]
-//   [--max-rooms 500] [--max-battles 100]
-// (env AUE_ASSETS_DIR: the local assets directory; AUE_KITS_DIR: the pinned kits). Without --match the server holds the
+//   [--max-rooms 500] [--max-battles 100] [--mods <folder>]
+// (env AUE_ASSETS_DIR: the local assets directory; AUE_KITS_DIR: the pinned kits; AUE_MODS_DIR: the mods, read once at
+// start, default <root>/mods — docs/spec/site.md 站点-7). Without --match the server holds the
 // lobby and its rooms (docs/spec/room.md) and their battles; with it, one battle room of that match. It listens on
 // 127.0.0.1 unless --host says otherwise (--host 0.0.0.0 for players on the local network). The guard (docs/spec/site.md
 // 站点-2) limits each address's sockets and wrong room codes and the server's rooms and battles (--max-rooms,
@@ -18,6 +19,7 @@ import { projectViews, recruits } from './catalog.js';
 import { kitDir, nodeKits } from './kits.js';
 import { createGuard, guardUpgrades, countOption, LIMITS } from './guard.js';
 import { nodeOf } from './nodes.js';
+import { loadHostMods, modsDir } from './mods.js';
 
 /** @param {string[]} argv @returns {number} */
 export function parsePort(argv) {
@@ -37,13 +39,16 @@ const kitsDir = kitDir(rootDir), log = (/** @type {string} */ line) => console.l
 const trustProxy = args.includes('--trust-proxy'), guard = createGuard();
 console.log(kitsDir ? `kits: ${kitsDir}` : 'kits: none (operators fight on the engine’s own)');
 const kits = kitsDir ? { kits: (/** @type {string[]} */ ids) => nodeKits(kitsDir, ids) } : {};
+const mods = await loadHostMods(modsDir(rootDir, args, process.env));
+for (const line of mods.lines) console.log(line);
+const content = { ...kits, source: mods.source };
 
 /** @type {(req: import('node:http').IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => void} */
 let onUpgrade;
 if (file) {
-  onUpgrade = (await createMatchRoom(JSON.parse(readFileSync(file, 'utf8')), { log, ...kits })).upgrade;
+  onUpgrade = (await createMatchRoom(JSON.parse(readFileSync(file, 'utf8')), { log, ...content })).upgrade;
 } else {
-  const battles = createBattles({ ...kits, log, onEnd: (id) => lobby.rooms.ended(id), max: countOption(args, '--max-battles', LIMITS.battles) });
+  const battles = createBattles({ ...content, log, onEnd: (id) => lobby.rooms.ended(id), max: countOption(args, '--max-battles', LIMITS.battles) });
   const node = nodeOf(process.env, log);
   if (node) console.log(`node ${node.digit} of ${Object.keys(node.peers).length}: room codes begin with ${node.digit}`);
   const lobby = createLobby({ projects: projectViews(), recruits: await recruits(), startMatch: (m, keys) => battles.start(m, keys), log, guard, trustProxy, node,
@@ -51,6 +56,6 @@ if (file) {
     maxRooms: countOption(args, '--max-rooms', LIMITS.rooms) });
   onUpgrade = (req, socket, head) => { if (!lobby.upgrade(req, socket, head) && !battles.upgrade(req, socket, head)) socket.destroy(); };
 }
-const server = await startHttpServer({ rootDir, port: parsePort(args), host: option(args, '--host') ?? '127.0.0.1', onUpgrade: guardUpgrades(guard, trustProxy, onUpgrade), kitsDir, home: file ? 'play' : 'room' });
+const server = await startHttpServer({ rootDir, port: parsePort(args), host: option(args, '--host') ?? '127.0.0.1', onUpgrade: guardUpgrades(guard, trustProxy, onUpgrade), kitsDir, home: file ? 'play' : 'room', mods });
 const addr = server.address();
 if (addr !== null && typeof addr === 'object') console.log(`http://${addr.address}:${addr.port}/`);

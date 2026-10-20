@@ -32,12 +32,13 @@ export async function loadUiPack(assets) {
  * as counted cards (the engine's 界面-39) —; then the summon cards of its operators (the engine's 界面-23), put in by cost
  * and id.
  * @param {import('@aue/schema').Match} match @param {any} content @param {number} seat @param {(char: string) => string | null} avatar
+ * @param {Readonly<Record<string, { profession: string, rarity: number }>>} [roster] the operators to choose from: the host's mods' among them (页面-10)
  * @returns {import('@aue/ui').DeckCard[]}
  */
-export function deckCards(match, content, seat, avatar) {
+export function deckCards(match, content, seat, avatar, roster = ROSTER) {
   const builds = new Map((match.decks?.[seat] ?? []).map((d) => [d.id, d.build])), keys = /** @type {string[]} */ (content.decks?.[seat] ?? []);
   const ops = keys.map((k) => {
-    const op = content.operators[k], char = op.char ?? k, r = ROSTER[char];
+    const op = content.operators[k], char = op.char ?? k, r = roster[char];
     return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: builds.get(k)?.elite ?? 0, respawn: op.respawnTime ?? 60,
       ...(op.builder ? { pool: true } : {}) };
   });

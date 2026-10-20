@@ -9,6 +9,7 @@
 import { startBattle } from '@aue/worker';
 import { createBattleRenderer, loadTextures, matchTextureKeys, loadSpineModels, loadDeviceMeshes, loadTileKit, loadEffectPack, createBattleAudio, leaderOf } from '@aue/render';
 import { matchContent } from '@aue/content';
+import { SOURCE, ROSTER, lookOf, moddedText } from './mods.js';
 import { createDeck } from './deck.js';
 import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
@@ -19,7 +20,7 @@ import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { controlSounds } from './sound.js';
-import { assetsUrl, kitsUrl, moduleUrl, socketUrl, pageNode } from './site.js';
+import { assetsUrl, kitsUrl, modsUrl, moduleUrl, socketUrl, pageNode } from './site.js';
 import { bootCounter, bootDone, bootFail, bootStep } from './boot.js';
 import { createTutorial } from './tutorial.js';
 import { createSignals, loadEmoteArt } from './battlesignals.js';
@@ -73,18 +74,21 @@ async function assets() {
   return { manifest: /** @type {{ files: Record<string, { file: string }> }} */ (await res.json()) };
 }
 
-/** The content keys of a match's units: operators by character ID, enemies and devices by key. @param {any} content */
-const unitKeysOf = (content) => ({ operators: Object.entries(content.operators).map(([k, o]) => /** @type {any} */ (o).char ?? k.split('#')[0]),
+/**
+ * The content keys of a match's units: operators by character ID — an operator a mod adds by the one it looks like
+ * (页面-10) —, enemies and devices by key. @param {any} content
+ */
+const unitKeysOf = (content) => ({ operators: Object.entries(content.operators).map(([k, o]) => /** @type {any} */ (o).look ?? /** @type {any} */ (o).char ?? k.split('#')[0]),
   enemies: Object.keys(content.enemies), devices: Object.keys(content.devices ?? {}) });
 
 /**
  * The Spine models of a match's operators, enemies and level devices the assets have; none without a model index.
- * @param {{ operators: Record<string, { char?: string }>, enemies: Record<string, unknown>, devices?: Record<string, unknown> }} content
+ * @param {{ operators: Record<string, { char?: string, look?: string }>, enemies: Record<string, unknown>, devices?: Record<string, unknown> }} content
  */
 async function spineModels(content) {
   const res = await fetch(new URL('spine/index.json', ASSETS)).catch(() => null);
   if (!res?.ok) return new Map();
-  const ids = [...Object.entries(content.operators).map(([k, o]) => o.char ?? k), ...Object.keys(content.enemies), ...Object.keys(content.devices ?? {})];
+  const ids = [...Object.entries(content.operators).map(([k, o]) => o.look ?? o.char ?? k), ...Object.keys(content.enemies), ...Object.keys(content.devices ?? {})];
   return loadSpineModels(await res.json(), new URL('spine/', ASSETS).href, ids);
 }
 
@@ -103,7 +107,7 @@ async function tileKit(level) {
 }
 
 /** Each deck operator's skill (1-based) by its character, for its skill's own effects (the engine's 渲染-11). @param {import('@aue/schema').Match} match */
-const skillSlots = (match) => Object.fromEntries((match.decks ?? []).flat().filter((d) => d.build.skill >= 0).map((d) => [d.id.split('#')[0], d.build.skill + 1]));
+const skillSlots = (match) => Object.fromEntries((match.decks ?? []).flat().filter((d) => d.build.skill >= 0).map((d) => [lookOf(d.id.split('#')[0]), d.build.skill + 1]));
 
 /**
  * The attack effects of a match's units (the engine's 渲染-10): the host's pack cut down to them (站点-6), or null when
@@ -125,7 +129,7 @@ async function effectPack(units) {
  * @param {ReturnType<typeof openEarlyUi> | null} opening the original UI the page opened at once, if it did
  */
 async function setUp(match, art, changed, joined, opening) {
-  const content = await matchContent(match);
+  const content = await matchContent(match, { source: SOURCE });
   // the original UI opens first: its start panel is the loading screen while the field, the models and the effects load
   // (opened already when the room page left the stage for it)
   const early = opening ?? earlyUi(art, stageOf(match, content, joined)), artOf = fieldArt(art, match, content);
@@ -141,12 +145,16 @@ async function setUp(match, art, changed, joined, opening) {
   const { models, meshes, kit, effects, textures } = await artOf;
   const renderer = art ? createBattleRenderer({ canvas: /** @type {HTMLCanvasElement} */ ($('field')), level: content.level, textures, view: content.level.view, models, leaders, foeDevices,
     kit, effects, skills: skillSlots(match), seat, bars: !pack, pixelScale: settings.scale, attackEffects: settings.attackEffects, deviceMeshes: meshes, flyers }) : null;
-  const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${id}`] ? new URL(art.manifest.files[`avatar:${id}`].file, ASSETS).href : null;
+  const avatar = (/** @type {string} */ id) => art?.manifest.files[`avatar:${lookOf(id)}`] ? new URL(art.manifest.files[`avatar:${lookOf(id)}`].file, ASSETS).href : null;
   const ops = (content.decks?.[seat] ?? []).map((k) => ({ id: k, name: content.operators[k].name, avatar: avatar(content.operators[k].char ?? k) }))
     .filter((o) => o.avatar !== null).map((o) => ({ ...o, avatar: /** @type {string} */ (o.avatar) }));
   const ui = renderer && opened ? originalUi(match, content, avatar, opened) : null;
   // a level being tested (房间-13, the engine's 关卡-8): its enemies' abilities not all there yet
   $('testing').hidden = !(/** @type {any} */ (content.level).uncovered?.length > 0);
+  // a host with mods (页面-10): the match is marked
+  const modded = moddedText();
+  $('modded').hidden = modded === null;
+  $('modded').textContent = modded ?? '';
   return { content, renderer, deck: ui ? null : createDeck($('deck'), ops, changed), ui, match, leaders, foeDevices, early: joined < 0, avatar };
 }
 
@@ -207,7 +215,7 @@ async function openEarlyUi(stage) {
  */
 function originalUi(match, content, avatar, opened) {
   const { ui, loaded, start } = opened, base = new URL('ui/', ASSETS).href;
-  const deck = deckCards(match, content, seat, avatar);
+  const deck = deckCards(match, content, seat, avatar, ROSTER);
   const hud = createBattleHud(ui, { deck, coop: (match.decks?.length ?? 1) === 2, start });
   opened.stop();
   document.body.classList.add('original-ui');
@@ -291,7 +299,7 @@ async function main() {
     workerUrl: moduleUrl('@aue/worker/src/worker.js'),
     // the battle is on its room's node (站点-6): the page's `server` when the room was on another one
     wsUrl: socketUrl(`battle?${MATCH ? `match=${encodeURIComponent(MATCH)}&` : ''}seat=${seat}`, location.href, pageNode()),
-    seat, key, kits: kitsUrl(),
+    seat, key, kits: kitsUrl(), mods: modsUrl(),
     onFrame: (view, events, keys, status) => onFrame(P, { view, events, keys, status }),
     onNet: (s) => {
       P.net = s.state === 'open' || s.state === 'match' ? '已连接' : s.state === 'closed' ? '重连中' : `消息有误：${s.reason}`;
@@ -331,7 +339,7 @@ async function startAudio(P) {
 
 /** Loads the lines of this seat's operators in their dubs (页面-4), once the audio and the match are both here. @param {Page} P */
 function prepareVoices(P) {
-  if (P.audio?.voices && P.game) void P.audio.prepare((P.game.content.decks?.[seat] ?? []).map((k) => k.split('#')[0]));
+  if (P.audio?.voices && P.game) void P.audio.prepare((P.game.content.decks?.[seat] ?? []).map((k) => lookOf(k.split('#')[0])));
 }
 
 /**
@@ -347,7 +355,7 @@ function frameSound(P, f) {
     P.music = true;
     void audio.startMusic(level.bgm);
     // the battle's start, said by the deck's leader (engine 音频-5) on a page that was there when it began
-    const leader = audio.voices && game.early ? leaderOf(audio.voices, game.content.decks?.[seat] ?? []) : null;
+    const leader = audio.voices && game.early ? leaderOf(audio.voices, (game.content.decks?.[seat] ?? []).map((k) => lookOf(k.split('#')[0]))) : null;
     if (leader) void audio.say(leader, 'BATTLE_START');
   }
   if (f.events.some((e) => e['type'] === 'end')) audio.stopMusic();
@@ -396,7 +404,8 @@ function drawField(P, f) {
   const r = P.game?.renderer;
   if (!r) return;
   if (f.status.fortress) r.levels(f.status.fortress.levels);
-  r.update(f.view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, k.split('#')[0]])), f.events);
+  const ops = /** @type {Record<string, { look?: string }>} */ (P.game?.content.operators ?? {});
+  r.update(f.view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, ops[k]?.look ?? k.split('#')[0]])), f.events);
 }
 
 /** The control state the battle UI shows: a training's script holding the battle is not the player's pause (房间-11). @param {Page} P */
@@ -527,7 +536,7 @@ function startOriginal(P, g, renderer, canvas) {
   // a deployment is what a training's drag waits for (房间-11)
   const battle = { ...b, command: (/** @type {import('@aue/schema').Command} */ c) => { if (c.type === 'deploy') P.tutorial?.putDown(); b.command(c); } };
   return new Hand({ canvas, renderer, hud: o.hud, battle, level: g.content.level, seat, content: g.content, icons: o.icons, iconBase: o.iconBase,
-    view: () => P.lastView, usable, unitKey: (id) => P.unitKeys.get(id), focus: (key) => { void P.audio?.say(key.split('#')[0], 'FOCUS_CHAR'); } });
+    view: () => P.lastView, usable, unitKey: (id) => P.unitKeys.get(id), focus: (key) => { void P.audio?.say(lookOf(key.split('#')[0]), 'FOCUS_CHAR'); } });
 }
 
 /**

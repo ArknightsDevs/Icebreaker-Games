@@ -15,6 +15,7 @@
         "@aue/net",
         "@aue/data",
         "@aue/render",
+        "@aue/sdk",
         "@icebreaker/mode-regular",
         "ws",
         "es-module-lexer"

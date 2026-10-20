@@ -7,7 +7,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import { readPackageJson, readWorkspace, runtimeDependencies } from '../../packages/server/src/workspace.js';
 
 /** The platform's root files a bundle ships, those the commit has. */
-export const ROOT_FILES = ['package.json', 'pnpm-workspace.yaml', 'LICENSE', 'NOTICE.md', 'README.md', 'CHANGELOG.md', 'docs/deploy.md', 'scripts'];
+export const ROOT_FILES = ['package.json', 'pnpm-workspace.yaml', 'LICENSE', 'NOTICE.md', 'README.md', 'CHANGELOG.md', 'docs/deploy.md', 'scripts', 'mods/README.md'];
 /** The engine's root files. */
 export const ENGINE_FILES = ['LICENSE', 'NOTICE.md', 'README.md'];
 /** What the server and the page run: their workspace dependencies follow. */

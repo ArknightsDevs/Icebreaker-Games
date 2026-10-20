@@ -8,6 +8,7 @@ h1 { font-size: 20px; margin: 0; }
 h2 { font-size: 16px; margin: 0 0 8px; }
 h3 { font-size: 15px; margin: 8px 0 4px; }
 #conn, .muted, small { color: var(--muted); }
+#modded { color: #ffd36e; }
 .card, #box { background: var(--card); padding: 12px 16px; }
 #screen { display: flex; flex-direction: column; gap: 12px; }
 #box[hidden], #toast[hidden] { display: none; }

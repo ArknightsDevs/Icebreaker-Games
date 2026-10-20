@@ -32,6 +32,7 @@ export const DEFAULT_MATCH = Object.freeze({
  * @property {import('@aue/schema').Match | null} [match] the match settings the content was made from
  * @property {() => number} [now] milliseconds
  * @property {(line: string) => void} [log]
+ * @property {import('@aue/content').ContentSource} [source] the content the match is made from: the host's mods (站点-7), default the official content
  * @property {(charIds: string[]) => Promise<{ kits: Record<string, any>, failed: string[] }>} [kits] loads the pinned kits of a match's
  *   operators (kits.js nodeKits); none: the operators fight on the engine's own (engine ADR 0058)
  * @property {string[]} [keys] each seat's key set beforehand (a room's members, room.md 房间-6): only it takes the seat
@@ -49,7 +50,7 @@ export async function createMatchRoom(match, o = {}) {
   if (why) throw new Error(`match settings: ${why}`);
   const loaded = o.kits ? await o.kits(match.decks.flat().map((e) => e.id)) : null;
   if (loaded?.failed.length) o.log?.(`kits not loaded: ${loaded.failed.join(', ')}`);
-  const content = await matchContent(match, undefined, loaded?.kits ?? {});
+  const content = await matchContent(match, { ...(o.source ? { source: o.source } : {}), kits: loaded?.kits ?? {} });
   return createBattleRoom({ signals: signalRule(content.level), ...o, content, match, seats: match.decks.length, seed: match.seed });
 }
 

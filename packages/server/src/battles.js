@@ -9,7 +9,7 @@ import { createMatchRoom } from './battle.js';
 export const LINGER = Object.freeze({ ended: 120_000, empty: 10 * 60_000 });
 
 /**
- * @param {{ kits?: import('./battle.js').BattleRoomOptions['kits'], log?: (line: string) => void, onEnd: (id: string) => void, max?: number, now?: () => number }} o
+ * @param {{ kits?: import('./battle.js').BattleRoomOptions['kits'], source?: import('@aue/content').ContentSource, log?: (line: string) => void, onEnd: (id: string) => void, max?: number, now?: () => number }} o
  */
 export function createBattles(o) {
   const now = o.now ?? (() => Date.now());
@@ -46,7 +46,8 @@ export function createBattles(o) {
     async start(match, keys, more = {}) {
       if (o.max && live.size >= o.max) throw new Error('服务器的对局已满');
       const id = randomBytes(6).toString('hex');
-      const room = await createMatchRoom(match, { keys, ...(o.kits ? { kits: o.kits } : {}), ...(more.absent ? { absent: more.absent } : {}), log: (line) => o.log?.(`[${id}] ${line}`) });
+      const room = await createMatchRoom(match, { keys, ...(o.kits ? { kits: o.kits } : {}), ...(o.source ? { source: o.source } : {}), ...(more.absent ? { absent: more.absent } : {}),
+        log: (line) => o.log?.(`[${id}] ${line}`) });
       live.set(id, { room, endedAt: 0, emptySince: now() });
       return id;
     },

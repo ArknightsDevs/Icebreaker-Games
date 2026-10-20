@@ -181,3 +181,11 @@ test('[房间-13] 堡垒守御 on the HUD (the engine\'s 界面-39): the builder
   assert.deepEqual([last.fortress?.last, last.fortress?.damage, last.resting], [true, 5e5, null]);
   assert.deepEqual(fortressOf(/** @type {any} */ ({}), 8, 0, 0), {});
 });
+
+test('[页面-10] an operator a host\'s mod adds: its card from the roster the page made from the host\'s mods', () => {
+  const match = /** @type {any} */ ({ decks: [[{ id: 'mine:alt#0', build: { elite: 1 } }]] });
+  const content = { decks: [['mine:alt#0']], operators: { 'mine:alt#0': { char: 'mine:alt', look: 'char_010_chen', respawnTime: 70 } } };
+  const roster = { 'mine:alt': { profession: 'WARRIOR', rarity: 5 } };
+  assert.deepEqual(deckCards(match, content, 0, (c) => `/avatar/${c}.png`, roster)[0], { id: 'mine:alt#0', avatar: '/avatar/mine:alt.png', profession: 'WARRIOR', rarity: 5, phase: 1, respawn: 70 });
+  assert.equal(deckCards(match, content, 0, () => null)[0].rarity, 1, 'not in the official roster');
+});

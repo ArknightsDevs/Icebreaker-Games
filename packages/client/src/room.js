@@ -3,7 +3,8 @@
 // battle page comes back here when it ends. The lobby key stays in this tab (session.js), so a reload or the way back
 // takes the same seat. With the assets the page shows the activity's icons and plays its menu music (页面-5); with their
 // lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
-import { ROSTER, LEVELS, loadTraining } from '@aue/content';
+import { LEVELS } from '@aue/content';
+import { ROSTER, loadTraining, moddedText } from './mods.js';
 import { squadProblem, MODE, EMOTES, MATCH } from '@icebreaker/mode-regular';
 import { bootDone } from './boot.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
@@ -31,6 +32,9 @@ const STARTED_AT_LOAD = readStarted();
 if (!save.tag) { save = { ...save, tag: newTag() }; writeSave(store, save); }
 // a phone plays in landscape (页面-7), before anything measures the page
 startTurn(/** @type {HTMLButtonElement | null} */ (document.getElementById('full')));
+// a host with mods (页面-10): the header says which
+const modded = moddedText();
+if (modded) Object.assign($('modded'), { hidden: false, textContent: modded });
 const ASSETS = assetsUrl(), ART = new URL('ui/room/', ASSETS).href;
 /** @type {import('./roomart.js').RoomAtlas | null} */
 let atlas = null;

@@ -1,4 +1,5 @@
-// The HTTP server: the pages, their static files, the modules, the pinned kits, the asset directory and a health check.
+// The HTTP server: the pages, their static files, the modules, the pinned kits, the asset directory, the host's mods
+// (站点-7) and a health check.
 // The pages: the battle at /play, the lobby and its rooms at /room (docs/spec/room.md), and one of them at / .
 import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
@@ -7,6 +8,7 @@ import { join } from 'node:path';
 import { assetBase, assetVersion, createAssetHandler } from './assets.js';
 import { createModuleHandler } from './modules.js';
 import { createKitHandler, kitDir } from './kits.js';
+import { createModsHandler, NO_MODS } from './mods.js';
 import { rawPathname } from './paths.js';
 import { allowReadOnly, sendBody, sendText } from './respond.js';
 import { createStaticHandler, publicDir, serveFixedFile } from './static.js';
@@ -23,6 +25,7 @@ import { readWorkspace } from './workspace.js';
  * @property {(req: import('node:http').IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => void} [onUpgrade]
  *   WEBSOCKET_UPGRADE_HOOK: the WebSocket upgrades (the lobby's /lobby, the battles' /battle)
  * @property {'play' | 'room'} [home] the page at / : the battle (default: a server of one match) or the lobby
+ * @property {import('./mods.js').HostMods} [mods] the host's mods (站点-7); default none: an empty list
  */
 
 /** @typedef {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => boolean} Handler */
@@ -78,7 +81,8 @@ export function createHttpServer(options) {
   const browserPackages = options.browserPackages ?? ['@icebreaker/client'];
   const modules = createModuleHandler({ workspace: readWorkspace(rootDir, browserPackages), browserPackages });
   const kits = createKitHandler(options.kitsDir === undefined ? kitDir(rootDir) : options.kitsDir, modules.version);
-  const files = staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR']), handlers = [modules, kits, ...files.handlers];
+  const mods = createModsHandler(options.mods ?? NO_MODS);
+  const files = staticHandlers(rootDir, options.assetsDir ?? process.env['AUE_ASSETS_DIR']), handlers = [modules, kits, mods, ...files.handlers];
   const meta = ASSET_META.replace('assets/skeleton/', assetBase(files.version));
   const withBase = async (/** @type {string} */ html) => pageWithModules(await withBoot(html.replace(ASSET_META, meta), publicDir(rootDir)), modules);
   const pages = { '/play': join(publicDir(rootDir), 'index.html'), '/room': join(publicDir(rootDir), 'room.html') };

@@ -5,7 +5,7 @@
 // own HTML room stays.
 import { createUi } from '@aue/ui';
 import { bootCounter, bootStep } from './boot.js';
-import { ROSTER, loadTraining } from '@aue/content';
+import { ROSTER, loadTraining, lookOf } from './mods.js';
 import { STYLES, TOASTS, TRAINING_LEVELS } from '@icebreaker/mode-regular';
 import { openPart, closePart, setSwitch, SEASON, PAGE_SCREENS } from './lobbykit.js';
 import { PAGES, pageOf, newLocal } from './lobbymap.js';
@@ -48,7 +48,8 @@ function lobbyArt(lobby, kind, i) {
  * are the deploy cards' glows), skill icons from the skill icon index, the operators' half-length portraits from the
  * portrait index (by elite phase: the elite-2 one from elite 2 when there is one), the modules' type icons and marks
  * from the module icon index (a type's icon is named by it in lower case, a few in its own case), the illustrations
- * from the art index (the elite-2 art when asked and there is one; each with its rect in an illust loader).
+ * from the art index (the elite-2 art when asked and there is one; each with its rect in an illust loader). An operator a
+ * mod adds has the pictures of the one it looks like (页面-10).
  * @param {any} battle @param {any} manifest @param {any} skills @param {any} lobby the lobby pack
  * @param {{ portraits: any, equips: any, illusts: any }} indexes the portrait index, the module icon index and the art index
  * @returns {import('./lobbycards.js').CardArt}
@@ -57,9 +58,9 @@ function cardArt(battle, manifest, skills, lobby, { portraits, equips, illusts }
   const equipUrl = (/** @type {string | undefined} */ file) => (file ? new URL(`uniequip/${file}`, ASSETS).href : null);
   const card = battle?.hud?.card, url = (/** @type {string | null | undefined} */ key) => (key && battle?.sprites?.[key] ? new URL(battle.sprites[key].uri, UI).href : null);
   return {
-    avatar: (id) => (manifest?.files?.[`avatar:${id}`] ? new URL(manifest.files[`avatar:${id}`].file, ASSETS).href : null),
+    avatar: (id) => (manifest?.files?.[`avatar:${lookOf(id)}`] ? new URL(manifest.files[`avatar:${lookOf(id)}`].file, ASSETS).href : null),
     portrait: (id, elite) => {
-      const p = portraits?.portraits?.[id], file = p ? (elite >= 2 && p['2']) || p['1'] : null;
+      const p = portraits?.portraits?.[lookOf(id)], file = p ? (elite >= 2 && p['2']) || p['1'] : null;
       return file ? new URL(`portraits/${file}`, ASSETS).href : null;
     },
     profession: (p) => (card?.professions?.[p] ? { url: url(card.professions[p].sprite), color: card.professions[p].color } : null),
@@ -70,7 +71,7 @@ function cardArt(battle, manifest, skills, lobby, { portraits, equips, illusts }
     equip: (type) => equipUrl(equips?.type?.[type.toLowerCase()] ?? equips?.type?.[type]),
     equipMark: (mark) => equipUrl(equips?.extra?.[mark.toLowerCase()]),
     illust: (id, art) => {
-      const p = illusts?.illusts?.[id], a = p ? (art >= 2 && p['2']) || p['1'] : null;
+      const p = illusts?.illusts?.[lookOf(id)], a = p ? (art >= 2 && p['2']) || p['1'] : null;
       return a ? { url: new URL(`charillust/${a.file}`, ASSETS).href, pos: a.pos, size: a.size } : null;
     },
   };

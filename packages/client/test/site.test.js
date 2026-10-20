@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { assetsUrl, codeVersion, kitsUrl, moduleUrl, siteUrl, socketUrl, nodeHost, pageNode } from '../src/site.js';
+import { assetsUrl, codeVersion, kitsUrl, modsUrl, moduleUrl, siteUrl, socketUrl, nodeHost, pageNode } from '../src/site.js';
 import { bootCounter, bootDone, bootFail, bootStep } from '../src/boot.js';
 
 test('[站点-1] site URLs and socket URLs follow the page, under a prefix or at the root', () => {
@@ -53,6 +53,11 @@ test('[站点-4] the Worker and the kits under the version the modules of the pa
   assert.equal(codeVersion(bare), '');
   assert.equal(moduleUrl('@aue/worker/src/worker.js', bare, page).href, 'https://x.test/icebreaker/m/@aue/worker/src/worker.js');
   assert.equal(kitsUrl(bare, page).href, 'https://x.test/icebreaker/k/');
+});
+
+test('[站点-7] [页面-10] where the host serves its mods: beside the page, under a path too', () => {
+  assert.equal(modsUrl('https://x.test/icebreaker/room?code=1').href, 'https://x.test/icebreaker/mods/');
+  assert.equal(modsUrl('http://192.168.1.5:8700/play?seat=0').href, 'http://192.168.1.5:8700/mods/');
 });
 
 test('[页面-8] the page tells the loading screen its steps, a share spread over loads, the hand-over and a failure; nothing without it', () => {

@@ -44,6 +44,9 @@ importers:
       '@aue/math':
         specifier: workspace:*
         version: link:../math
+      '@aue/schema':
+        specifier: workspace:*
+        version: link:../schema
       '@aue/sim':
         specifier: workspace:*
         version: link:../sim
@@ -122,6 +125,21 @@ importers:
       fast-check:
         specifier: ^4.10.2
         version: 4.10.2
+
+  engine/packages/sdk:
+    dependencies:
+      '@aue/content':
+        specifier: workspace:*
+        version: link:../content
+      '@aue/math':
+        specifier: workspace:*
+        version: link:../math
+      '@aue/schema':
+        specifier: workspace:*
+        version: link:../schema
+      '@aue/sim':
+        specifier: workspace:*
+        version: link:../sim
 
   engine/packages/sim:
     dependencies:
@@ -230,6 +248,9 @@ importers:
       '@aue/schema':
         specifier: workspace:*
         version: link:../../engine/packages/schema
+      '@aue/sdk':
+        specifier: workspace:*
+        version: link:../../engine/packages/sdk
       '@icebreaker/mode-regular':
         specifier: workspace:*
         version: link:../mode-regular

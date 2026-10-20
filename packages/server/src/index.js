@@ -12,3 +12,5 @@ export { kitDir, nodeKits, KIT_PREFIX } from './kits.js';
 export { createGuard, guardUpgrades, addressOf, countOption, LIMITS } from './guard.js';
 export { createMatcher, seekProblem, mayPair } from './match.js';
 export { nodeOf, newCode, elsewhere } from './nodes.js';
+export { loadHostMods, createModsHandler, modsDir, MODS_PREFIX, NO_MODS } from './mods.js';
+/** @typedef {import('./mods.js').HostMods} HostMods */

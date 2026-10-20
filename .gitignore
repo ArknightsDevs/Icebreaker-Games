@@ -19,3 +19,7 @@ logs/
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+
+# --- the host's data mods (docs/spec/site.md 站点-7): installed here, never committed ---------------------
+/mods/*
+!/mods/README.md

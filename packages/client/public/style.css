@@ -76,6 +76,9 @@ body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.or
 /* a level being tested (房间-13): a small note at the top left, under the original UI's taps */
 #testing { position: absolute; left: 8px; top: 4px; margin: 0; z-index: 3; padding: 2px 8px; color: #ff6e6e; background: rgb(0 0 0 / 0.55); font-size: 12px; pointer-events: none; }
 #testing[hidden] { display: none; }
+/* a host with mods (页面-10): under the testing mark */
+#modded { position: absolute; left: 8px; top: 26px; margin: 0; z-index: 3; padding: 2px 8px; color: #ffd36e; background: rgb(0 0 0 / 0.55); font-size: 12px; pointer-events: none; }
+#modded[hidden] { display: none; }
 /* a training's tutorials (房间-11): the mask with its lit part, the drag's hand, the dialog (the page's own look, INF-0023) */
 .tutorial { position: absolute; inset: 0; z-index: 5; overflow: hidden; }
 .tutorial.passing { pointer-events: none; }

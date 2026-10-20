@@ -46,7 +46,9 @@ describe('emotes in the room', () => {
     await until('the chat at 项目调整', async () => ((await lobby(a.page))?.chat?.scene === 'room' ? true : undefined));
     await hot(a.page, 'btn_chat').click();
     await until('the panel', async () => ((await lobby(a.page)).chat.open ? true : undefined));
-    assert.equal(await a.page.locator('#lobby .aue-n[data-name="multiv3_emoji_item"]:visible').count(), 10, 'the room emotes of a theme');
+    // the panel opens with its clip, from nothing: the items show from its next frame on
+    const items = a.page.locator('#lobby .aue-n[data-name="multiv3_emoji_item"]:visible');
+    await until('the room emotes of a theme', async () => ((await items.count()) === 10 ? true : undefined), 3000);
     await hot(a.page, 'right_arrow').click();
     await until('the second theme', async () => ((await lobby(a.page)).chat.theme === 'emoticon_originium_slug' ? true : undefined));
     await hot(a.page, 'multiv3_emoji_item').click();

@@ -24,10 +24,11 @@ import { assetsUrl } from './site.js';
 
 /** @typedef {import('./roomview.js').RoomState} RoomState @typedef {import('./roomview.js').RoomActions} RoomActions */
 /**
- * What the room page gives the lobby: its state and actions, the save's box entries, setting the style, opening the
- * page's box editor, its back button shown or not, the invitation text, the sound volume.
+ * What the room page gives the lobby: its state and actions, the save's box entries, setting the style, setting a list
+ * of the 常规队 (the operator select page, 页面-9), its back button shown or not, the invitation text, the sound volume.
  * @typedef {{ S: RoomState, A: RoomActions, entry: (id: string) => import('@icebreaker/mode-regular').BoxEntry | null, setStyle: (id: string) => void,
- *   editBox: () => void, backButton: (on: boolean) => void, invite: () => string, sfx: number, card: () => any }} LobbyHost
+ *   setList: (list: 'high' | 'low', ids: string[]) => Promise<void>, backButton: (on: boolean) => void, invite: () => string,
+ *   sfx: number, card: () => any }} LobbyHost
  */
 
 const ASSETS = assetsUrl(), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
@@ -227,8 +228,9 @@ function pageMakers(ui, H, G, L, K) {
     entry: () => createEntry(ui, { create: () => A.send({ t: 'create' }), join: (code) => A.send({ t: 'join', code }), squad: () => { L.squad = true; draw(); },
       match: () => { L.match = true; draw(); }, train: () => { L.train = true; draw(); },
       squadProblem: A.squadProblem, roomPanel: (on) => { L.room = on; }, effects: G.effects }),
-    squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, editBox: H.editBox, nameOf: A.nameOf,
-      rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); } }),
+    squad: () => createSquad(ui, { squad: A.squad, style: A.style, setStyle: H.setStyle, nameOf: A.nameOf,
+      rosterOf: (id) => ROSTER[id] ?? null, cards: G.cards, styleIcon: X.styleIcon, back: X.back, home: () => { L.squad = false; draw(); },
+      roster: ROSTER, entry: H.entry, training: loadTraining, art: G.pack.art, toast: X.toast, setList: H.setList }),
     prepare: () => createPrepare(ui, X),
     match: () => createMatch(ui, {
       classes: () => [...new Map((H.S.lobby?.projects ?? []).filter((p) => p.mode !== 'DEFENCE').map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),

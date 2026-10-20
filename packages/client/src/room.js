@@ -7,7 +7,8 @@ import { ROSTER, LEVELS, loadTraining } from '@aue/content';
 import { squadProblem, MODE, EMOTES, MATCH } from '@icebreaker/mode-regular';
 import { bootDone } from './boot.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
-import { readSave, writeSave, squadOf, profileOf, newTag } from './save.js';
+import { readSave, writeSave, squadOf, profileOf, newTag, putEntry } from './save.js';
+import { fullEntry } from './training.js';
 import { createBoxView } from './boxview.js';
 import { renderRoom, entryIn } from './roomview.js';
 import { CLOSED, SOUGHT, clock, startingLineup, inviteText } from './roomtext.js';
@@ -127,18 +128,29 @@ function onEmote(m) {
   setTimeout(draw, EMOTES.time * 1000 + 50);
 }
 
-const box = createBoxView($('boxbody'), {
-  roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, toast, icon: A.icon,
-  setSave: (s) => {
-    const renamed = s.name !== save.name;
-    save = s;
-    if (!writeSave(store, s)) toast('这个浏览器不让保存，关闭页面后 box 会丢失');
-    if (renamed && ws?.readyState === WebSocket.OPEN) send({ t: 'hello', key, name: playerName() });
-    sendCard();
-    box.render();
-    draw();
-  },
-});
+/** The save changed (the box view, the lobby's select page): kept, the name card sent, both views drawn. @param {import('./save.js').Save} s */
+function setSave(s) {
+  const renamed = s.name !== save.name;
+  save = s;
+  if (!writeSave(store, s)) toast('这个浏览器不让保存，关闭页面后 box 会丢失');
+  if (renamed && ws?.readyState === WebSocket.OPEN) send({ t: 'hello', key, name: playerName() });
+  sendCard();
+  box.render();
+  draw();
+}
+
+const box = createBoxView($('boxbody'), { roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, toast, icon: A.icon, setSave });
+
+/**
+ * A list of the 常规队 as the operator select page chose it (页面-9): operators not in the box join it at full training
+ * (页面-2), the other list lets go of the ones chosen here. @param {'high' | 'low'} list @param {string[]} ids
+ */
+async function setList(list, ids) {
+  let next = save;
+  for (const id of ids) if (!next.box.some((e) => e.id === id)) next = putEntry(next, fullEntry(id, await loadTraining(id)));
+  const other = list === 'high' ? 'low' : 'high';
+  setSave({ ...next, squad: { ...next.squad, [list]: [...ids], [other]: next.squad[other].filter((x) => !ids.includes(x)) } });
+}
 
 /** The music button (页面-5): the music volume of the settings, 100% → 50% → 关 → 100%, saved for both pages. */
 function drawMusic() {
@@ -154,7 +166,7 @@ function draw() {
   $('box').hidden = !!S.view && !['setup', 'confirm'].includes(S.view.phase);
 }
 
-/** The box editor over the lobby screens (页面-6: the original's operator picker is not in the pack). @param {boolean} on */
+/** The box editor over the lobby screens (页面-6), the page's own tool. @param {boolean} on */
 function boxOpen(on) {
   document.body.classList.toggle('box-open', on);
   $('box').hidden = !on;
@@ -175,7 +187,7 @@ function takeResult() {
 /** The lobby screens when the assets have them; else the HTML room stays. */
 async function lobbyMode() {
   lobby = await startLobby($('lobby'), {
-    S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, editBox: () => boxOpen(true), invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
+    S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, setList, invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
     setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
     backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }),
   }).catch((e) => { console.error(e); return null; });

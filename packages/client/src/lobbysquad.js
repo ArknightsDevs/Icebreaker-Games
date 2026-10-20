@@ -1,11 +1,12 @@
 // The activity's squad page (docs/spec/page.md 页面-6, room.md 房间-3): the save's 常规队 — a column of its high-priority
 // operators, one of its low-priority ones — with the 常规队 tab, the play style's button and the two 快捷编队 buttons,
-// which open the page's own box editor (the original's operator picker is not in the pack). The style button opens
-// the style select state: the five styles, the chosen one's gains, costs and carried unit, 确认修改 to keep it.
+// which open the operator select page for their list (页面-9), as a tap on a card of the list does. The style button
+// opens the style select state: the five styles, the chosen one's gains, costs and carried unit, 确认修改 to keep it.
 import { openPart, closePart, place, unplace, fillList, placeTopMenu } from './lobbykit.js';
 import { fillCard } from './lobbycards.js';
+import { createCharSelect, SELECT_STATE } from './lobbyselect.js';
 import { PAGES } from './lobbymap.js';
-import { STYLES } from '@icebreaker/mode-regular';
+import { STYLES, SQUAD } from '@icebreaker/mode-regular';
 import { plain } from './roomtext.js';
 
 /** @typedef {import('./lobbykit.js').Part} Part */
@@ -14,13 +15,18 @@ import { plain } from './roomtext.js';
  * @property {() => import('@icebreaker/mode-regular').Squad} squad the save's 常规队
  * @property {() => string} style the save's style
  * @property {(id: string) => void} setStyle
- * @property {() => void} editBox opens the page's box editor
  * @property {(id: string) => string} nameOf
  * @property {(id: string) => { rarity: number, profession: string } | null} rosterOf
  * @property {import('./lobbycards.js').CardArt} cards
  * @property {(style: string, variant: '' | '_tiny' | '_show') => string | null} styleIcon
  * @property {() => void} back the page's back (the style select first, else out of the page)
  * @property {() => void} home out of the page to the entry
+ * @property {import('./lobbyselect.js').SelectOptions['roster']} roster every operator, for the select page
+ * @property {(id: string) => import('@icebreaker/mode-regular').BoxEntry | null} entry the box's entry
+ * @property {import('./lobbyselect.js').SelectOptions['training']} training
+ * @property {any} art the lobby pack's art
+ * @property {(text: string) => void} toast
+ * @property {(list: 'high' | 'low', ids: string[]) => Promise<void>} setList keeps a list the select page chose
  */
 
 const DEF = '@state_engine/default_state';
@@ -30,8 +36,22 @@ export function createSquad(ui, A) {
   const p = openPart(ui, PAGES.squad), f = p.view(DEF);
   p.show(`${DEF}/btn_guidebook`, false);
   placeTopMenu(p, `${DEF}/top_menu_container`, { back: A.back, home: A.home });
-  p.tap(`${DEF}/btn_high_pri_edit/click_area`, A.editBox);
-  p.tap(`${DEF}/btn_low_pri_edit/click_area`, A.editBox);
+  /** @type {ReturnType<typeof createCharSelect> | null} */
+  let select = null;
+  const closeSelect = () => { select?.close(); select = null; draw(); };
+  /** The operator select page for a list (页面-9). @param {'high' | 'low'} list */
+  const pick = (list) => {
+    if (select) return;
+    if (!hasSelect(p)) { A.toast('素材的界面包里没有干员选择页，用「干员 box」编队'); return; }
+    const q = A.squad(), other = list === 'high' ? 'low' : 'high';
+    select = createCharSelect(p.ui, {
+      list, max: SQUAD[list], chosen: q[list].map((e) => e.id), other: q[other].map((e) => e.id), roster: A.roster, entry: A.entry, training: A.training,
+      cards: A.cards, art: A.art, toast: A.toast, back: closeSelect, home: () => { closeSelect(); A.home(); },
+      confirm: (ids) => { A.setList(list, ids).then(closeSelect, (e) => A.toast(`保存失败：${e.message}`)); },
+    });
+  };
+  p.tap(`${DEF}/btn_high_pri_edit/click_area`, () => pick('high'));
+  p.tap(`${DEF}/btn_low_pri_edit/click_area`, () => pick('low'));
   /** @type {{ close: () => void } | null} */
   let styles = null;
   const closeStyles = () => { styles?.close(); styles = null; draw(); };
@@ -55,16 +75,20 @@ export function createSquad(ui, A) {
         const hf = holder.view(), e = list[k], r = A.rosterOf(e.id);
         const card = hf.charCardRoot && hf.charCardPrefab ? place(holder, hf.charCardRoot, hf.charCardPrefab) : null;
         if (card) fillCard(card, { id: e.id, entry: e, name: A.nameOf(e.id), rarity: r?.rarity ?? 1, profession: r?.profession ?? '', from: i === 0 ? 'kept' : 'drawn' }, A.cards);
-        holder.tap('@click_area', A.editBox);
+        holder.tap('@click_area', () => pick(i === 0 ? 'high' : 'low'));
       });
     }, f.classColPrefab);
   }
   draw();
   return {
     part: p, update: draw,
-    /** The page's back: closes the style select first; false when there is nothing to close. */
-    back: () => { if (!styles) return false; closeStyles(); return true; },
-    close: () => { styles?.close(); closePart(p); },
+    /** The page's back: closes the select page (its rarity filter first) or the style select first; false when there is nothing to close. */
+    back: () => {
+      if (select) { if (!select.back()) closeSelect(); return true; }
+      if (!styles) return false;
+      closeStyles(); return true;
+    },
+    close: () => { select?.close(); styles?.close(); closePart(p); },
   };
 }
 
@@ -120,6 +144,9 @@ function styleInfo(info, st, A) {
   info.picture(f.imgTokenIcon, A.cards.avatar(st.device.key));
   info.picture('@title/img_playingstyle', A.styleIcon(st.id, '_tiny'));
 }
+
+/** Whether the lobby pack has the operator select page (an older pack has not). @param {Part} p */
+const hasSelect = (p) => Object.hasOwn(p.scr.ctx.pack.screens, SELECT_STATE);
 
 /** A '#rrggbb' colour as 0–1 channels with full alpha. @param {string} c */
 export const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255).concat(1);

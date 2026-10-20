@@ -76,16 +76,20 @@ export function fpsMeter() {
   };
 }
 
-/** The panel's rows: each setting's label and its choices with their labels. */
-const ROWS = Object.freeze([
-  { field: 'fpsCap', label: '帧率上限', choices: FPS_CAPS.map((v) => [v, v === 0 ? '跟随屏幕' : String(v)]) },
-  { field: 'scale', label: '清晰度', choices: SCALES.map((v) => [v, `${v * 100}%`]) },
-  { field: 'attackEffects', label: '攻击特效', choices: [[true, '开'], [false, '关']] },
-  { field: 'showFps', label: '显示帧率', choices: [[false, '关'], [true, '开']] },
-  { field: 'music', label: '音乐', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
-  { field: 'sfx', label: '音效', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
-  { field: 'voice', label: '语音', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
-  { field: 'dub', label: '配音', choices: DUBS },
+/** The panel's rows in their groups: each setting's label and its choices with their labels. */
+const GROUPS = Object.freeze([
+  { title: '画面', rows: [
+    { field: 'fpsCap', label: '帧率上限', choices: FPS_CAPS.map((v) => [v, v === 0 ? '跟随屏幕' : String(v)]) },
+    { field: 'scale', label: '清晰度', choices: SCALES.map((v) => [v, `${v * 100}%`]) },
+    { field: 'attackEffects', label: '攻击特效', choices: [[true, '开'], [false, '关']] },
+    { field: 'showFps', label: '显示帧率', choices: [[true, '开'], [false, '关']] },
+  ] },
+  { title: '声音', rows: [
+    { field: 'music', label: '音乐', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
+    { field: 'sfx', label: '音效', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
+    { field: 'voice', label: '语音', choices: VOLUMES.map((v) => [v, v === 0 ? '关' : `${v * 100}%`]) },
+    { field: 'dub', label: '配音', choices: DUBS },
+  ] },
 ]);
 
 /**
@@ -94,36 +98,71 @@ const ROWS = Object.freeze([
  */
 export const dubChoices = (have) => DUBS.filter(([d]) => d === '' || have.includes(d)).map((c) => [...c]);
 
+/** @typedef {{ field: string, label: string, choices: readonly (readonly unknown[])[] }} Row */
+
 /**
- * The settings button and its panel (页面-1): a choice applies at once and is saved. The dubs offered are those the
- * assets have, told once the voices are loaded (页面-4); the 配音 row shows when there is a choice.
+ * The settings tab and its drawer (页面-1): the 画面 and 声音 groups, each setting a track of its choices whose plate
+ * slides to the one chosen; a choice applies at once and is saved. The dubs offered are those the assets have, told
+ * once the voices are loaded (页面-4); the 配音 row shows when there is a choice. Esc closes the drawer.
  * @param {HTMLElement} root @param {Settings} initial @param {(s: Settings) => void} onChange
  * @returns {{ dubs: (have: readonly string[]) => void }}
  */
 export function createSettingsPanel(root, initial, onChange) {
   let s = { ...initial }, dubs = dubChoices([]);
-  const toggle = document.createElement('button'), panel = document.createElement('div');
-  toggle.textContent = '画面';
+  const doc = root.ownerDocument, toggle = doc.createElement('button'), panel = doc.createElement('div');
+  /** Each shown row's track and buttons by their values. @type {Map<string, { track: HTMLElement, plate: HTMLElement, buttons: [unknown, HTMLElement][] }>} */
+  const tracks = new Map();
+  toggle.type = 'button';
+  toggle.className = 'tab';
+  toggle.textContent = '设置';
   toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'settings-panel');
   panel.className = 'panel';
+  panel.id = 'settings-panel';
   panel.hidden = true;
-  toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); });
-  const draw = () => {
-    panel.replaceChildren(...ROWS.flatMap((r) => (r.field !== 'dub' ? [r] : dubs.length > 1 ? [{ ...r, choices: dubs }] : [])).map((r) => {
-      const row = document.createElement('div'), name = document.createElement('span');
-      row.className = 'row';
-      name.textContent = r.label;
-      row.append(name, ...r.choices.map(([v, text]) => {
-        const b = document.createElement('button');
-        b.textContent = String(text);
-        b.setAttribute('aria-pressed', String(/** @type {any} */ (s)[r.field] === v));
-        b.addEventListener('click', () => { s = sanitize({ ...s, [r.field]: v }); draw(); onChange(s); });
-        return b;
-      }));
-      return row;
-    }));
+  const open = (/** @type {boolean} */ on) => { panel.hidden = !on; toggle.setAttribute('aria-expanded', String(on)); if (on) mark(); };
+  toggle.addEventListener('click', () => open(panel.hidden !== false));
+  root.addEventListener('keydown', (e) => { if (/** @type {KeyboardEvent} */ (e).key === 'Escape' && !panel.hidden) { open(false); toggle.focus(); } });
+  /** The chosen buttons pressed, each track's plate under its choice (laid out only while the drawer shows). */
+  const mark = () => {
+    for (const [field, t] of tracks) {
+      let at = null;
+      for (const [v, b] of t.buttons) { const on = /** @type {any} */ (s)[field] === v; b.setAttribute('aria-pressed', String(on)); if (on) at = b; }
+      if (at && !panel.hidden) { t.plate.style.width = `${at.offsetWidth}px`; t.plate.style.transform = `translateX(${at.offsetLeft}px)`; }
+    }
   };
-  draw();
+  /** A setting's row: its name and its track. @param {Row} r */
+  const row = (r) => {
+    const el = doc.createElement('div'), name = doc.createElement('span'), track = doc.createElement('div'), plate = doc.createElement('span');
+    el.className = 'row'; name.className = 'name'; track.className = 'track'; plate.className = 'plate';
+    name.textContent = r.label;
+    track.setAttribute('role', 'group');
+    track.setAttribute('aria-label', r.label);
+    plate.setAttribute('aria-hidden', 'true');
+    /** @type {[unknown, HTMLElement][]} */
+    const buttons = r.choices.map(([v, text]) => {
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.textContent = String(text);
+      b.addEventListener('click', () => { s = sanitize({ ...s, [r.field]: v }); mark(); onChange(s); });
+      return [v, b];
+    });
+    track.append(plate, ...buttons.map(([, b]) => b));
+    tracks.set(r.field, { track, plate, buttons });
+    el.append(name, track);
+    return el;
+  };
+  const build = () => {
+    tracks.clear();
+    panel.replaceChildren(...GROUPS.map((g) => {
+      const sec = doc.createElement('section'), head = doc.createElement('h2');
+      head.textContent = g.title;
+      sec.append(head, ...g.rows.flatMap((r) => (r.field !== 'dub' ? [r] : dubs.length > 1 ? [{ ...r, choices: dubs }] : [])).map(row));
+      return sec;
+    }));
+    mark();
+  };
+  build();
   root.replaceChildren(toggle, panel);
-  return { dubs: (have) => { dubs = dubChoices(have); draw(); } };
+  return { dubs: (have) => { dubs = dubChoices(have); build(); } };
 }

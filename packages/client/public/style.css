@@ -39,17 +39,38 @@ html, body { margin: 0; height: 100%; background: #000; color: var(--fg); font: 
 :root { --aue-ui-latin: "Montserrat", "Bahnschrift", sans-serif; --aue-ui-cjk: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif; --aue-ui-bender: "Chakra Petch", sans-serif; --aue-ui-arvo: "Arvo", serif; }
 #ui { position: absolute; inset: 0; pointer-events: none; }
 body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.original-ui #controls { display: none; }
-/* The picture settings (页面-1): a tab on the left edge, above the original UI too; and the FPS readout. */
-#settings { position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 8px; }
-#settings > button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--muted); border-left: 0; padding: 8px 6px; writing-mode: vertical-rl; cursor: pointer; }
-#settings > button[aria-expanded="true"] { border-color: var(--accent); }
-#settings .panel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: rgb(0 0 0 / 0.8); }
+/* The settings (页面-1): a tab on the left edge, above the original UI too, opening a drawer in the battle UI's own
+   look — its dark grey slab cut at the upper right, the activity's teal along its edge, each setting a track whose
+   white plate slides to the choice; sized with the page as the battle UI is (its width or its 16:9 height, whichever
+   is less); on a short page (a phone held sideways) the two groups side by side. */
+#settings, #full { --slab: rgb(38 38 38 / 0.92); --line: rgb(255 255 255 / 0.14); --ink: #f2f2f2; --mute: #8c8c8c; --teal: #2eb2a7;
+  font: 500 clamp(12px, min(1vw, 1.78vh) * 0.95, 18px)/1.4 var(--aue-ui-cjk); }
+#settings { position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 0.7em; }
+#settings > .tab, #full { background: var(--slab); color: var(--ink); border: 1px solid var(--line); border-left: 0; padding: 0.9em 0.5em;
+  writing-mode: vertical-rl; letter-spacing: 0.3em; font: inherit; cursor: pointer; }
+#settings > .tab[aria-expanded="true"] { box-shadow: inset 3px 0 0 var(--teal); }
+#settings .panel { display: grid; gap: 1.1em 2em; max-height: calc(100vh - 24px); overflow: auto; box-sizing: border-box;
+  padding: 1.1em 1.6em 1.3em 1.3em; background: var(--slab); color: var(--ink); border-left: 2px solid var(--teal);
+  clip-path: polygon(0 0, calc(100% - 1.6em) 0, 100% 1.6em, 100% 100%, 0 100%); animation: settings-in 160ms ease-out; }
 #settings .panel[hidden], #fps[hidden] { display: none; }
-#settings .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-#settings .row > span { min-width: 5em; color: var(--muted); }
-#settings .row button { background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid transparent; padding: 2px 10px; cursor: pointer; }
-#settings .row button[aria-pressed="true"] { border-color: var(--accent); }
-#settings button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#settings h2 { display: flex; align-items: center; gap: 0.55em; margin: 0 0 0.3em; font-size: 1.12em; font-weight: 700; letter-spacing: 0.1em; }
+#settings h2::before { content: ""; width: 3px; height: 1em; background: var(--teal); }
+#settings .row { display: grid; grid-template-columns: 4.8em auto; align-items: center; gap: 1em; padding: 0.42em 0; border-top: 1px solid var(--line); }
+#settings h2 + .row { border-top: 0; }
+#settings .name { color: var(--mute); }
+#settings .track { position: relative; display: inline-flex; justify-self: start; background: rgb(0 0 0 / 0.35); border: 1px solid var(--line); }
+#settings .track button { position: relative; z-index: 1; min-width: 3.4em; padding: 0.45em 0.8em; background: none; border: 0; color: var(--ink);
+  font: 600 1em/1.1 var(--aue-ui-bender), var(--aue-ui-cjk); cursor: pointer; transition: color 160ms; }
+#settings .track button[aria-pressed="true"] { color: #1e1e1e; }
+#settings .plate { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: var(--ink); transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), width 180ms; }
+#settings button:focus-visible, #full:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+@keyframes settings-in { from { opacity: 0; transform: translateX(-12px); } }
+@media (max-height: 560px) {
+  #settings .panel { grid-template-columns: auto auto; padding: 0.9em 1.3em 0.9em 1em; }
+  #settings .row { padding: 0.3em 0; }
+  #settings .track button { padding: 0.4em 0.7em; min-width: 3em; }
+}
+@media (prefers-reduced-motion: reduce) { #settings .panel { animation: none; } #settings .plate, #settings .track button { transition: none; } }
 #fps { position: absolute; left: 8px; bottom: 4px; margin: 0; z-index: 3; color: var(--muted); font-size: 12px; pointer-events: none; }
 #notice a.back { color: var(--accent); }
 /* a level being tested (房间-13): a small note at the top left, under the original UI's taps */
@@ -69,9 +90,9 @@ body.original-ui #deck, body.original-ui #skills, body.original-ui #hud, body.or
 .tut-head { flex: none; width: 4.6em; height: 4.6em; object-fit: cover; background: rgb(255 255 255 / 0.08); }
 .tut-text { flex: 1; }
 .tut-more { position: absolute; right: 0.6em; bottom: 0.3em; width: 0; height: 0; border: 0.35em solid transparent; border-top-color: #fff; animation: tut-pulse 1s infinite; }
-/* phones (页面-7): no page gestures over the battle (zoom, scroll, the long-press menu); 全屏 under the 画面 button; a
+/* phones (页面-7): no page gestures over the battle (zoom, scroll, the long-press menu); 全屏 under the 设置 tab; a
    phone held upright turns the body (turn.js), the page around it black */
 html.touch body { touch-action: none; overscroll-behavior: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 html.turned { overflow: hidden; background: #000; }
-#full { position: absolute; left: 0; top: calc(50% + 44px); z-index: 3; background: rgb(0 0 0 / 0.6); color: var(--fg); border: 2px solid var(--muted); padding: 4px 6px; writing-mode: vertical-rl; }
+#full { position: absolute; left: 0; top: calc(50% + 3.4em); z-index: 3; }
 #full[hidden] { display: none; }

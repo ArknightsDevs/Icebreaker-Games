@@ -107,3 +107,30 @@ test('a match room (engine spec 同步-9): its content made from the settings, t
   } finally { room.close(); server.close(); }
   await assert.rejects(createMatchRoom({ ...DEFAULT_MATCH, difficulty: /** @type {any} */ ('EASY') }), /match settings: match.difficulty/);
 });
+
+test('[房间-6] an engine error ends that battle alone: logged, its seats closed with 1011, the process goes on', async () => {
+  const lines = /** @type {string[]} */ ([]);
+  const room = createBattleRoom({ seed: 3, log: (l) => lines.push(l) }), server = createHttpServer({ rootDir: process.cwd(), onUpgrade: room.upgrade });
+  await new Promise((r) => server.listen(0, '127.0.0.1', () => r(undefined)));
+  const addr = /** @type {import('node:net').AddressInfo} */ (server.address());
+  try {
+    const a = open(`ws://127.0.0.1:${addr.port}/battle?seat=0`);
+    await a.ready;
+    a.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 0, key: 'ka', since: -1 }));
+    await wait(200);
+    assert.equal(room.ended(), false);
+    room.host.tick = () => { throw new Error('engine bug'); };
+    const { code, reason } = await a.closed;
+    assert.deepEqual([code, reason], [1011, 'battle failed']);
+    assert.equal(room.failed(), true);
+    assert.equal(room.ended(), true, 'the battles sweep ends it');
+    assert.ok(lines.some((l) => l.startsWith('battle failed: Error: engine bug')), 'the error is logged with its stack');
+    const b = open(`ws://127.0.0.1:${addr.port}/battle?seat=1`);
+    await b.ready;
+    b.ws.send(JSON.stringify({ t: 'hello', v: PROTOCOL_VERSION, seat: 1, key: 'kb', since: -1 }));
+    assert.equal((await b.closed).code, 1011, 'a later hello is closed the same way');
+  } finally {
+    room.close();
+    server.close();
+  }
+});

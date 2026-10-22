@@ -54,6 +54,29 @@ export async function createMatchRoom(match, o = {}) {
   return createBattleRoom({ signals: signalRule(content.level), ...o, content, match, seats: match.decks.length, seed: match.seed });
 }
 
+/**
+ * A battle's guard against an engine error (房间-6): `run` calls into the engine; if that throws (a bug), the battle ends
+ * alone — the error logged with its stack, `stop` called, its seats closed with 1011 — and the process, with every
+ * other room and battle on it, goes on. Uncaught, such an error took the whole server down. After it, `run` does nothing.
+ * @param {(line: string) => void} log @param {Map<number, import('ws').WebSocket>} sockets @param {() => void} stop
+ */
+function guardOf(log, sockets, stop) {
+  let failed = false;
+  return {
+    failed: () => failed,
+    /** @param {() => void} f */
+    run(f) {
+      if (failed) return;
+      try { f(); } catch (e) {
+        failed = true;
+        stop();
+        log(`battle failed: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
+        for (const ws of sockets.values()) ws.close(1011, 'battle failed');
+      }
+    },
+  };
+}
+
 /** @param {BattleRoomOptions} [o] */
 export function createBattleRoom(o = {}) {
   const now = o.now ?? (() => performance.now()), log = o.log ?? (() => {}), seats = o.seats ?? 2;
@@ -67,7 +90,8 @@ export function createBattleRoom(o = {}) {
     onDesync: (d) => log(`desync seat ${d.seat} at frame ${d.frame}: ${d.theirs} != ${d.ours}`),
   });
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE });
-  const timer = setInterval(() => host.tick(now()), TICK_MS);
+  const guard = guardOf(log, sockets, () => clearInterval(timer));
+  const timer = setInterval(() => guard.run(() => host.tick(now())), TICK_MS);
 
   /** What a seat's checked message does, besides hello. @type {Record<string, (seat: number, m: any) => void>} */
   const routes = {
@@ -89,9 +113,10 @@ export function createBattleRoom(o = {}) {
     const why = clientMessageProblem(m);
     if (why) { ws.close(1008, why.slice(0, 120)); return; }
     const msg = /** @type {import('@aue/schema').ClientMessage} */ (m);
-    if (msg.t === 'hello') hello(ws, seat, msg);
+    if (guard.failed()) ws.close(1011, 'battle failed');
+    else if (msg.t === 'hello') guard.run(() => hello(ws, seat, msg));
     else if (sockets.get(seat) !== ws) ws.close(1008, 'say hello first');
-    else routes[msg.t](seat, msg);
+    else guard.run(() => routes[msg.t](seat, msg));
   };
 
   /** @param {import('ws').WebSocket} ws @param {number} seat @param {Extract<import('@aue/schema').ClientMessage, { t: 'hello' }>} msg */
@@ -107,8 +132,10 @@ export function createBattleRoom(o = {}) {
 
   return {
     host,
-    /** Whether the match has ended (won or lost: the arbiter's world has a result). */
-    ended: () => host.world.result >= 0,
+    /** Whether the match has ended (won or lost: the arbiter's world has a result), or failed (an engine error). */
+    ended: () => guard.failed() || host.world.result >= 0,
+    /** Whether the engine threw in this battle and it was ended for everyone. */
+    failed: guard.failed,
     /** How many seats are connected. */
     online: () => sockets.size,
     /** Takes over an HTTP upgrade for /battle?seat=N. @param {import('node:http').IncomingMessage} req @param {import('node:stream').Duplex} socket @param {Buffer} head */
@@ -118,7 +145,7 @@ export function createBattleRoom(o = {}) {
       if (url.pathname !== '/battle' || !Number.isInteger(seat) || seat < 0 || seat >= Math.min(seats, MAX_SEAT + 1) || o.absent?.includes(seat)) { socket.destroy(); return; }
       wss.handleUpgrade(req, socket, head, (ws) => {
         ws.on('message', (data, binary) => { if (binary) ws.close(1003, 'text only'); else onMessage(ws, seat, String(data)); });
-        ws.on('close', () => { if (sockets.get(seat) === ws) { sockets.delete(seat); host.bye(seat, now()); log(`seat ${seat} left`); } });
+        ws.on('close', () => { if (sockets.get(seat) === ws) { sockets.delete(seat); guard.run(() => host.bye(seat, now())); log(`seat ${seat} left`); } });
       });
     },
     close() { clearInterval(timer); for (const ws of sockets.values()) ws.close(1001, 'server closing'); wss.close(); },

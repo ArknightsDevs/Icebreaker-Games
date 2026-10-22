@@ -93,6 +93,26 @@
   watchModules((share) => set(null, MODULES * share));
   /** Ends the screen's progress. */
   const end = () => { over = true; clearTimeout(timer); };
+  /** Loading failed: the warning and what to do, kept on the screen. @param {string} why */
+  const fail = (why) => {
+    if (over) return;
+    end();
+    root.classList.add('in', 'failed');
+    text.textContent = why;
+  };
+  /**
+   * The page's code did not start — an engine too old for its syntax, a script that did not arrive: before the page
+   * reported a step, its first error stays on the screen with what to do (页面-8); after that, the page's own handling.
+   * @param {unknown} e
+   */
+  const unstarted = (e) => {
+    if (over || shown > MODULES) return;
+    console.error('页面没能启动', e);
+    const old = e instanceof SyntaxError || (e instanceof ErrorEvent && (e.error instanceof SyntaxError || /^(Uncaught )?SyntaxError/.test(e.message)));
+    fail(old ? '浏览器版本太旧，页面没能启动。请更新浏览器，或换用最新的 Chrome、Edge 后刷新' : '页面脚本没能载入，请刷新页面重试');
+  };
+  addEventListener('error', (e) => { if (e instanceof ErrorEvent || e.target instanceof HTMLScriptElement) unstarted(e); }, true);
+  addEventListener('unhandledrejection', (e) => unstarted(e.reason));
 
   globalThis.__boot = {
     /** The page's own step: its status and the share done (MODULES … 1). @param {string} what @param {number} at */
@@ -105,12 +125,7 @@
       setTimeout(() => root.remove(), 400);
     },
     /** Loading failed: the warning and what to do, kept on the screen. @param {string} why */
-    fail(why) {
-      if (over) return;
-      end();
-      root.classList.add('in', 'failed');
-      text.textContent = why;
-    },
+    fail,
     /** Whether the screen is still up. */
     get up() { return !over; },
   };

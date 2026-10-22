@@ -72,3 +72,31 @@ describe('the loading screen', { skip: HAS_LOBBY ? false : 'no lobby pack in AUE
     await context.close();
   });
 });
+
+describe('a page whose code cannot start', () => {
+  /** @type {any} */ let lobby;
+  /** @type {import('playwright').Browser} */ let browser;
+  before(async () => { lobby = await startLobby(); browser = await launch(); });
+  after(async () => { await browser?.close(); await lobby?.stop(); });
+
+  test('[页面-8] [站点-4] a syntax its engine does not read: the warning and what to do, not 30% for ever', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } }), page = await context.newPage();
+    // what an engine older than the page's code meets (Chromium before 123 met `with { type: 'json' }`)
+    await page.route(/\/m\/~[0-9a-f]+\/@icebreaker\/client\/src\/room\.js$/, (r) => r.fulfill({ contentType: 'text/javascript', body: 'let let = 1;' }));
+    await page.goto(`http://127.0.0.1:${lobby.port}/`);
+    await until('the warning', async () => ((await page.locator('.boot.failed').count()) === 1 ? true : undefined), 20000);
+    assert.match(await page.locator('.boot-text').innerText(), /浏览器版本太旧/);
+    await context.close();
+  });
+
+  test('[站点-4] no module the page loads carries import attributes: JSON comes as a script', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 } }), page = await context.newPage();
+    /** @type {string[]} */
+    const json = [];
+    page.on('response', (r) => { if (/\.json\.js$/.test(new URL(r.url()).pathname) && /javascript/.test(r.headers()['content-type'] ?? '')) json.push(r.url()); });
+    await page.goto(`http://127.0.0.1:${lobby.port}/`);
+    await until('the page started', async () => ((await page.evaluate(() => typeof (/** @type {any} */ (globalThis).__room) === 'object')) ? true : undefined), 60000);
+    assert.ok(json.length > 0, 'the content\'s data as scripts');
+    await context.close();
+  });
+});

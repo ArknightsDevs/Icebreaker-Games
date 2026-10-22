@@ -42,6 +42,11 @@ test('import attributes stay intact', () => {
   assert.equal(out, "import data from '/m/@aue/content/src/index.js' with { type: 'json' };");
 });
 
+test('[站点-4] a JSON import becomes the import of its script, without the attributes; other attributes stay', () => {
+  const out = rewriteImports("import a from '../data/x.json' with { type: 'json' };\nexport { default as t } from \"./t.json\" with {type:\"json\"};\nimport c from './c.css' with { type: 'css' };", mustNotResolve);
+  assert.equal(out, "import a from '../data/x.json.js';\nexport { default as t } from \"./t.json.js\";\nimport c from './c.css' with { type: 'css' };");
+});
+
 test('comments and strings that mention import are untouched', () => {
   const src = "// import x from 'y'\n/* import('q') */\nconst s = \"import('z')\";\nconst t = 'import a from \"b\"';\n";
   assert.equal(rewriteImports(src, mustNotResolve), src);

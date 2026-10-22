@@ -10,7 +10,7 @@ import { IMMUTABLE } from './assets.js';
 import { isRejection, locateFile, rawPathname, splitPath } from './paths.js';
 import { resolveSpecifier, splitSpecifier } from './resolve.js';
 import { allowReadOnly, etagOf, sendBody, sendRejection, sendText } from './respond.js';
-import { isBare, relativeUrl, rewriteImports } from './rewrite.js';
+import { isBare, jsonImport, relativeUrl, rewriteImports, JSON_SCRIPT } from './rewrite.js';
 import { reachablePackages } from './workspace.js';
 
 const PREFIX = '/m/';
@@ -71,9 +71,25 @@ function staticImports(source, from, resolveUrl) {
     const spec = imp.specifier;
     if (imp.type !== 'static' || typeof spec !== 'string' || imp.typeOnly) continue;
     const url = isBare(spec) ? resolveUrl(spec) : new URL(spec, base).pathname;
-    if (url && url.startsWith(PREFIX)) out.push(url);
+    // a JSON import is served as its script (站点-4), which is what the page then asks for
+    if (url && url.startsWith(PREFIX)) out.push(jsonImport(imp) && url.endsWith('.json') ? url + JSON_SCRIPT : url);
   }
   return out;
+}
+
+/**
+ * A JSON file as a script (站点-4): `export default` of its data, read by JSON.parse (the same object JSON.parse
+ * gives, a key "__proto__" too); kept in `cache` while the mtime holds.
+ * @param {Map<string, { mtimeMs: number, body: Buffer, etag: string, deps: string[] }>} cache @param {string} file @param {number} mtimeMs
+ */
+async function jsonScript(cache, file, mtimeMs) {
+  const key = `${file}${JSON_SCRIPT}`, hit = cache.get(key);
+  if (hit?.mtimeMs === mtimeMs) return hit;
+  const text = (await readFile(file)).toString('utf8');
+  const body = Buffer.from(`export default JSON.parse(${JSON.stringify(text)});\n`);
+  const entry = { mtimeMs, body, etag: etagOf(body), deps: [] };
+  cache.set(key, entry);
+  return entry;
 }
 
 /**
@@ -104,15 +120,22 @@ export function createModuleHandler({ workspace, browserPackages }) {
     return entry;
   }
 
-  /** A module by its unversioned path, or why not. @param {string} rest the path after /m/ */
-  async function find(rest) {
+  /** A servable file by its unversioned path (the part after /m/), or why not. @param {string} rest */
+  async function locate(rest) {
     const segments = splitPath(rest);
     if (isRejection(segments)) return segments;
     const target = splitPackage(segments);
     const dir = target === null ? undefined : workspace.get(target.pkg);
     if (target === null || dir === undefined || !servable.has(target.pkg)) return { status: 404, message: 'not found' };
-    const found = await locateFile(dir, target.inner, MODULE_TYPES);
+    return locateFile(dir, target.inner, MODULE_TYPES);
+  }
+
+  /** A module by its unversioned path, or why not: `x.json.js` is the script of `x.json` (站点-4). @param {string} rest the path after /m/ */
+  async function find(rest) {
+    const script = rest.endsWith(`.json${JSON_SCRIPT}`);
+    const found = await locate(script ? rest.slice(0, -JSON_SCRIPT.length) : rest);
     if (isRejection(found)) return found;
+    if (script) return { ...(await jsonScript(cache, found.file, found.mtimeMs)), type: 'text/javascript; charset=utf-8' };
     return { ...(await load(found.file, found.mtimeMs, found.type, PREFIX + rest)), type: found.type };
   }
 

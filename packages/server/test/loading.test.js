@@ -66,8 +66,8 @@ test('[站点-4] a page names its modules under the code\'s version and preloads
   const html = (await get(port, '/')).body.toString('utf8'), v = versionIn(html);
   assert.match(v, /^[0-9a-f]{12}$/);
   const links = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map((m) => m[1]);
-  assert.deepEqual(links, ['@icebreaker/client/src/main.js', '@aue/sim/src/index.js', '@icebreaker/client/src/b.js', '@aue/sim/src/u.js', '@aue/sim/src/b2.js']
-    .map((p) => `m/~${v}/${p}`), 'breadth first, each once; not the JSON, not what is imported later');
+  assert.deepEqual(links, ['@icebreaker/client/src/main.js', '@aue/sim/src/index.js', '@icebreaker/client/src/b.js', '@aue/sim/src/t.json.js', '@aue/sim/src/u.js', '@aue/sim/src/b2.js']
+    .map((p) => `m/~${v}/${p}`), 'breadth first, each once; a JSON file as its script; not what is imported later');
   assert.ok(html.indexOf('modulepreload') < html.indexOf('</head>'));
   assert.deepEqual(unversioned(`/m/~${v}/@aue/sim/src/u.js`), { path: '/m/@aue/sim/src/u.js', version: v });
   assert.deepEqual(unversioned('/m/@aue/sim/src/u.js'), { path: '/m/@aue/sim/src/u.js', version: null });

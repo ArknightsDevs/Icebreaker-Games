@@ -100,7 +100,7 @@ test('[站点-1] a module is served with its bare specifiers rewritten relative 
   assert.equal(r.status, 200);
   assert.equal(r.headers['content-type'], 'text/javascript; charset=utf-8');
   assert.match(r.body, /from '\.\.\/\.\.\/data\/index\.js';/);
-  assert.match(r.body, /from '\.\.\/\.\.\/data\/table\.json' with \{ type: 'json' \}/);
+  assert.match(r.body, /from '\.\.\/\.\.\/data\/table\.json\.js';/, 'a JSON import is the import of its script, without attributes (站点-4)');
   assert.match(r.body, /from '\.\/util\.js'/);
   assert.match(r.body, /import\("\.\.\/\.\.\/data\/index\.js"\)/);
   assert.match(r.body, /\/\/ import nothing from 'nowhere'/);
@@ -115,6 +115,15 @@ test('json and css modules get their content types and the fixed headers', async
   assert.equal(css.headers['cache-control'], 'no-cache');
   assert.equal(css.headers['x-content-type-options'], 'nosniff');
   assert.match(String(css.headers['etag']), /^"[0-9a-f]{64}"$/);
+});
+
+test('[站点-4] a JSON file is also served as a script: export default of its data, for engines without import attributes', async () => {
+  const r = await send(port, '/m/@aue/data/table.json.js');
+  assert.equal(r.status, 200);
+  assert.equal(r.headers['content-type'], 'text/javascript; charset=utf-8');
+  const mod = await import(`data:text/javascript,${encodeURIComponent(r.body)}`);
+  assert.deepEqual(mod.default, { rows: [1, 2] });
+  assert.equal((await send(port, '/m/@aue/data/missing.json.js')).status, 404);
 });
 
 test('If-None-Match with the ETag gives 304 and HEAD has no body', async () => {

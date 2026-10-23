@@ -1,5 +1,5 @@
 // 阵地足球 in two browsers with the original battle UI (房间-14, the engine's 足球-1…足球-16, 界面-41 and 渲染-26; runs only
-// when AUE_ASSETS_DIR has the battle UI pack): IG-FT-1 with the elite-2 decks; the note of a level being tested, the
+// when AUE_ASSETS_DIR has the battle UI pack): IG-FT-1 with the elite-2 decks; no note of abilities missing, the
 // football panel on the top bar in place of the status panel, the score at 0 : 0 and the match time; an operator put
 // behind the ball kicks it toward their goal; the pages stay in step (no desync on the server), without errors. Run
 // with `pnpm run e2e`; E2E_SHOTS=<dir> keeps screenshots.
@@ -33,7 +33,8 @@ describe('阵地足球 in the browser', { skip: HAS_UI ? false : 'no battle UI p
   test('the football panel with the score and the time; an operator behind the ball kicks it', { timeout: 300000 }, async () => {
     seats.push(await openSeat(browser, stack.port, 0), await openSeat(browser, stack.port, 1));
     const [a] = seats, host = /** @type {any} */ (stack.room.host);
-    assert.equal(await a.page.locator('#testing').isVisible(), true, 'the note of a level being tested');
+    // every ability of IG-FT-1 is read now: no note that some are not (IG-FT-2 still has one)
+    assert.equal(await a.page.locator('#testing').isVisible(), false, 'no note of abilities missing');
     await until('the football panel', async () => ((await node(a.page, 'panel_cooperate_football_status').isVisible()) ? true : undefined), 20000);
     assert.equal((await node(a.page, 'text_score_ally').innerText()).trim(), '0');
     assert.equal((await node(a.page, 'text_score_enemy').innerText()).trim(), '0');

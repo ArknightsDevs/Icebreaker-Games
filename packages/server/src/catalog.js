@@ -1,7 +1,7 @@
 // What the lobby tells a page about team play (docs/spec/room.md): each project with its level's code and name (engine
 // 关卡-4), class, the tasks of its two stages (关卡-5), its description and the activity's missions for it (shown at 项目确认); the
 // temporary recruits as box entries.
-import { LEVELS, TESTING, loadTraining } from '@aue/content';
+import { LEVELS, TESTING, levelAt, loadTraining } from '@aue/content';
 import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName } from '@icebreaker/mode-regular';
 
 /**
@@ -14,10 +14,17 @@ import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, 
 /** The note a project being tested carries at the head of its description (房间-2, the engine's 关卡-8). */
 export const TESTING_NOTE = '<color=#FF6E6E>测试中：部分敌人能力未实现</color>';
 
+/**
+ * Whether a project is being tested (房间-13, 房间-14): its level is one of the engine's being tested and, at the
+ * project's difficulty, some ability of its enemies has no behaviour yet (engine 关卡-8).
+ * @param {{ level: string, difficulty: 'NORMAL' | 'FOUR_STAR' }} p
+ */
+const testingAt = (p) => TESTING.includes(p.level) && (levelAt(p.level, p.difficulty).level.uncovered ?? []).length > 0;
+
 /** The projects as the lobby shows them. @returns {ProjectView[]} */
 export function projectViews() {
   return PROJECTS.map((p) => {
-    const lv = LEVELS[p.level].level, own = stageName(p.stage), testing = TESTING.includes(p.level), detail = DETAILS[p.stage] ?? '';
+    const lv = LEVELS[p.level].level, own = stageName(p.stage), testing = testingAt(p), detail = DETAILS[p.stage] ?? '';
     return { ...p, code: own?.code ?? lv.code, name: own?.name ?? lv.name, stages: (lv.stages ?? []).map((/** @type {any} */ s) => ({ ...s.task, seconds: s.time })),
       waves: lv.waves.length, missions: MISSIONS[p.stage] ?? [], detail: testing ? `${TESTING_NOTE}\n${detail}` : detail, testing };
   });

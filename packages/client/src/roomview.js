@@ -11,7 +11,7 @@ import { skillLevelText, trainingText } from './training.js';
 /**
  * A project as the lobby gives it (房间-2): its stage, mode, level and difficulty, code, name, class, its stages' tasks
  * (常规项目) or its waves (堡垒守御), missions, description, whether it is being tested.
- * @typedef {{ stage: string, mode: 'NORMAL' | 'DEFENCE', level: string, difficulty: string, code: string, name: string, class: string, className: string,
+ * @typedef {{ stage: string, mode: 'NORMAL' | 'DEFENCE' | 'FOOTBALL', level: string, difficulty: string, code: string, name: string, class: string, className: string,
  *   stages: { title: string, basic: string, advanced?: string, seconds: number }[], waves?: number, missions?: readonly string[], detail?: string, testing?: boolean }} ProjectView
  */
 /**
@@ -80,7 +80,7 @@ function quickMatch(S, A) {
       h('p', {}, '正在匹配协作者', h('span', { class: 'clock', 'data-until': String(sk.until) }, clock(sk.until - performance.now()))),
       h('button', { onclick: () => A.send({ t: 'unseek' }) }, '取消匹配'));
   }
-  const classes = [...new Map((S.lobby?.projects ?? []).filter((p) => p.mode !== 'DEFENCE').map((p) => [p.class, p.className])).entries()];
+  const classes = [...new Map((S.lobby?.projects ?? []).filter((p) => (p.mode ?? 'NORMAL') === 'NORMAL').map((p) => [p.class, p.className])).entries()];
   const first = new Set(MATCH.classes.filter((c) => c.first).map((c) => c.class));
   const boxes = classes.map(([c, name]) => h('label', {}, h('input', { type: 'checkbox', value: c, checked: first.has(c), 'aria-label': name }), ` ${name}`));
   const pos = /** @type {HTMLSelectElement} */ (h('select', { 'aria-label': '参赛身份' }, MATCH.positions.map((p) => h('option', { value: p.id, disabled: p.locked }, p.locked ? `${p.name}（${p.hint}）` : p.name))));
@@ -122,14 +122,15 @@ function emoteBar(S, A) {
 }
 
 /**
- * A project's mode (页面-5), code, name, class and its stages' tasks (房间-2) — 堡垒守御's its waves —, the note of a
- * project being tested. @param {ProjectView} p @param {RoomActions} A
+ * A project's mode (页面-5), code, name, class and its stages' tasks (房间-2) — 堡垒守御's its waves, 阵地足球's its rule —,
+ * the note of a project being tested. @param {ProjectView} p @param {RoomActions} A
  */
 const projectInfo = (p, A) => h('div', { class: 'project' },
   h('h3', {}, modeTag(A, p), ` ${p.code} ${p.name}`, h('small', {}, ` ${p.className}`)),
   p.testing ? h('p', { class: 'testing' }, '测试中：部分敌人能力未实现') : null,
   p.mode === 'DEFENCE' ? h('p', {}, `共 ${p.waves} 波，防御阶段与休整阶段轮替`)
-    : h('ol', {}, p.stages.map((s) => h('li', {}, `${s.title}：${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''} · ${s.seconds} 秒`))));
+    : p.mode === 'FOOTBALL' ? h('p', {}, '把足球送入敌方的球门：比赛结束时按净胜球数计')
+      : h('ol', {}, p.stages.map((s) => h('li', {}, `${s.title}：${s.basic}${s.advanced ? `（进阶：${s.advanced}）` : ''} · ${s.seconds} 秒`))));
 
 /** 项目调整 (房间-2). @param {RoomState} S @param {RoomActions} A */
 function setup(S, A) {

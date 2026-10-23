@@ -1328,6 +1328,55 @@
    }
   }
  },
+ "football": {
+  "mode": {
+   "type": "FOOTBALL",
+   "name": "阵地足球",
+   "icon": "football",
+   "color": "#b9eb3b"
+  },
+  "stages": {
+   "act1multi_ex-football": {
+    "level": "act1multi_football",
+    "class": "DIFFICULTY",
+    "code": "IG-FT-2",
+    "name": "大力出奇迹",
+    "picture": "multi_v3_01-football_preview",
+    "detail": "只要出球力道够大，就能击倒敌方球员，击破阵地屏障。接下来就可以轻松进球了！\n\n<color=#D4133C>附加条件:</color>\n出现额外种类的足球",
+    "missions": [
+     "争取1个净胜球",
+     "争取2个净胜球",
+     "争取4个净胜球"
+    ]
+   },
+   "act1multi_football": {
+    "level": "act1multi_football",
+    "class": "ORDINARY",
+    "code": "IG-FT-1",
+    "name": "大力出奇迹",
+    "picture": "multi_v3_01-football_preview",
+    "detail": "只要出球力道够大，就能击倒敌方球员，击破阵地屏障。接下来就可以轻松进球了！",
+    "missions": [
+     "争取1个净胜球",
+     "争取2个净胜球",
+     "争取4个净胜球"
+    ]
+   },
+   "act1multi_hard-football": {
+    "level": "act1multi_football_hard-01",
+    "class": "EXTREMELY",
+    "code": "IG-S-4",
+    "name": "大力出奇迹",
+    "picture": "multi_v3_01-football_preview",
+    "detail": "<color=#D4133C>附加条件:</color>\n战术队精英击球手射门力度提升\n爱球会荣誉击球手带球时占用阻挡数变为3\n球德联老牌击球手射门伤害提升\n我方领先分数越多，对方球员的最大生命值、攻击力与移动速度越高\n对方球员被击倒后苏醒时间变短",
+    "missions": [
+     "争取1个净胜球",
+     "争取2个净胜球",
+     "争取4个净胜球"
+    ]
+   }
+  }
+ },
  "marks": {
   "markCd": 3,
   "markCond1": 5,

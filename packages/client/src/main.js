@@ -15,7 +15,7 @@ import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
 import { createUi, createBattleHud, createStart, cardViews } from '@aue/ui';
-import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './battlehud.js';
+import { loadUiPack, deckCards, hudState, requestsAfter, unitBars, pitchOf } from './battlehud.js';
 import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
@@ -396,14 +396,15 @@ function onFrame(P, f) {
 }
 
 /**
- * The field of a frame: 堡垒守御's facilities at their levels (the engine's 渲染-20); every key seen so far — units that
- * appeared before the renderer was ready get their figures too.
+ * The field of a frame: 堡垒守御's facilities at their levels (the engine's 渲染-20); 阵地足球's field marks (渲染-26);
+ * every key seen so far — units that appeared before the renderer was ready get their figures too.
  * @param {Page} P @param {{ view: import('@aue/schema').View, events: Record<string, string | number>[], status: import('@aue/worker').Status }} f
  */
 function drawField(P, f) {
   const r = P.game?.renderer;
   if (!r) return;
   if (f.status.fortress) r.levels(f.status.fortress.levels);
+  if (f.status.football) r.pitch(pitchOf(f.view, f.status.football));
   const ops = /** @type {Record<string, { look?: string }>} */ (P.game?.content.operators ?? {});
   r.update(f.view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, ops[k]?.look ?? k.split('#')[0]])), f.events);
 }
@@ -449,12 +450,13 @@ function lastFrame(P) {
 /**
  * A room's match ended (房间-6): the result and the way back to the room; the result kept for the room's result view
  * (页面-6), with the field's last frame — in 堡垒守御 the stamps of the waves defended, and those waves and the last
- * wave's damage (the engine's 守御-1). @param {number} result 1: won, 0: lost @param {Page} P @param {import('@aue/worker').Status} status
+ * wave's damage (the engine's 守御-1); in 阵地足球 the stamps of the net goals (房间-14). @param {number} result 1: won, 0: lost @param {Page} P @param {import('@aue/worker').Status} status
  */
 function ended(result, P, status) {
   notice(`比赛结束：${result === 1 ? '胜利' : '失败'}。`);
   const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', bg = lastFrame(P), f = status.fortress, difficulty = P.game?.match.difficulty ?? 'NORMAL';
-  const stamps = f ? [f.stamps] : [...P.stamps].map((x) => x ?? 0), fortress = f ? { defended: f.defended, damage: Math.floor(f.damage) } : undefined;
+  // 阵地足球's stamps are of the net goals at the match's end (the engine's 足球-7)
+  const fb = status.football, stamps = f ? [f.stamps] : fb ? [fb.stamps] : [...P.stamps].map((x) => x ?? 0), fortress = f ? { defended: f.defended, damage: Math.floor(f.damage) } : undefined;
   try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, difficulty, stamps, fortress, at: Date.now() })); } catch { /* the room shows no result */ }
   try { if (bg) sessionStorage.setItem('ice.result.bg', bg); } catch { /* the result shows without it */ }
   const back = document.createElement('a');

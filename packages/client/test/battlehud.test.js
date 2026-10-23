@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KIND, SKILL_STATE, STATUS_BIT } from '@aue/schema';
-import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars, stageStartOf, fortressOf } from '../src/battlehud.js';
+import { deckCards, battleSpeed, hudState, menuSkill, ownUnitAt, requestsAfter, taskOf, costInput, unitBars, stageStartOf, fortressOf, footballOf, pitchOf } from '../src/battlehud.js';
 
 /** A view unit. @param {Record<string, number>} v @returns {import('@aue/schema').ViewUnit} */
 const unit = (v) => ({ id: 1, kind: KIND.OPERATOR, owner: 0, x: 2, y: 3, z: 0, dir: 0, hp: 10, maxHp: 10, anim: 0, sp: 5, spCost: 20, skill: SKILL_STATE.CHARGING, skillLeft: -1, status: 0, element: 0, ep: 1, burst: 0, ...v });
@@ -188,4 +188,13 @@ test('[页面-10] an operator a host\'s mod adds: its card from the roster the p
   const roster = { 'mine:alt': { profession: 'WARRIOR', rarity: 5 } };
   assert.deepEqual(deckCards(match, content, 0, (c) => `/avatar/${c}.png`, roster)[0], { id: 'mine:alt#0', avatar: '/avatar/mine:alt.png', profession: 'WARRIOR', rarity: 5, phase: 1, respawn: 70 });
   assert.equal(deckCards(match, content, 0, () => null)[0].rarity, 1, 'not in the official roster');
+});
+
+test('[房间-14] 阵地足球 on the HUD (the engine\'s 界面-41, 渲染-26): the goals and time left on the top bar; the field marks with the kick of each ball at its place, none for a ball not in the view', () => {
+  const f = /** @type {any} */ ({ team: 'normal', home: 2, away: 1, until: 9000, stamps: 1, balls: [{ id: 5, sum: 1150, need: 2300, ax: 1, ay: 0 }, { id: 6, sum: 10, need: 100, ax: 0, ay: 1 }],
+    held: [[]], cover: { 30: -0.3 }, spots: [53] });
+  assert.deepEqual(footballOf(f, 9000 - 45), { home: 2, away: 1, left: 1.5 });
+  assert.deepEqual(footballOf(f, 9999).left, 0);
+  const view = /** @type {any} */ ({ frame: 1, players: [], units: [{ id: 5, x: 4.2, y: 3 }] });
+  assert.deepEqual(pitchOf(view, f), { spots: [53], cover: { 30: -0.3 }, kicks: [{ x: 4.2, y: 3, ax: 1, ay: 0, share: 0.5 }] });
 });

@@ -117,7 +117,29 @@ function coopState(o, speed, paused) {
   const r = o.requests, c = o.control, mate = 1 - o.seat;
   const left = r && r.pauseSince >= 0 ? Math.max(0, 1 - (r.now - r.pauseSince) / (OPEN * 1000)) : 0;
   return { me: side(o.seat), mate: side(mate), speed, paused, asking: c?.asker === o.seat && r ? left : -1, confirm: c?.asker === mate && r ? left : -1,
-    task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)), ...fortressOf(o.status, o.waves ?? 0, o.view.frame, o.seat) };
+    task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)), ...fortressOf(o.status, o.waves ?? 0, o.view.frame, o.seat),
+    ...(o.status.football ? { football: footballOf(o.status.football, o.view.frame) } : {}) };
+}
+
+/**
+ * 阵地足球 on the co-op top bar (the engine's 界面-41): our goals, theirs, the seconds left of the match.
+ * @param {import('@aue/worker').FootballStatus} f @param {number} frame @returns {import('@aue/ui').FootballTask}
+ */
+export const footballOf = (f, frame) => ({ home: f.home, away: f.away, left: Math.max(0, (f.until - frame) / FPS) });
+
+/**
+ * 阵地足球's field marks (the engine's 渲染-26): the 守门位's tiles, the ice and slime, and each ball's kick so far — at the
+ * ball's place in the view, its damage over its threshold. A ball not in the view (caught) has none.
+ * @param {import('@aue/schema').View} view @param {import('@aue/worker').FootballStatus} f
+ * @returns {{ spots: number[], cover: Record<string, number>, kicks: { x: number, y: number, ax: number, ay: number, share: number }[] }}
+ */
+export function pitchOf(view, f) {
+  const at = new Map(view.units.map((u) => [u.id, u]));
+  const kicks = f.balls.flatMap((b) => {
+    const u = at.get(b.id);
+    return u && b.need > 0 ? [{ x: u.x, y: u.y, ax: b.ax, ay: b.ay, share: b.sum / b.need }] : [];
+  });
+  return { spots: [...f.spots], cover: { ...f.cover }, kicks };
 }
 
 /**

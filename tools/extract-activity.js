@@ -94,12 +94,13 @@ function trainingOf(gamedata, a, stageTable, styles) {
 }
 
 /**
- * 堡垒守御 (房间-2): its mode as the projects show it, and each of its stages but the training one — the level it plays
- * (its level file), its class, code and name (stage_table), its preview picture, its description and its missions.
- * @param {any} a the activity @param {any} stageTable @param {Record<string, string>} styles
+ * 堡垒守御 or 阵地足球 (房间-2): its mode as the projects show it, and each of its stages but the training one — the level
+ * it plays (its level file), its class, code and name (stage_table), its preview picture, its description and its
+ * missions.
+ * @param {any} a the activity @param {any} stageTable @param {Record<string, string>} styles @param {'DEFENCE' | 'FOOTBALL'} mode
  */
-function defenceOf(a, stageTable, styles) {
-  const m = a.mapModeDataDict.DEFENCE, types = Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'DEFENCE' && t.difficulty !== 'TRAINING');
+function modeOf(a, stageTable, styles, mode) {
+  const m = a.mapModeDataDict[mode], types = Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === mode && t.difficulty !== 'TRAINING');
   const levelOf = (/** @type {string} */ id) => String(stageTable[id].levelId).toLowerCase().split('/level_').pop() ?? '';
   const stages = types.flatMap((/** @type {any} */ t) => t.stageIdInModeList.map((/** @type {string} */ id) => [id, {
     level: levelOf(id), class: t.difficulty, code: stageTable[id].code, name: stageTable[id].name, picture: a.mapDataDict[id]?.previewIconId ?? '',
@@ -163,7 +164,8 @@ export function extract(root) {
       })),
     },
     training: trainingOf(join(root, 'zh_CN', 'gamedata'), a, stageTable, styles),
-    defence: defenceOf(a, stageTable, styles),
+    defence: modeOf(a, stageTable, styles, 'DEFENCE'),
+    football: modeOf(a, stageTable, styles, 'FOOTBALL'),
     // 局内标记 (房间-12): the activity's mark constants as it names them (their reading: INF-0024)
     marks: { markCd: a.constData.markCd, markCond1: a.constData.markCond1, markCond2: a.constData.markCond2 },
     styles: a.squadEffectList.map((/** @type {any} */ s) => ({

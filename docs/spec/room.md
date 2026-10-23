@@ -122,3 +122,14 @@
 - **比赛结束**：比赛结果按守住的波数记嘉奖印章（引擎 守御-1：守住 3、5、7 波得 1、2、3 枚），记下难度、守住的波数和最后一波的伤害记录；房间的结算按印章数显示星级，标题写「守住 N 波」，说明写「最终波次伤害 N」，两块阶段面板分别是第 1 枚（满 3 波）和第 2、3 枚（满 5、7 波）印章。
 
 - 来源：活动表 `mapTypeDataDict` 的 `mode_defence_ordinary`、`mode_defence_difficulty`、`mode_defence_extremely`（各自的 `stageIdInModeList`），`mapModeDataDict.DEFENCE`（「堡垒守御」、图标 `defence`、颜色 3cbfd0），`mapDataDict` 的预览图与任务；关卡表 `act1multi_fortress-rm01`、`act1multi_fortress-ex-rm01` 的 levelId 都是 `level_act1multi_fortress_rm01`；[PRTS「促融共竞」oldid=377839](https://prts.wiki/index.php?title=%E4%BF%83%E8%9E%8D%E5%85%B1%E7%AB%9E&oldid=377839) 堡垒守御的赛事分级；选定这三关与测试中的标注为 2026-10-17 用户的选择（先做核心与没有特殊地形的图）；高级赛用突袭难度、快速匹配只配常规项目为推断 INF-0025
+
+### 房间-14 阵地足球的项目
+
+- **项目**：阵地足球（活动表的 `FOOTBALL` 模式，引擎 足球-1…足球-16）的 IG-FT-1 大力出奇迹（初级赛）与 IG-FT-2 大力出奇迹（高级赛，同一关卡、引擎的突袭难度 `FOUR_STAR`：出现额外种类的足球）。模式的名称、图标与颜色，关卡的代号、名称、预览图、说明与任务取活动表与关卡表。
+- **测试中**：这两关是引擎的测试中关卡（引擎 关卡-8），部分敌人能力还没有实现；项目的说明开头写明「测试中：部分敌人能力未实现」（同 房间-13）。
+- **项目调整**：阵地足球在关卡列表里按模式分行，排在常规项目与堡垒守御之后；房间里的项目说明写「把足球送入敌方的球门：比赛结束时按净胜球数计」。
+- **快速匹配**：只匹配常规项目（房间-9）；没写模式的项目按常规项目算。
+- **比赛中**：合作顶栏为阵地足球的比分（引擎 界面-41），场上有守门位、冰面与黏液的标记和球的踢动箭头（引擎 渲染-26），页面按每帧的阵地足球状态给出。
+- **比赛结束**：比赛结果按净胜球记嘉奖印章（引擎 足球-7：1、2、4 个净胜球各 1 枚）。
+
+- 来源：游戏数据 activity_table `MULTIPLAY_V3/act1multi` 的 `mapModeDataDict.FOOTBALL`、`mapTypeDataDict`（`mode_football_*`）与 `mapDataDict`，stage_table 的 act1multi_football、act1multi_ex-football；[PRTS「促融共竞」oldid=377839](https://prts.wiki/index.php?title=%E4%BF%83%E8%9E%8D%E5%85%B1%E7%AB%9E&oldid=377839) 阵地足球「将足球送入敌方的球门吧！」「比赛时间结束后将计算净胜球数量」

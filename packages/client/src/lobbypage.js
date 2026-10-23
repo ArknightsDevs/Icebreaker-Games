@@ -234,7 +234,7 @@ function pageMakers(ui, H, G, L, K) {
       roster: ROSTER, entry: H.entry, training: loadTraining, art: G.pack.art, toast: X.toast, setList: H.setList }),
     prepare: () => createPrepare(ui, X),
     match: () => createMatch(ui, {
-      classes: () => [...new Map((H.S.lobby?.projects ?? []).filter((p) => p.mode !== 'DEFENCE').map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
+      classes: () => [...new Map((H.S.lobby?.projects ?? []).filter((p) => (p.mode ?? 'NORMAL') === 'NORMAL').map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
       send: A.send, seek: A.seek, seeking: () => H.S.seeking, toast: X.toast,
       modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
       back: () => { if (H.S.seeking) A.send({ t: 'unseek' }); L.match = false; draw(); },

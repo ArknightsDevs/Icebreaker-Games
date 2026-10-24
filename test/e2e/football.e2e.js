@@ -1,6 +1,6 @@
 // 阵地足球 in two browsers with the original battle UI (房间-14, the engine's 足球-1…足球-16, 界面-41 and 渲染-26; runs only
 // when AUE_ASSETS_DIR has the battle UI pack): IG-FT-1 and IG-S-4 with the elite-2 decks; no note of abilities missing, the
-// football panel on the top bar in place of the status panel, the score at 0 : 0 and the match time; an operator put
+// football panel on the top bar in place of the status panel, its start banner, the score at 0 : 0 and the match time; an operator put
 // behind the ball kicks it toward their goal; the pages stay in step (no desync on the server), without errors. Run
 // with `pnpm run e2e`; E2E_SHOTS=<dir> keeps screenshots.
 import { after, before, describe, test } from 'node:test';
@@ -39,6 +39,9 @@ for (const [code, MATCH] of MATCHES) describe(`阵地足球 ${code} in the brows
     // every ability of both is read now: no note that some are not
     assert.equal(await a.page.locator('#testing').isVisible(), false, 'no note of abilities missing');
     await until('the football panel', async () => ((await node(a.page, 'panel_cooperate_football_status').isVisible()) ? true : undefined), 20000);
+    // the match's own start banner as it begins (the engine's 界面-41)
+    await until('the football start banner', async () => ((await node(a.page, 'container_soccer_mode').isVisible()) ? true : undefined), 10000);
+    if (SHOTS) { await sleep(1200); await a.page.screenshot({ path: `${SHOTS}/football-${code}-banner.png` }); }
     assert.equal((await node(a.page, 'text_score_ally').innerText()).trim(), '0');
     assert.equal((await node(a.page, 'text_score_enemy').innerText()).trim(), '0');
     assert.match((await node(a.page, 'text_footbal_timer').innerText()).trim(), /^0[45]:\d\d$/);

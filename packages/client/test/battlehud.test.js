@@ -33,12 +33,12 @@ test('the speed: 2× only when every seat has its switch on (同步-7)', () => {
   assert.equal(battleSpeed({ fast: [], held: 0, asker: -1, resuming: 0 }), 1);
 });
 
-test('the HUD\'s state of a frame: the deck, the cost and its next point, lives, speed, pause; the co-op sides', () => {
+test('the HUD\'s state of a frame: the deck and its cards held back, the cost and its next point, lives, speed, pause; the co-op sides', () => {
   const view = { frame: 90, players: [{ life: 3, cost: 12 }, { life: 2, cost: 4 }], units: [] };
-  const ps = (/** @type {number} */ revive) => ({ costTimer: 10, deployed: ['a'], slots: 7, cards: { a: { cost: 9, ready: 0 } }, summons: {}, revive, ask: -1, askCd: 0 });
+  const ps = (/** @type {number} */ revive) => ({ costTimer: 10, deployed: ['a'], slots: 7, cards: { a: { cost: 9, ready: 0 } }, summons: {}, hidden: ['c'], revive, ask: -1, askCd: 0 });
   const status = /** @type {any} */ ({ players: [ps(-1), ps(45)] });
   const s = hudState({ view, status, control: { fast: [1, 0], held: 1, asker: -1, resuming: 0 }, seat: 0, options: { costIncreaseTime: 1, maxCost: 99 }, selected: 'b' });
-  assert.deepEqual({ ...s, coop: undefined }, { frame: 90, fps: 30, cost: 12, cards: { a: { cost: 9, ready: 0 } }, deployed: ['a'], slots: 7, summons: {}, costTimer: 10, costPeriod: 30,
+  assert.deepEqual({ ...s, coop: undefined }, { frame: 90, fps: 30, cost: 12, cards: { a: { cost: 9, ready: 0 } }, deployed: ['a'], slots: 7, summons: {}, hidden: ['c'], costTimer: 10, costPeriod: 30,
     maxCost: 99, selected: 'b', life: 3, speed: 1, paused: true, coop: undefined, states: { result: undefined, down: false, offline: false }, stageStart: null });
   assert.deepEqual(s.coop, { me: { life: 3, fast: true, revive: -1 }, mate: { life: 2, fast: false, revive: 1.5 }, speed: 1, paused: true, asking: -1, confirm: -1, task: null,
     cost: { state: 'forbid', amount: 15, share: 0, wait: 0 } }, 'the mate down: no cost request');

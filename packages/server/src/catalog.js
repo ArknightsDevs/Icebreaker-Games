@@ -2,7 +2,7 @@
 // 关卡-4), class, the tasks of its two stages (关卡-5), its description and the activity's missions for it (shown at 项目确认); the
 // temporary recruits as box entries.
 import { LEVELS, TESTING, levelAt, loadTraining } from '@aue/content';
-import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName } from '@icebreaker/mode-regular';
+import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName, trainingModeOf } from '@icebreaker/mode-regular';
 
 /**
  * A project as the lobby shows it: its code and name, its stages' tasks (常规项目) or its waves (堡垒守御), the
@@ -31,14 +31,15 @@ export function projectViews() {
 }
 
 /**
- * The match of a training level (房间-11): its own cards (engine 关卡-7) for seat 0 with 基础专项's runes, nobody for
- * seat 1 — the partner's operators are the level's (engine 波次-7); null for a level that is not a training level here.
- * @param {string} level @param {number} seed @returns {import('@aue/schema').Match | null}
+ * The match of a training level (房间-11): its own cards (engine 关卡-7) for seat 0 — in 常规项目's with 基础专项's runes,
+ * in 阵地足球's with none —, nobody for seat 1 — the partner's operators are the level's (engine 波次-7); null for a
+ * level that is not a training level here. @param {string} level @param {number} seed @returns {import('@aue/schema').Match | null}
  */
 export function trainingMatch(level, seed) {
   const cards = TRAINING_LEVELS.includes(level) ? LEVELS[level]?.level.cards : null;
   if (!cards) return null;
-  return { level, difficulty: 'NORMAL', seed, decks: [cards.operators.map((/** @type {any} */ o) => ({ id: o.key, build: o.build })), []], runes: [/** @type {any} */ (styleRunes(DEFAULT_STYLE)), []] };
+  const runes = trainingModeOf(level) === 'NORMAL' ? /** @type {any} */ (styleRunes(DEFAULT_STYLE)) : [];
+  return { level, difficulty: 'NORMAL', seed, decks: [cards.operators.map((/** @type {any} */ o) => ({ id: o.key, build: o.build })), []], runes: [runes, []] };
 }
 
 /** The temporary recruits as box entries, each skill they have at the recruit's level. */

@@ -1,23 +1,25 @@
 // The tutorials of a training level (docs/spec/room.md 房间-11, engine 波次-8): when the battle tells a story the page
 // plays its script over the field — pausing and resuming the battle as it says (the seat plays alone, so both take hold
 // at once: engine 同步-14), the lines in a dialog with the speaker's head, the part a line is about lit in a dark mask —
-// and goes on when the player taps (after the line's protect time) or, for a drag, once the player has put a unit down.
+// and goes on when the player taps (after the line's protect time) or, for a drag, once the player has put a unit down;
+// a drag whose card cannot be put down yet (阵地足球's ball not caught yet) lets the battle run until it can.
 // The script's places are in a 1280 × 720 screen from its centre, y up, scaled with the screen's width; the dialog's
 // look is the page's own (the game's tutorial screens are not in the assets; INF-0023).
 
 /** @typedef {{ cmd: string, args: Record<string, string | number | boolean>, text?: string }} StoryCommand */
 /**
  * What the tutorials work with: the scripts and their variables, pausing and resuming, whether the battle is held, the
- * current frame, a speaker's head picture, the rect of a node of the battle UI by its name.
+ * current frame, a speaker's head picture, the rect of a node of the battle UI by its name, whether the hand's card at
+ * an index (of those shown) can be put down now.
  * @typedef {{ stories: Readonly<Record<string, readonly StoryCommand[]>>, vars: Readonly<Record<string, string | number>>, pause: () => void, resume: () => void,
- *   held: () => boolean, frame: () => number, head: (char: string) => string | null, rectOf: (name: string) => DOMRect | null }} TutorialCtx
+ *   held: () => boolean, frame: () => number, head: (char: string) => string | null, rectOf: (name: string) => DOMRect | null, ready?: (index: number) => boolean }} TutorialCtx
  */
 /**
  * A tutorial's state: its context, the field, its elements, the frames waited for, the deployment waited for, whether
  * the battle ended, whether the script keeps the player's input from the battle between its lines (InputBlocker),
- * whether the script holds the battle.
+ * whether the script holds the battle, the card a drag is about (InputBlocker's cardIndex).
  * @typedef {{ o: TutorialCtx, field: HTMLElement, E: ReturnType<typeof elements>, frameWaits: { frame: number, done: () => void }[], putDown: (() => void) | null,
- *   over: boolean, block: boolean, holding: boolean }} Tut
+ *   over: boolean, block: boolean, holding: boolean, card: number }} Tut
  */
 
 /** The script's screen (1280 × 720, scaled by the screen's width). */
@@ -123,9 +125,28 @@ function drag(T, a) {
   for (const [k, v] of [['--from-x', from.x], ['--from-y', from.y], ['--to-x', to.x], ['--to-y', to.y]]) s.setProperty(String(k), `${v}px`);
 }
 
+/**
+ * Until the card a drag is about can be put down (房间-11): while it cannot — 阵地足球's ball not caught yet —, the battle
+ * runs, then it is held again as the script had it. @param {Tut} T
+ */
+async function cardReady(T) {
+  const o = T.o, ready = o.ready;
+  if (!ready || ready(T.card)) return;
+  const was = T.holding;
+  T.holding = false;
+  o.resume();
+  await held(T, false);
+  while (!T.over && !ready(T.card)) await sleep(50);
+  if (!was || T.over) return;
+  T.holding = true;
+  o.pause();
+  await held(T, true);
+}
+
 /** A Tutorial line: its mask and lit part, its hand, its dialog; then a tap, or for a drag the deployment. @param {Tut} T @param {StoryCommand} c */
 async function tutorialLine(T, c) {
   const a = c.args, wait = a.waitForSignal === 'put_down', o = T.o;
+  if (wait) await cardReady(T);
   T.E.box.hidden = false;
   // a drag waits for the player's deployment: the overlay lets the hand through
   T.E.box.classList.toggle('passing', wait);
@@ -142,7 +163,7 @@ const COMMANDS = {
   'Battle.Pause': async (T, c) => { const on = c.args.pause !== false; T.holding = on; if (on) T.o.pause(); else T.o.resume(); await held(T, on); },
   Delay: (T, c) => frames(T, Math.round(Number(c.args.time ?? 0) * FPS)),
   // a blocker that leaves a card open goes with a drag, which lets the input through anyway
-  InputBlocker: (T, c) => { T.block = c.args.blockInput !== false && c.args.cardIndex === undefined; },
+  InputBlocker: (T, c) => { T.block = c.args.blockInput !== false && c.args.cardIndex === undefined; T.card = Number(c.args.cardIndex ?? 0); },
   PopupDialog: async (T, c) => {
     T.E.box.hidden = false;
     mask(T, null, '', Number(valueOf(T.o, c.args.black) ?? 0.3));
@@ -173,7 +194,7 @@ async function play(T, script) {
  */
 export function createTutorial(root, field, o) {
   /** @type {Tut} */
-  const T = { o, field, E: elements(root), frameWaits: [], putDown: null, over: false, block: false, holding: false };
+  const T = { o, field, E: elements(root), frameWaits: [], putDown: null, over: false, block: false, holding: false, card: 0 };
   const told = new Set(), queue = /** @type {string[]} */ ([]);
   let running = false;
   async function next() {

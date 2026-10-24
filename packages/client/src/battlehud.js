@@ -80,7 +80,7 @@ export function requestsAfter(r, f) {
 export function hudState(o) {
   const { view, status, control, seat } = o, p = view.players[seat], ps = status.players[seat], speed = battleSpeed(control), paused = !!control?.held, f = status.fortress;
   return {
-    frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots, summons: ps.summons,
+    frame: view.frame, fps: FPS, cost: p.cost, cards: ps.cards, deployed: ps.deployed, slots: ps.slots, summons: ps.summons, hidden: ps.hidden,
     ...(f ? { counts: f.pools[seat] ?? {}, building: f.phase === 'rest' } : {}),
     costTimer: ps.costTimer, costPeriod: secondsToFrames(o.options.costIncreaseTime), maxCost: o.options.maxCost, selected: o.selected,
     life: p.life, speed, paused, coop: view.players.length === 2 ? coopState(o, speed, paused) : undefined,

@@ -506,7 +506,8 @@ function start(P, g) {
 
 /**
  * A training's tutorials over the field (房间-11): its scripts and their variables, the battle's pause and resume, the
- * speaker's head (its avatar), the battle UI's nodes by name (the first one shown). @param {Page} P
+ * speaker's head (its avatar), the battle UI's nodes by name (the first one shown), whether a card of the hand can be
+ * put down. @param {Page} P
  * @param {Awaited<ReturnType<typeof setUp>>} g @param {HTMLCanvasElement} field
  */
 function tutorialOn(P, g, field) {
@@ -517,8 +518,10 @@ function tutorialOn(P, g, field) {
     }
     return null;
   };
+  // whether the hand's card at an index can be put down now: a drag about it waits for that (阵地足球's ball, caught)
+  const ui = g.ui, ready = ui ? (/** @type {number} */ i) => !!P.hudNow && cardViews(ui.deck, P.hudNow)[i]?.usable === true : undefined;
   return createTutorial($('app'), field, { stories: TRAINING.stories, vars: TRAINING.vars, pause: () => P.battle.pause(), resume: () => P.battle.resume(),
-    held: () => !!P.control?.held, frame: () => P.lastView?.frame ?? 0, head: (char) => g.avatar(char), rectOf });
+    held: () => !!P.control?.held, frame: () => P.lastView?.frame ?? 0, head: (char) => g.avatar(char), rectOf, ...(ready ? { ready } : {}) });
 }
 
 /**

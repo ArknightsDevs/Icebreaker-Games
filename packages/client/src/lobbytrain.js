@@ -1,8 +1,8 @@
 // The activity's training room page (docs/spec/room.md 房间-11, page.md 页面-6): the training modes on the right — 常规项目's
-// open, 阵地足球 and 堡垒守御 not open here —, the chosen mode's training level in its detail on the billboard (drawn
+// and 阵地足球's open, 堡垒守御 not open here —, the chosen mode's training level in its detail on the billboard (drawn
 // flat, not on the curved screen; INF-0022); a tap on the chosen mode starts its training.
 import { openPart, closePart, place, fillList, placeTopMenu, placeBottomBar } from './lobbykit.js';
-import { TRAINING, DETAILS, MISSIONS, CLASS_NAMES } from '@icebreaker/mode-regular';
+import { TRAINING, TRAINING_LEVELS, DETAILS, MISSIONS, CLASS_NAMES, trainingModeOf } from '@icebreaker/mode-regular';
 import { LEVELS } from '@aue/content';
 import { PAGES } from './lobbymap.js';
 import { fillDetail } from './lobbystage.js';
@@ -27,20 +27,20 @@ const FLAT = Object.freeze({ amin: [0, 0.5], amax: [0, 0.5], pos: [410, 4], size
 const NOT_OPEN = '暂未开放';
 
 /**
- * A training level as the stage detail takes a project (房间-2): its code and name (engine 关卡-4), class 训练场, its
- * description, missions and the tasks of its stages. @param {string} level
+ * A training level as the stage detail takes a project (房间-2): its training mode's mode, its code and name (engine
+ * 关卡-4), class 训练场, its description, missions and the tasks of its stages. @param {string} level
  * @returns {import('./roomview.js').ProjectView}
  */
 export function trainingProject(level) {
   const lv = /** @type {any} */ (LEVELS[level]).level;
   return {
-    stage: level, mode: 'NORMAL', level, difficulty: 'NORMAL', class: 'TRAINING', className: CLASS_NAMES['TRAINING'] ?? '', code: lv.code, name: lv.name,
+    stage: level, mode: /** @type {'NORMAL' | 'FOOTBALL'} */ (trainingModeOf(level) ?? 'NORMAL'), level, difficulty: 'NORMAL', class: 'TRAINING', className: CLASS_NAMES['TRAINING'] ?? '', code: lv.code, name: lv.name,
     stages: (lv.stages ?? []).map((/** @type {any} */ s) => ({ ...s.task, seconds: s.time })), missions: MISSIONS[level] ?? [], detail: DETAILS[level] ?? '',
   };
 }
 
-/** Whether a training mode is played here (房间-11): 常规项目's. @param {{ mode: string }} m */
-const open = (m) => m.mode === 'NORMAL';
+/** Whether a training mode is played here (房间-11): 常规项目's and 阵地足球's, their levels in the engine. @param {{ levels: readonly string[] }} m */
+const open = (m) => m.levels.length > 0 && m.levels.every((l) => TRAINING_LEVELS.includes(l) && !!LEVELS[l]);
 
 /** @typedef {{ p: Part, f: Record<string, any>, X: TrainCtx, chosen: number, items: Part[] }} Train */
 

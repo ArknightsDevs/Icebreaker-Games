@@ -65,6 +65,9 @@ function emotesOf(meta, a) {
   return { themes: [...a.enabledEmoticonThemeIdList], scenes, text: Object.fromEntries(all.map((/** @type {any} */ e) => [e.id, e.desc])), cd: a.constData.chatCd, time: a.constData.chatTime };
 }
 
+/** The training modes played here (房间-11): 常规项目's and 阵地足球's; their levels' stories are extracted. */
+const TRAINED = Object.freeze(['NORMAL', 'FOOTBALL']);
+
 /**
  * The training levels (房间-11): each training mode in its levels' order — its mode, the mode's name and icon, its
  * levels, the hint while it is locked —, the stories its levels' waves tell, by their path's last part, and the story
@@ -79,7 +82,7 @@ function trainingOf(gamedata, a, stageTable, styles) {
   }));
   /** @type {Record<string, ReturnType<typeof storyOf>>} */
   const stories = {};
-  for (const m of modes.filter((x) => x.mode === 'NORMAL')) {
+  for (const m of modes.filter((x) => TRAINED.includes(x.mode))) {
     for (const id of m.levels) {
       const level = readJson(join(gamedata, 'levels', `${String(stageTable[id].levelId).toLowerCase()}.json`));
       const keys = level.waves.flatMap((/** @type {any} */ w) => w.fragments.flatMap((/** @type {any} */ f) => f.actions.filter((/** @type {any} */ x) => x.actionType === 'STORY').map((/** @type {any} */ x) => x.key)));
@@ -119,6 +122,9 @@ export function extract(root) {
   const stageTable = readJson(join(excel, 'stage_table.json')).stages, styles = readJson(join(excel, 'gamedata_const.json')).richTextStyles;
   const steps = Object.fromEntries(a.selectStepDataList.map((/** @type {any} */ s) => [s.stepType, { title: s.title, seconds: s.time, hint: s.hintTime }]));
   const normal = new Set(Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.mode === 'NORMAL').flatMap((/** @type {any} */ t) => t.stageIdInModeList));
+  // the stages whose details the lobby shows: 常规项目's and the training levels played here (房间-11)
+  const shown = new Set([...normal, ...Object.values(a.mapTypeDataDict).filter((/** @type {any} */ t) => t.difficulty === 'TRAINING' && TRAINED.includes(t.mode))
+    .flatMap((/** @type {any} */ t) => t.stageIdInModeList)]);
   return {
     source: { repo: 'Kengxxiao/ArknightsGameData', commit: commitOf(root), file: 'zh_CN/gamedata/excel/activity_table.json', activity: `MULTIPLAY_V3/${ACTIVITY}` },
     lineup: { min: a.constData.squadMinNum, max: a.constData.squadMaxNum },
@@ -132,10 +138,10 @@ export function extract(root) {
     // each 常规项目 stage's level (its level file) and its code and name (stage_table): 高级赛's IG-EX stages play the
     // 初级赛 levels (房间-2)
     names: Object.fromEntries([...normal].sort().map((id) => [id, { level: String(stageTable[id].levelId).toLowerCase().split('/level_').pop() ?? '', code: stageTable[id].code, name: stageTable[id].name }])),
-    pictures: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => normal.has(m.stageId))
+    pictures: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => shown.has(m.stageId))
       .map((/** @type {any} */ m) => [m.stageId, m.previewIconId]).sort((x, y) => (x[0] < y[0] ? -1 : 1))),
-    details: Object.fromEntries([...normal].sort().map((id) => [id, richText(stageTable[id]?.description ?? '', styles)])),
-    missions: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => normal.has(m.stageId))
+    details: Object.fromEntries([...shown].sort().map((id) => [id, richText(stageTable[id]?.description ?? '', styles)])),
+    missions: Object.fromEntries(Object.values(a.mapDataDict).filter((/** @type {any} */ m) => shown.has(m.stageId))
       .map((/** @type {any} */ m) => [m.stageId, m.missionIdList.map((/** @type {string} */ id) => a.targetMissionDataDict[id]?.description ?? '')])
       .sort((x, y) => (x[0] < y[0] ? -1 : 1))),
     toasts: Object.fromEntries(TOASTS.map((k) => [k, a.constToastData[k]])),

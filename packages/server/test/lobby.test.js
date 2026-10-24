@@ -90,8 +90,8 @@ test('[房间-2] [房间-5] [房间-6] two players: a room, its project confirme
     a.send({ t: 'hello', key: 'key-a', name: 'A' });
     b.send({ t: 'hello', key: 'key-b', name: 'B' });
     const lobby = await a.next('lobby');
-    assert.deepEqual(lobby.projects.map((/** @type {any} */ p) => p.code), ['IG-1', 'IG-10', 'IG-14', 'IG-EX-1', 'IG-EX-10', 'IG-S-2', 'IG-DF-1', 'IG-DF-4', 'IG-S-5', 'IG-FT-1', 'IG-FT-2']);
-    assert.deepEqual(lobby.projects.map((/** @type {any} */ p) => p.testing), [false, false, false, false, false, false, true, true, true, false, true], '[房间-13] [房间-14] the levels being tested at their difficulty');
+    assert.deepEqual(lobby.projects.map((/** @type {any} */ p) => p.code), ['IG-1', 'IG-10', 'IG-14', 'IG-EX-1', 'IG-EX-10', 'IG-S-2', 'IG-DF-1', 'IG-DF-4', 'IG-S-5', 'IG-FT-1', 'IG-FT-2', 'IG-S-4']);
+    assert.deepEqual(lobby.projects.map((/** @type {any} */ p) => p.testing), [false, false, false, false, false, false, true, true, true, false, false, false], '[房间-13] [房间-14] the levels being tested at their difficulty');
     assert.equal(lobby.recruits.length, 5);
     a.send({ t: 'create' });
     const code = (await a.next('room')).code;

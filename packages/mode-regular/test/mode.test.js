@@ -6,7 +6,7 @@ import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_ST
   DEFENCE_MODE, FOOTBALL_MODE, modeOf, stageName } from '../src/index.js';
 import { storyOf } from '../src/story.js';
 
-test('[房间-2] [房间-13] [房间-14] the projects: IG-1, IG-10 and IG-14 in 初级赛, IG-S-2 in 特级赛; 堡垒守御 IG-DF-1, IG-DF-4 (the same level, harder) and IG-S-5; 阵地足球 IG-FT-1 and IG-FT-2', () => {
+test('[房间-2] [房间-13] [房间-14] the projects: IG-1, IG-10 and IG-14 in 初级赛, IG-S-2 in 特级赛; 堡垒守御 IG-DF-1, IG-DF-4 (the same level, harder) and IG-S-5; 阵地足球 IG-FT-1, IG-FT-2 and IG-S-4', () => {
   assert.deepEqual(PROJECTS.map((p) => [p.stage, p.mode, p.level, p.difficulty, p.className]), [
     // 高级赛's IG-EX stages play the 初级赛 levels at the harder difficulty
     ['act1multi_01', 'NORMAL', 'act1multi_01', 'NORMAL', '初级赛'], ['act1multi_06', 'NORMAL', 'act1multi_06', 'NORMAL', '初级赛'],
@@ -16,6 +16,7 @@ test('[房间-2] [房间-13] [房间-14] the projects: IG-1, IG-10 and IG-14 in 
     ['act1multi_fortress-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'NORMAL', '初级赛'], ['act1multi_fortress-ex-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'FOUR_STAR', '高级赛'],
     ['act1multi_fortress-hard-01', 'DEFENCE', 'act1multi_fortress_hard-01', 'NORMAL', '特级赛'],
     ['act1multi_football', 'FOOTBALL', 'act1multi_football', 'NORMAL', '初级赛'], ['act1multi_ex-football', 'FOOTBALL', 'act1multi_football', 'FOUR_STAR', '高级赛'],
+    ['act1multi_hard-football', 'FOOTBALL', 'act1multi_football_hard-01', 'NORMAL', '特级赛'],
   ]);
   assert.equal(ACTIVITY.source.activity, 'MULTIPLAY_V3/act1multi');
   assert.deepEqual([DEFENCE_MODE.name, DEFENCE_MODE.icon, DEFENCE_MODE.color, modeOf(PROJECTS.find((p) => p.mode === 'DEFENCE')).name, modeOf(PROJECTS[0]).name], ['堡垒守御', 'defence', '#3cbfd0', '堡垒守御', '常规项目']);
@@ -23,7 +24,8 @@ test('[房间-2] [房间-13] [房间-14] the projects: IG-1, IG-10 and IG-14 in 
   assert.equal(PICTURES['act1multi_fortress-hard-01'], 'multi_v3_01-fortress-hard-01_preview');
   // 阵地足球: its mode, its stages' codes and pictures
   assert.deepEqual([FOOTBALL_MODE.name, FOOTBALL_MODE.icon, FOOTBALL_MODE.color, modeOf(PROJECTS.find((p) => p.mode === 'FOOTBALL')).name], ['阵地足球', 'football', '#b9eb3b', '阵地足球']);
-  assert.deepEqual([stageName('act1multi_football'), stageName('act1multi_ex-football')], [{ code: 'IG-FT-1', name: '大力出奇迹' }, { code: 'IG-FT-2', name: '大力出奇迹' }]);
+  assert.deepEqual([stageName('act1multi_football'), stageName('act1multi_ex-football'), stageName('act1multi_hard-football')],
+    [{ code: 'IG-FT-1', name: '大力出奇迹' }, { code: 'IG-FT-2', name: '大力出奇迹' }, { code: 'IG-S-4', name: '大力出奇迹' }]);
   assert.equal(PICTURES['act1multi_football'], 'multi_v3_01-football_preview');
 });
 

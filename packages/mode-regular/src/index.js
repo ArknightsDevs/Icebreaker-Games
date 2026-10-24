@@ -42,14 +42,14 @@ function project(mode, stage) {
 
 /**
  * The projects played here (房间-2): the 常规项目 stages whose levels the engine plays in full — IG-1, IG-10, IG-14 and
- * the 高级赛 IG-EX-1, IG-EX-10, IG-S-2 —; 堡垒守御's IG-DF-1, IG-DF-4 and IG-S-5, and 阵地足球's IG-FT-1 and IG-FT-2,
- * being tested (the engine's 关卡-8).
+ * the 高级赛 IG-EX-1, IG-EX-10, IG-S-2 —; 堡垒守御's IG-DF-1, IG-DF-4 and IG-S-5, and 阵地足球's IG-FT-1, IG-FT-2 and
+ * IG-S-4, being tested (the engine's 关卡-8).
  * @type {readonly Project[]}
  */
 export const PROJECTS = Object.freeze([
   ...['act1multi_01', 'act1multi_06', 'act1multi_rm07', 'act1multi_ex01', 'act1multi_ex06', 'act1multi_hard-02'].map((stage) => project('NORMAL', stage)),
   ...['act1multi_fortress-rm01', 'act1multi_fortress-ex-rm01', 'act1multi_fortress-hard-01'].map((stage) => project('DEFENCE', stage)),
-  ...['act1multi_football', 'act1multi_ex-football'].map((stage) => project('FOOTBALL', stage)),
+  ...['act1multi_football', 'act1multi_ex-football', 'act1multi_hard-football'].map((stage) => project('FOOTBALL', stage)),
 ]);
 
 /** 堡垒守御's mode as the projects show it (页面-5): its type, name, icon id and colour. */

@@ -12,7 +12,8 @@ import { IMMUTABLE } from '../src/assets.js';
 import { filesVersion } from '../src/build.js';
 import { unversioned } from '../src/modules.js';
 import { rewriteKitImports } from '../src/kits.js';
-import { effectKeys } from '../src/effects.js';
+import { effectKeys, buildIndex } from '../src/effects.js';
+import { effectIndex } from '@aue/render/fx-subset';
 
 /** @typedef {{ status: number, headers: import('node:http').IncomingHttpHeaders, body: Buffer }} Reply */
 /** @param {number} port @param {string} path @param {Record<string, string>} [headers] @returns {Promise<Reply>} */
@@ -119,6 +120,16 @@ test('[站点-5] the effect pack for some units: their effects and textures only
   const whole = JSON.parse((await get(port, '/assets/skeleton/fx/units.json')).body.toString('utf8'));
   assert.deepEqual(Object.keys(whole.fx), ['a', 'b', 'd'], 'without for: the whole pack');
   assert.equal((await get(port, '/assets/skeleton/fx/units.json?for=..%2Fx')).status, 400);
+});
+
+test('[站点-5] the index is built in a worker thread, the same as the engine builds it in the server heap', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ice-fx-')), file = join(dir, 'units.json');
+  const data = { by: { char_a: { h: 'a' } }, common: {}, named: { deploy: 'b' }, fx: { a: { ps: [{ tex: 'ta' }] }, b: { ps: [] } }, tex: { ta: 'data:image/webp;base64,AA' }, clamp: ['ta'] };
+  writeFileSync(file, JSON.stringify(data));
+  try {
+    assert.deepEqual(await buildIndex(file), effectIndex(structuredClone(data)));
+    await assert.rejects(buildIndex(join(dir, 'none.json')), 'a pack that is not there');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('[站点-4] [页面-8] the loading screen style and script are written into the page, as they are', async () => {

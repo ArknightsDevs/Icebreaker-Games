@@ -173,12 +173,20 @@ const COMMANDS = {
   Tutorial: tutorialLine,
 };
 
+/**
+ * The commands by their names in lower case: the game's scripts write them either way (促融共竞's Battle.Pause,
+ * 阵地足球锦标's battle.pause), and its battle.delay is Delay.
+ */
+const BY_NAME = /** @type {Record<string, (T: Tut, c: StoryCommand) => Promise<unknown> | void>} */ ({
+  ...Object.fromEntries(Object.entries(COMMANDS).map(([k, f]) => [k.toLowerCase(), f])), 'battle.delay': COMMANDS.Delay,
+});
+
 /** A script, then the battle runs again: the game's stories end with it running. @param {Tut} T @param {readonly StoryCommand[]} script */
 async function play(T, script) {
   const E = T.E;
   for (const c of script) {
     if (T.over) break;
-    await COMMANDS[c.cmd]?.(T, c);
+    await BY_NAME[c.cmd.toLowerCase()]?.(T, c);
     for (const e of [E.dialog, E.hand, E.shade, E.hole]) e.hidden = true;
     E.box.hidden = !T.block;
   }

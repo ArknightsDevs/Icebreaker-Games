@@ -1,0 +1,1286 @@
+{
+ "source": {
+  "repo": "Kengxxiao/ArknightsGameData",
+  "commit": "17759cc8cdf37388414145d16262a3a06f3ab25e",
+  "file": "zh_CN/gamedata/excel/activity_table.json",
+  "activity": "ACT_FOOTBALL/act1football"
+ },
+ "name": "阵地足球锦标",
+ "zones": [
+  {
+   "id": "act1football_zone1",
+   "name": "晋级赛",
+   "unlock": "尚未解锁"
+  },
+  {
+   "id": "act1football_zone2",
+   "name": "淘汰赛",
+   "unlock": "完成「晋级赛」后解锁"
+  },
+  {
+   "id": "act1football_zone3",
+   "name": "特训赛",
+   "unlock": "首次完成晋级赛关卡解锁"
+  }
+ ],
+ "stages": [
+  {
+   "stage": "act1football_tr01",
+   "level": "act1football_tr01",
+   "code": "PF-TR-1",
+   "name": "首次训练",
+   "zone": "act1football_zone1",
+   "detail": "每个队伍都是从训练场启程的，先走进场地，从最基础的训练课程开始吧！",
+   "predefined": true,
+   "after": [],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "敌方",
+    "icon": "act1football_teamicon_2"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_01",
+   "level": "act1football_01",
+   "code": "PF-1",
+   "name": "揭幕之战",
+   "zone": "act1football_zone1",
+   "detail": "比赛的第一场胜利对整个球队有着非常重大的意义，齐心协力，拿下开门红！\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_tr01"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "业余组",
+    "icon": "act1football_teamicon_3"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_02",
+   "level": "act1football_02",
+   "code": "PF-2",
+   "name": "把握良机",
+   "zone": "act1football_zone1",
+   "detail": "对机会的把握能力往往能决定整场球赛的胜负，这场比赛正是证明队员们真正实力的好机会。\n<color=#3436fb><旋旋风暴球场></color>场上出现移动的龙卷风，使附近的敌人浮空。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_01"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "业余组",
+    "icon": "act1football_teamicon_3"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_03",
+   "level": "act1football_03",
+   "code": "PF-3",
+   "name": "渐入佳境",
+   "zone": "act1football_zone1",
+   "detail": "除了技战术的安排，好势头对于一支争冠队伍来说也必不可少，继续赢下比赛，维持高昂士气！\n<color=#3436fb><超强对流球场></color>场上出现落雷落在足球上，对附近的单位造成伤害和晕眩。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_02"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "业余组",
+    "icon": "act1football_teamicon_3"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_04",
+   "level": "act1football_04",
+   "code": "PF-4",
+   "name": "客场连战",
+   "zone": "act1football_zone1",
+   "detail": "客场作战是每支球队的必经历程，能在不熟悉的场地中发挥全部实力，才能成为实至名归的胜者。\n<color=#3436fb><冻人冬日球场></color>全场摩擦力降低，敌人移动速度加快。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_03"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "业余组",
+    "icon": "act1football_teamicon_3"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_05",
+   "level": "act1football_05",
+   "code": "PF-5",
+   "name": "争分夺球",
+   "zone": "act1football_zone1",
+   "detail": "积分赛开始之前教练组已经对对手做了充分的分析和研究，哨声响起之后，就该队员们在场上奋力拼搏了。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_04"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "阵地队",
+    "icon": "act1football_teamicon_4"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_06",
+   "level": "act1football_06",
+   "code": "PF-6",
+   "name": "胜负难分",
+   "zone": "act1football_zone1",
+   "detail": "当势均力敌的两支球队都无法攻破对方球门时，就必须进入既需要球技又考验意志力的点球决胜了。\n<color=#3436fb><冻人冬日球场></color>全场摩擦力降低，敌人移动速度加快。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_05"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "战术队",
+    "icon": "act1football_teamicon_5"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_07",
+   "level": "act1football_07",
+   "code": "PF-7",
+   "name": "出线之争",
+   "zone": "act1football_zone1",
+   "detail": "这场比赛关系着唯一的出线名额，比赛还未开始，场内场外的气氛已经趋于沸腾。\n<color=#3436fb><智能时代球场></color>场上出现智能裁判官，足球靠近后会被拾取，之后朝向敌方半场重新发射。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_06"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "直球队",
+    "icon": "act1football_teamicon_6"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_ex01",
+   "level": "act1football_ex01",
+   "code": "PF-EX-1",
+   "name": "球风对撞",
+   "zone": "act1football_zone2",
+   "detail": "不同战术理念的碰撞一直是大家喜闻乐见的话题，今天口头上的对战先放到一边，赛果将证明一切。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_07"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "门神会",
+    "icon": "act1football_teamicon_7"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_ex02",
+   "level": "act1football_ex02",
+   "code": "PF-EX-2",
+   "name": "先声夺人",
+   "zone": "act1football_zone2",
+   "detail": "助威团冒着大雨赶到现场，只为见证队伍拿下一场酣畅淋漓的胜利，不要让他们失望！\n<color=#3436fb><超强对流球场></color>场上出现落雷落在足球上，对附近的单位造成伤害和晕眩。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_ex01"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "爱球会",
+    "icon": "act1football_teamicon_8"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_ex03",
+   "level": "act1football_ex03",
+   "code": "PF-EX-3",
+   "name": "小心脚下",
+   "zone": "act1football_zone2",
+   "detail": "进入到淘汰赛最为紧张的阶段，为了胜利不择手段的队伍并不少见，千万不能掉以轻心。\n<color=#3436fb><旋旋风暴球场></color>场上出现移动的龙卷风，使附近的敌人浮空。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_ex02"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "球德联",
+    "icon": "act1football_teamicon_9"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_ex04",
+   "level": "act1football_ex04",
+   "code": "PF-EX-4",
+   "name": "冠军之路",
+   "zone": "act1football_zone2",
+   "detail": "所有人都能看到已经摆放在球场边的冠军奖杯，在这场最终决战后，冠军将在万众瞩目中加冕。\n<color=#3436fb><点球决胜></color>倒计时结束后，如果双方比分战平，会进入到点球决胜。\n<color=#3436fb><速决规则></color>本场比赛中净胜球达到5个的队伍将直接获胜。",
+   "predefined": false,
+   "after": [
+    "act1football_ex03"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "魔球帮",
+    "icon": "act1football_teamicon_10"
+   },
+   "buff": null
+  },
+  {
+   "stage": "act1football_s01",
+   "level": "act1football_sub-1-1",
+   "code": "PF-S-1",
+   "name": "耐力拉练",
+   "zone": "act1football_zone3",
+   "detail": "阵地足球比赛会考验每一位参赛队员的体能，而充沛的体能往往可以带来战术上的优势，因此耐力训练不可或缺。\n<color=#3436fb><随机球队></color>每场比赛会随机遇到阵地队、战术队或直球队的对手。\n<color=#3436fb><随机球场></color>每场比赛会随机出现冻人冬日球场、智能时代球场、超强对流球场、旋旋风暴球场或常规球场。",
+   "predefined": false,
+   "after": [
+    "act1football_tr01"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "敌方",
+    "icon": "act1football_teamicon_2"
+   },
+   "buff": {
+    "id": "act1football_buff_1",
+    "name": "体能充沛",
+    "icon": "act1football_buff_1_icon_1",
+    "desc": "所有干员的再部署时间-30%"
+   }
+  },
+  {
+   "stage": "act1football_s02",
+   "level": "act1football_sub-1-2",
+   "code": "PF-S-2",
+   "name": "盘带练习",
+   "zone": "act1football_zone3",
+   "detail": "历年来球场上曾涌现出多种不同的战术，但无论如何带球技巧都是这些战术中无可撼动的关键，这次训练正是为提高盘带能力而设。\n<color=#3436fb><随机球队></color>每场比赛会随机遇到门神会、爱球会、球德联或魔球帮的对手。\n<color=#3436fb><随机球场></color>每场比赛会随机出现冻人冬日球场、智能时代球场、超强对流球场、旋旋风暴球场或常规球场。",
+   "predefined": false,
+   "after": [
+    "act1football_tr01"
+   ],
+   "ours": {
+    "name": "罗德岛队",
+    "icon": "act1football_teamicon_1"
+   },
+   "theirs": {
+    "name": "敌方",
+    "icon": "act1football_teamicon_2"
+   },
+   "buff": {
+    "id": "act1football_buff_2",
+    "name": "技艺精湛",
+    "icon": "act1football_buff_2_icon_1",
+    "desc": "所有干员的初始技力+10"
+   }
+  }
+ ],
+ "npcs": [
+  {
+   "id": "char_613_acmedc",
+   "elite": 2,
+   "level": 90,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_611_acnipe",
+   "elite": 2,
+   "level": 90,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_612_accast",
+   "elite": 2,
+   "level": 90,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_615_acspec",
+   "elite": 2,
+   "level": 90,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_608_acpion",
+   "elite": 2,
+   "level": 90,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  },
+  {
+   "id": "char_610_acfend",
+   "elite": 2,
+   "level": 90,
+   "potential": 1,
+   "trust": 200,
+   "skillLevel": 10
+  }
+ ],
+ "stories": {
+  "training_act1football_01_a": [
+   {
+    "cmd": "header",
+    "args": {
+     "is_skippable": false,
+     "is_tutorial": true
+    },
+    "text": "足球教学关1a"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "博士，欢迎来到阵地足球锦标的赛场！我们的目标和之前一样，那就是全力攻破敌方的球门。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 4
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": 0,
+     "focusY": 45,
+     "focusWidth": 100,
+     "focusHeight": 100,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "这是普通的比赛用球——不用担心！这个造型只是工程部的一个小小的玩笑，它看起来像坚硬的矿石，实际上是用很有弹性的材料制成的哦！"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -65,
+     "focusY": 50,
+     "focusWidth": 130,
+     "focusHeight": 130,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "干员们可以攻击足球，<color=#0098DC>累计造成一定伤害</color>就能将球<color=#0098DC>推动</color>。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3.8
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": 200,
+     "focusY": 10,
+     "focusWidth": 260,
+     "focusHeight": 260,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "足球最终的<color=#0098DC>移动方向</color>，完全取决于干员与足球的<color=#0098DC>位置关系</color>。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 0.7
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": 570,
+     "focusY": 180,
+     "focusWidth": 200,
+     "focusHeight": 200,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "红色目标点就是<color=#0098DC>敌方的球门</color>！不论用什么方法，只要足球进入红色目标点，都会被<color=#0098DC>记为我方进球</color>哦。"
+   }
+  ],
+  "training_act1football_01_b": [
+   {
+    "cmd": "header",
+    "args": {
+     "is_skippable": false,
+     "is_tutorial": true
+    },
+    "text": "足球教学关1b"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "下面，来熟悉下防守的操作吧！"
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -600,
+     "focusY": 30,
+     "focusWidth": 300,
+     "focusHeight": 500,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightRect",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center"
+    },
+    "text": "蓝色目标点是我们的球门，我们需要协力防守球门，防止失球。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 2.2
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -60,
+     "focusY": 50,
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "这只可爱的小鼷兽是敌方的<color=#0098DC>击球手</color>，它会试图追上足球，并向我方射门！"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3.1
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -480,
+     "focusY": 40,
+     "focusWidth": 200,
+     "focusHeight": 200,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "这时就需要部署干员防守球门。这些带有特殊标记的地块是<color=#0098DC>守门位</color>，部署在上面的干员会承担起<color=#0098DC>守门员</color>的职责。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "守门员不仅<color=#0098DC>不占用部署人数</color>，还可以接住飞来的足球。"
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": 600,
+     "focusY": -250,
+     "focusWidth": 250,
+     "focusHeight": 250,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "被守门员接住的足球会<color=#0098DC>进入待部署区</color>。"
+   },
+   {
+    "cmd": "cooperatebattle.lockcamera",
+    "args": {
+     "enable": false
+    }
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true,
+     "validWidth": 112,
+     "validHeight": 116,
+     "cardIndex": 0
+    }
+   },
+   {
+    "cmd": "battle.lockfunction",
+    "args": {
+     "mask": "PAUSE_BUTTON_INTERACT"
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "animStyle": "Drag",
+     "dialogHead": "$avatar_amiya",
+     "waitForSignal": "put_down",
+     "startCardIndex": 0,
+     "startRightStart": true,
+     "endTileX": 6,
+     "endTileY": 5
+    },
+    "text": "在5秒内将待部署区的足球<color=#0098DC>部署在我方半场</color>的任意位置，就可以在此<color=#0098DC>重新开球</color>。"
+   },
+   {
+    "cmd": "battle.unlockfunction",
+    "args": {
+     "mask": "PAUSE_BUTTON_INTERACT"
+    }
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3.7
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "现在，轮到我们反攻了！阵地足球锦标有一个突出的特点——不仅可以踢球，还可以<color=#0098DC>攻击敌方球员</color>。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3.7
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -110,
+     "focusY": -60,
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "敌方球员<color=#0098DC>生命值归零</color>时会暂时停止行动，我们可以趁机发动进攻！"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 7.5
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": 450,
+     "focusY": 220,
+     "focusWidth": 200,
+     "focusHeight": 200,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "这些置于球门前的场地设施是<color=#0098DC>阵地屏障</color>，它会阻碍我们进球。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3.5
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": 430,
+     "focusY": 170,
+     "focusWidth": 200,
+     "focusHeight": 200,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "不过，干员的攻击和足球的撞击都可以<color=#0098DC>破坏阵地屏障</color>，使敌方的球门暴露出来。"
+   }
+  ],
+  "training_act1football_01_c": [
+   {
+    "cmd": "header",
+    "args": {
+     "is_skippable": false,
+     "is_tutorial": true
+    },
+    "text": "足球教学关1c"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "阵地足球锦标中会出现多种比赛用球，它们各自具有不同的特点。"
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center",
+     "tileY": 4,
+     "tileX": 4
+    },
+    "text": "比如场上的这种<color=#0098DC>压缩建材球</color>，相比其他球它的重量十分惊人，需要干员们造成更多伤害才能推动。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   }
+  ],
+  "training_act1football_01_d": [
+   {
+    "cmd": "header",
+    "args": {
+     "is_skippable": false,
+     "is_tutorial": true
+    },
+    "text": "足球教学关1d"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "参加阵地足球锦标的球队数量众多，每个球队都会有独自的比赛风格。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center",
+     "tileY": 4,
+     "tileX": 5
+    },
+    "text": "例如，<color=#0098DC>战术队</color>擅长精准射门，战术队的击球手会朝着没有阵地屏障的方向射门。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 1
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -600,
+     "focusY": 30,
+     "focusWidth": 300,
+     "focusHeight": 500,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightRect",
+     "black": "0.5",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y"
+    },
+    "text": "博士要注意，如果对手将足球踢入蓝色目标点，就会<color=#0098DC>记为敌方进球</color>得分哦！"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   }
+  ],
+  "training_act1football_01_e": [
+   {
+    "cmd": "header",
+    "args": {
+     "is_skippable": false,
+     "is_tutorial": true
+    },
+    "text": "足球教学关1e"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "常规比赛倒计时结束后，如果双方比分战平，就会进入到<color=#0098DC>点球决胜</color>。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 2
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center",
+     "tileY": 4,
+     "tileX": 6
+    },
+    "text": "<color=#0098DC>点球决胜</color>中，我们固定拥有先手权。在我们的点球回合中，博士可以部署干员持续攻击专属用球——<color=#0098DC>决胜时刻球</color>，以积攒射门力量、调整射门方向。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center",
+     "tileY": 5,
+     "tileX": 10
+    },
+    "text": "当然，博士也可以同时部署干员来干扰敌方守门员。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 3
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center",
+     "tileY": 4,
+     "tileX": 6
+    },
+    "text": "在<color=#0098DC>决胜时刻球</color>上显示的<color=#0098DC>十秒倒计时</color>结束后，足球会<color=#0098DC>自动射出</color>，博士要尽快做好决策哦！"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   }
+  ],
+  "training_act1football_01_f": [
+   {
+    "cmd": "header",
+    "args": {
+     "is_skippable": false,
+     "is_tutorial": true
+    },
+    "text": "足球教学关1f"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "inputblocker",
+    "args": {
+     "blockInput": true
+    }
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusX": -480,
+     "focusY": 30,
+     "focusWidth": 300,
+     "focusHeight": 600,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightRect",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center"
+    },
+    "text": "而在敌方的点球回合，我们需要提前部署干员作为守门员。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 2
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {}
+   },
+   {
+    "cmd": "tutorial",
+    "args": {
+     "focusWidth": 150,
+     "focusHeight": 150,
+     "animStyle": "Highlight",
+     "focusStyle": "HighlightCircle",
+     "black": "$f_tut_black",
+     "protectTime": 0.5,
+     "dialogHead": "$avatar_amiya",
+     "dialogX": "$f_lower_dialog_pos_x",
+     "dialogY": "$f_lower_dialog_pos_y",
+     "anchor": "Center",
+     "tileY": 4,
+     "tileX": 6
+    },
+    "text": "注意，敌方球员会<color=#0098DC>直接射门</color>哦。"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   },
+   {
+    "cmd": "battle.delay",
+    "args": {
+     "time": 2
+    }
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": true
+    }
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "正式的<color=#0098DC>点球决胜</color>一共会进行3轮，我方和敌方各自主罚3次点球。"
+   },
+   {
+    "cmd": "popupdialog",
+    "args": {
+     "dialogHead": "$avatar_amiya"
+    },
+    "text": "为了在锦标赛中取得好成绩，一起加油吧，博士！"
+   },
+   {
+    "cmd": "battle.pause",
+    "args": {
+     "pause": false
+    }
+   }
+  ]
+ },
+ "vars": {
+  "avatar_amiya": "char_002_amiya",
+  "f_lower_dialog_pos_x": -568,
+  "f_lower_dialog_pos_y": -217,
+  "f_tut_black": 0.6
+ }
+}

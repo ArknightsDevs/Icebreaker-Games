@@ -5,12 +5,14 @@
 // lobby UI pack the room is drawn on the original lobby screens (页面-6), the page's HTML room staying the fallback.
 import { LEVELS } from '@aue/content';
 import { ROSTER, loadTraining, moddedText } from './mods.js';
-import { squadProblem, MODE, EMOTES, MATCH } from '@icebreaker/mode-regular';
+import { squadProblem, MODE, EMOTES, MATCH, cupStage } from '@icebreaker/mode-regular';
 import { bootDone } from './boot.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
 import { readSave, writeSave, squadOf, profileOf, newTag, putEntry } from './save.js';
 import { fullEntry } from './training.js';
 import { createBoxView } from './boxview.js';
+import { createCupView } from './cupview.js';
+import { readCup, writeCup } from './cupsave.js';
 import { renderRoom, entryIn } from './roomview.js';
 import { CLOSED, SOUGHT, clock, startingLineup, inviteText } from './roomtext.js';
 import { loadRoomAtlas, styleIcon, modeIcon } from './roomart.js';
@@ -26,6 +28,8 @@ const MATCH_KEY = 'ice.match', RESULT_KEY = 'ice.result';
 const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 const store = localStore(), key = tabKey(LOBBY_KEY);
 let save = readSave(store);
+/** 阵地足球锦标's progress on this browser (房间-15). */
+let cupSave = readCup(store);
 /** The match this tab was sent to when the page opened: its result shows first (页面-6). */
 const STARTED_AT_LOAD = readStarted();
 // a 代号 of its own from the first visit on (房间-1), kept with the save
@@ -67,11 +71,11 @@ let toastTimer;
 /** The original lobby screens when the assets have them (页面-6). @type {Awaited<ReturnType<typeof startLobby>>} */
 let lobby = null;
 
-/** @returns {{ match: string, seat: number, inverse?: boolean, training?: string } | null} */
+/** @returns {{ match: string, seat: number, inverse?: boolean, training?: string, cup?: string } | null} */
 function readStarted() {
   try { return JSON.parse(sessionStorage.getItem(MATCH_KEY) ?? 'null'); } catch { return null; }
 }
-/** @param {{ match: string, seat: number, inverse?: boolean, training?: string } | null} s */
+/** @param {{ match: string, seat: number, inverse?: boolean, training?: string, cup?: string } | null} s */
 function writeStarted(s) {
   try { if (s) sessionStorage.setItem(MATCH_KEY, JSON.stringify(s)); else sessionStorage.removeItem(MATCH_KEY); } catch { /* the way back is a convenience */ }
 }
@@ -114,6 +118,14 @@ const A = {
   // 训练场 (房间-11): a training level's match of this player alone
   train: (level) => send({ t: 'train', level }),
 };
+
+/** 阵地足球锦标 (房间-15): its panel, the progress kept as it changes, a stage's match of this player alone. */
+const cup = createCupView($('cupbody'), {
+  roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, getCup: () => cupSave, toast,
+  setCup: (c) => { cupSave = c; if (!writeCup(store, c)) toast('这个浏览器不让保存，关闭页面后锦标进度会丢失'); cup.render(); },
+  relics: (level) => /** @type {any} */ (LEVELS[level])?.level.football?.cup?.relics ?? [],
+  start: (level, lineup, relic) => send({ t: 'cup', level, lineup, relic }),
+});
 
 /** The end of a search (房间-9): found — the room comes next —, not found, cancelled. @param {any} m */
 function onSought(m) {
@@ -174,6 +186,14 @@ function draw() {
 function boxOpen(on) {
   document.body.classList.toggle('box-open', on);
   $('box').hidden = !on;
+  if (on) cupOpen(false);
+}
+
+/** The 阵地足球锦标 panel (房间-15), the page's own tool as the box editor is. @param {boolean} on */
+function cupOpen(on) {
+  document.body.classList.toggle('cup-open', on);
+  $('cup').hidden = !on;
+  if (on) { cup.render(); if (lobby) boxOpen(false); }
 }
 
 /** The battle page's result, once (页面-6). */
@@ -184,7 +204,7 @@ function takeResult() {
     sessionStorage.removeItem(RESULT_KEY); sessionStorage.removeItem(`${RESULT_KEY}.bg`);
   } catch { /* no result kept */ }
   const r0 = resultOf(raw), mine = !!r0 && STARTED_AT_LOAD?.match === r0.match;
-  const r = r0 && mine ? { ...r0, ...(STARTED_AT_LOAD?.inverse ? { inverse: true } : {}), ...(STARTED_AT_LOAD?.training ? { training: true } : {}) } : r0;
+  const r = r0 && mine ? { ...r0, ...(STARTED_AT_LOAD?.inverse ? { inverse: true } : {}), ...(STARTED_AT_LOAD?.training ? { training: true } : {}), ...(STARTED_AT_LOAD?.cup ? { cup: true } : {}) } : r0;
   return r && bg?.startsWith('data:image/') ? { ...r, bg } : r;
 }
 
@@ -193,11 +213,11 @@ async function lobbyMode() {
   lobby = await startLobby($('lobby'), {
     S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, setList, invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
     setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
-    backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }),
+    backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }), openCup: () => cupOpen(true),
   }).catch((e) => { console.error(e); return null; });
   // the lobby's entry screen, or the page's own room without the lobby pack, takes over from the loading screen (页面-8)
   bootDone();
-  if (!lobby) return;
+  if (!lobby) { if (STARTED_AT_LOAD?.cup) cupOpen(true); return; }
   document.body.classList.add('lobby-on');
   $('lobby').hidden = false;
   $('boxbtn').hidden = false;
@@ -205,6 +225,7 @@ async function lobbyMode() {
   boxOpen(false);
   const r = takeResult();
   if (r) lobby.result(r);
+  else if (STARTED_AT_LOAD?.cup) cupOpen(true);
   draw();
 }
 
@@ -217,14 +238,24 @@ function onRoom(v) {
   S.at = performance.now();
 }
 
+/**
+ * The level of a match of this player alone the start names — a training's (房间-11) or a 阵地足球锦标 stage's (房间-15) —,
+ * or null. @param {any} m @param {'training' | 'cup'} kind
+ */
+function ownLevel(m, kind) {
+  const x = m[kind];
+  return typeof x === 'string' && Object.hasOwn(LEVELS, x) && (kind === 'training' || cupStage(x) !== null) ? x : null;
+}
+
 /** The room's match started: to the battle page with the match and the seat (房间-6). @param {any} m */
 function onStart(m) {
-  const training = typeof m.training === 'string' && Object.hasOwn(LEVELS, m.training) ? m.training : null;
-  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}), ...(training ? { training } : {}), ...(server ? { server } : {}) };
+  // a training's or a 阵地足球锦标 stage's: its level's code and name on the loading screen
+  const training = ownLevel(m, 'training'), cupLevel = ownLevel(m, 'cup');
+  S.started = { match: m.match, seat: m.seat, ...(S.view?.inverse ? { inverse: true } : {}), ...(training ? { training } : {}), ...(cupLevel ? { cup: cupLevel } : {}), ...(server ? { server } : {}) };
   writeStarted(S.started);
   // the stage for the battle page's loading screen, shown before it has loaded the match (页面-6); a training's its level's
-  const lv = training ? /** @type {any} */ (LEVELS[training]).level : null;
-  const pr = lv ? { code: lv.code, name: lv.name, level: training } : S.view ? S.lobby?.projects[S.view.project] : null;
+  const own = training ?? cupLevel, lv = own ? /** @type {any} */ (LEVELS[own]).level : null;
+  const pr = lv ? { code: lv.code, name: lv.name, level: own } : S.view ? S.lobby?.projects[S.view.project] : null;
   // its level too: the loading screen's picture is the mode's (页面-8)
   try { if (pr) sessionStorage.setItem('ice.loading', JSON.stringify({ match: m.match, code: pr.code, name: pr.name, level: pr.level })); } catch { /* the battle page waits for the match */ }
   const to = `play?match=${encodeURIComponent(m.match)}&seat=${m.seat}${server ? `&server=${encodeURIComponent(server)}` : ''}`;
@@ -290,10 +321,12 @@ addEventListener('keydown', (e) => { music.start(); lobby?.resume(); if (e.key =
 $('back').addEventListener('click', () => lobby?.back());
 $('boxbtn').addEventListener('click', () => boxOpen(!document.body.classList.contains('box-open')));
 $('boxclose').addEventListener('click', () => { boxOpen(false); draw(); });
+$('cupbtn').addEventListener('click', () => cupOpen(!document.body.classList.contains('cup-open')));
+$('cupclose').addEventListener('click', () => { cupOpen(false); draw(); });
 void loadRoomAtlas(ART).then((a) => { atlas = a; box.render(); draw(); });
 box.render();
 draw();
 connect();
 void lobbyMode();
 // for end-to-end tests and the console
-Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null, lobby: () => lobby?.state() ?? null } });
+Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null, lobby: () => lobby?.state() ?? null, cup: () => ({ save: cupSave, ...cup.state() }) } });

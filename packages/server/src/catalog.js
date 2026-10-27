@@ -2,7 +2,7 @@
 // 关卡-4), class, the tasks of its two stages (关卡-5), its description and the activity's missions for it (shown at 项目确认); the
 // temporary recruits as box entries.
 import { LEVELS, TESTING, levelAt, loadTraining } from '@aue/content';
-import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName, trainingModeOf } from '@icebreaker/mode-regular';
+import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName, trainingModeOf, cupStage, lineupProblem, cupDeck } from '@icebreaker/mode-regular';
 
 /**
  * A project as the lobby shows it: its code and name, its stages' tasks (常规项目) or its waves (堡垒守御), the
@@ -40,6 +40,24 @@ export function trainingMatch(level, seed) {
   if (!cards) return null;
   const runes = trainingModeOf(level) === 'NORMAL' ? /** @type {any} */ (styleRunes(DEFAULT_STYLE)) : [];
   return { level, difficulty: 'NORMAL', seed, decks: [cards.operators.map((/** @type {any} */ o) => ({ id: o.key, build: o.build })), []], runes: [runes, []] };
+}
+
+/**
+ * The match of a 阵地足球锦标 stage (房间-15): the player's lineup for seat 0 — none on the training stage, whose operators
+ * are the level's own — with the runes of the training effect chosen (engine 锦标-7; '' for none), nobody for seat 1;
+ * or why there is none: not a stage of the event, a lineup that breaks its rules, a training effect the level has not.
+ * @param {string} level @param {number} seed @param {unknown} lineup @param {string} relic
+ * @returns {{ match: import('@aue/schema').Match } | { error: string }}
+ */
+export function cupMatch(level, seed, lineup, relic) {
+  const s = cupStage(level), lv = s && s.level === level ? LEVELS[level]?.level : null;
+  if (!s || !lv) return { error: '没有这一关' };
+  const why = lineupProblem(lineup, s);
+  if (why) return { error: `上场干员不对：${why}` };
+  const r = relic ? (lv.football?.cup?.relics ?? []).find((/** @type {any} */ x) => x.id === relic) : null;
+  if (relic && !r) return { error: '没有这个训练效果' };
+  const deck = cupDeck(/** @type {import('@icebreaker/mode-regular').CupPick[]} */ (lineup));
+  return { match: { level, difficulty: 'NORMAL', seed, decks: [deck, []], runes: [r ? r.runes : [], []] } };
 }
 
 /** The temporary recruits as box entries, each skill they have at the recruit's level. */

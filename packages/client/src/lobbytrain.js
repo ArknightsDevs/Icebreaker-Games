@@ -2,7 +2,7 @@
 // and 阵地足球's open, 堡垒守御 not open here —, the chosen mode's training level in its detail on the billboard (drawn
 // flat, not on the curved screen; INF-0022); a tap on the chosen mode starts its training.
 import { openPart, closePart, place, fillList, placeTopMenu, placeBottomBar } from './lobbykit.js';
-import { TRAINING, TRAINING_LEVELS, DETAILS, MISSIONS, CLASS_NAMES, trainingModeOf } from '@icebreaker/mode-regular';
+import { TRAINING, TRAINING_LEVELS, DETAILS, MISSIONS, CLASS_NAMES, CUP_NAME, trainingModeOf, cupStage } from '@icebreaker/mode-regular';
 import { LEVELS } from '@aue/content';
 import { PAGES } from './lobbymap.js';
 import { fillDetail } from './lobbystage.js';
@@ -37,6 +37,15 @@ export function trainingProject(level) {
     stage: level, mode: /** @type {'NORMAL' | 'FOOTBALL'} */ (trainingModeOf(level) ?? 'NORMAL'), level, difficulty: 'NORMAL', class: 'TRAINING', className: CLASS_NAMES['TRAINING'] ?? '', code: lv.code, name: lv.name,
     stages: (lv.stages ?? []).map((/** @type {any} */ s) => ({ ...s.task, seconds: s.time })), missions: MISSIONS[level] ?? [], detail: DETAILS[level] ?? '',
   };
+}
+
+/**
+ * A 阵地足球锦标 stage as the result view takes a project (房间-15): 阵地足球, its level's code and name, the event's name
+ * for its class, its description; no tasks or missions. @param {string} level @returns {import('./roomview.js').ProjectView}
+ */
+export function cupProject(level) {
+  const lv = /** @type {any} */ (LEVELS[level]).level, s = cupStage(level);
+  return { stage: s?.stage ?? level, mode: 'FOOTBALL', level, difficulty: 'NORMAL', class: 'CUP', className: CUP_NAME, code: lv.code, name: lv.name, stages: [], missions: [], detail: s?.detail ?? '' };
 }
 
 /** Whether a training mode is played here (房间-11): 常规项目's and 阵地足球's, their levels in the engine. @param {{ levels: readonly string[] }} m */

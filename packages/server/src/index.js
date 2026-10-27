@@ -7,7 +7,7 @@ export { createBattles, LINGER } from './battles.js';
 export { createLobby, lobbyMessageProblem, MAX_LOBBY_MESSAGE } from './lobby.js';
 export { createRooms, TIMES } from './rooms.js';
 export { coordinate, pick, handOver, offer, shuffle } from './allocation.js';
-export { projectViews, recruits, trainingMatch } from './catalog.js';
+export { projectViews, recruits, trainingMatch, cupMatch } from './catalog.js';
 export { kitDir, nodeKits, KIT_PREFIX } from './kits.js';
 export { createGuard, guardUpgrades, addressOf, countOption, LIMITS } from './guard.js';
 export { createMatcher, seekProblem, mayPair } from './match.js';

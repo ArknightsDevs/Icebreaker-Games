@@ -5,7 +5,8 @@ import data from '../data/act1multi.json' with { type: 'json' };
 
 export { SQUAD, squadProblem, entryProblem, buildOf } from './squads.js';
 export { MARKS, MARK_TYPES, markAllowed, signalRule } from './signals.js';
-/** @typedef {import('./squads.js').BoxEntry} BoxEntry @typedef {import('./squads.js').Squad} Squad */
+export { CUP_NAME, CUP_ZONES, CUP_STAGES, CUP_LEVELS, CUP_LINEUP, CUP_NPCS, CUP_TUTORIAL, STADIUM_NAMES, cupStage, cupOpen, cupNpcEntries, lineupProblem, cupDeck } from './cup.js';
+/** @typedef {import('./squads.js').BoxEntry} BoxEntry @typedef {import('./squads.js').Squad} Squad @typedef {import('./cup.js').CupPick} CupPick @typedef {import('./cup.js').CupStage} CupStage */
 
 /** The activity's data as extracted, with its source. */
 export const ACTIVITY = data;

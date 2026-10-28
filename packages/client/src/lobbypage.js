@@ -6,7 +6,7 @@
 import { createUi } from '@aue/ui';
 import { bootCounter, bootStep } from './boot.js';
 import { ROSTER, loadTraining, lookOf } from './mods.js';
-import { STYLES, TOASTS, TRAINING_LEVELS } from '@icebreaker/mode-regular';
+import { STYLES, TOASTS, TRAINING_LEVELS, CUP_LEVELS } from '@icebreaker/mode-regular';
 import { openPart, closePart, setSwitch, SEASON, PAGE_SCREENS } from './lobbykit.js';
 import { PAGES, pageOf, newLocal } from './lobbymap.js';
 import { createEntry } from './lobbyentry.js';
@@ -14,7 +14,7 @@ import { createSquad } from './lobbysquad.js';
 import { createPrepare } from './lobbyprepare.js';
 import { createFinish } from './lobbyfinish.js';
 import { createMatch } from './lobbymatch.js';
-import { createTraining, trainingProject } from './lobbytrain.js';
+import { createTraining, trainingProject, cupProject } from './lobbytrain.js';
 import { createLobbySound } from './lobbysound.js';
 import { AFTER_TICK } from './lobby3d.js';
 import { startLobbyFx } from './lobbyfx.js';
@@ -28,7 +28,7 @@ import { assetsUrl } from './site.js';
  * of the 常规队 (the operator select page, 页面-9), its back button shown or not, the invitation text, the sound volume.
  * @typedef {{ S: RoomState, A: RoomActions, entry: (id: string) => import('@icebreaker/mode-regular').BoxEntry | null, setStyle: (id: string) => void,
  *   setList: (list: 'high' | 'low', ids: string[]) => Promise<void>, backButton: (on: boolean) => void, invite: () => string,
- *   sfx: number, card: () => any }} LobbyHost
+ *   sfx: number, card: () => any, openCup?: () => void }} LobbyHost
  */
 
 const ASSETS = assetsUrl(), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
@@ -234,7 +234,7 @@ function pageMakers(ui, H, G, L, K) {
       roster: ROSTER, entry: H.entry, training: loadTraining, art: G.pack.art, toast: X.toast, setList: H.setList }),
     prepare: () => createPrepare(ui, X),
     match: () => createMatch(ui, {
-      classes: () => [...new Map((H.S.lobby?.projects ?? []).filter((p) => p.mode !== 'DEFENCE').map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
+      classes: () => [...new Map((H.S.lobby?.projects ?? []).filter((p) => (p.mode ?? 'NORMAL') === 'NORMAL').map((p) => [p.class, p.className])).entries()].map(([c, name]) => ({ class: c, name })),
       send: A.send, seek: A.seek, seeking: () => H.S.seeking, toast: X.toast,
       modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
       back: () => { if (H.S.seeking) A.send({ t: 'unseek' }); L.match = false; draw(); },
@@ -244,11 +244,11 @@ function pageMakers(ui, H, G, L, K) {
       back: () => { L.train = false; draw(); },
     }),
     finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level, difficulty) => X.projects().find((p) => p.level === level && p.difficulty === (difficulty ?? 'NORMAL'))
-      ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : null),
+      ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : CUP_LEVELS.includes(level) ? cupProject(level) : null),
       players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
       together: () => togetherOf(H), playTogether: () => A.send({ t: 'together' }),
-      // after a training its room page again (房间-11)
-      done: () => { L.train = !!L.finish?.training; L.finish = null; draw(); },
+      // after a training its room page again (房间-11), after a 阵地足球锦标 match its panel (房间-15)
+      done: () => { L.train = !!L.finish?.training; if (L.finish?.cup) H.openCup?.(); L.finish = null; draw(); },
       quit: () => { L.train = !!L.finish?.training; L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
   };
 }

@@ -15,7 +15,7 @@ import { createSkillBar, skillRows } from './skills.js';
 import { createControls, costAskerAfter } from './controls.js';
 import { matchText } from './stage.js';
 import { createUi, createBattleHud, createStart, cardViews } from '@aue/ui';
-import { loadUiPack, deckCards, hudState, requestsAfter, unitBars } from './battlehud.js';
+import { loadUiPack, deckCards, hudState, requestsAfter, unitBars, pitchOf } from './battlehud.js';
 import { Hand } from './gestures.js';
 import { readSettings, writeSettings, createSettingsPanel, frameGate, fpsMeter } from './settings.js';
 import { LOBBY_KEY, tabKey, localStore } from './session.js';
@@ -25,7 +25,8 @@ import { bootCounter, bootDone, bootFail, bootStep } from './boot.js';
 import { createTutorial } from './tutorial.js';
 import { createSignals, loadEmoteArt } from './battlesignals.js';
 import { startTurn } from './turn.js';
-import { TRAINING, TRAINING_LEVELS } from '@icebreaker/mode-regular';
+import { TRAINING, TRAINING_LEVELS, CUP_TUTORIAL, STADIUM_NAMES, cupStage } from '@icebreaker/mode-regular';
+import { readCup, writeCup, clearedWith } from './cupsave.js';
 
 // a phone plays in landscape (页面-7), before anything measures the page
 startTurn(/** @type {HTMLButtonElement | null} */ (document.getElementById('full')));
@@ -376,12 +377,13 @@ function onFrame(P, f) {
   P.players = view.players.length;
   P.costAsker = costAskerAfter(P.costAsker, events);
   drawField(P, f);
+  cupInfo(status.football);
   drawHud(view, P.net, matchText(status, /** @type {any} */ (game?.content.level)?.stages ?? [], view.frame));
   if (game?.ui) {
     P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
     const level = /** @type {any} */ (game.content.level);
     P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, waves: level.waves.length, requests: P.requests,
-      offline: P.net === '重连中', training: TRAINING_LEVELS.includes(level.id) });
+      offline: P.net === '重连中', training: tutorialOf(level.id) !== null });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
     P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
       at: (u) => r.barsAt(u).map((v) => v / k), operators: game.content.operators, unitKey: (id) => P.unitKeys.get(id), seat });
@@ -396,16 +398,38 @@ function onFrame(P, f) {
 }
 
 /**
- * The field of a frame: 堡垒守御's facilities at their levels (the engine's 渲染-20); every key seen so far — units that
- * appeared before the renderer was ready get their figures too.
+ * A 锦标 match's stadium and penalty round over the field (房间-15): the stadium's name (锦标-2) and, in the penalty
+ * shootout, the round of the three each side kicks and whose kick it is (锦标-4). @param {import('@aue/worker').Status['football']} f
+ */
+function cupInfo(f) {
+  const el = $('cupinfo'), name = f?.stadium ? /** @type {Record<string, string>} */ (STADIUM_NAMES)[f.stadium] ?? '' : '';
+  const pk = f?.pk ? `点球大战 第 ${Math.floor(f.pk.round / 2) + 1}/3 轮 · ${f.pk.side === 'ours' ? '我方' : '对方'}罚球` : '';
+  const text = [name, pk].filter(Boolean).join(' · ');
+  el.hidden = !text;
+  if (el.textContent !== text) el.textContent = text;
+}
+
+/**
+ * The field of a frame: 堡垒守御's facilities at their levels (the engine's 渲染-20); 阵地足球's field marks (渲染-26);
+ * every key seen so far — units that appeared before the renderer was ready get their figures too.
  * @param {Page} P @param {{ view: import('@aue/schema').View, events: Record<string, string | number>[], status: import('@aue/worker').Status }} f
  */
 function drawField(P, f) {
   const r = P.game?.renderer;
   if (!r) return;
   if (f.status.fortress) r.levels(f.status.fortress.levels);
+  if (f.status.football) r.pitch(pitchOf(f.view, f.status.football));
   const ops = /** @type {Record<string, { look?: string }>} */ (P.game?.content.operators ?? {});
   r.update(f.view, Object.fromEntries([...P.unitKeys].map(([id, k]) => [id, ops[k]?.look ?? k.split('#')[0]])), f.events);
+}
+
+/**
+ * The tutorials a level tells (房间-11, 房间-15): a training level's, 阵地足球锦标's training stage's; null for any other.
+ * @param {string} level @returns {{ stories: typeof TRAINING.stories, vars: typeof TRAINING.vars } | null}
+ */
+function tutorialOf(level) {
+  if (TRAINING_LEVELS.includes(level)) return { stories: TRAINING.stories, vars: TRAINING.vars };
+  return cupStage(level)?.predefined ? { stories: CUP_TUTORIAL.stories, vars: CUP_TUTORIAL.vars } : null;
 }
 
 /** The control state the battle UI shows: a training's script holding the battle is not the player's pause (房间-11). @param {Page} P */
@@ -449,26 +473,38 @@ function lastFrame(P) {
 /**
  * A room's match ended (房间-6): the result and the way back to the room; the result kept for the room's result view
  * (页面-6), with the field's last frame — in 堡垒守御 the stamps of the waves defended, and those waves and the last
- * wave's damage (the engine's 守御-1). @param {number} result 1: won, 0: lost @param {Page} P @param {import('@aue/worker').Status} status
+ * wave's damage (the engine's 守御-1); in 阵地足球 the stamps of the net goals (房间-14). @param {number} result 1: won, 0: lost @param {Page} P @param {import('@aue/worker').Status} status
  */
 function ended(result, P, status) {
   notice(`比赛结束：${result === 1 ? '胜利' : '失败'}。`);
   const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', bg = lastFrame(P), f = status.fortress, difficulty = P.game?.match.difficulty ?? 'NORMAL';
-  const stamps = f ? [f.stamps] : [...P.stamps].map((x) => x ?? 0), fortress = f ? { defended: f.defended, damage: Math.floor(f.damage) } : undefined;
+  // 阵地足球's stamps are of the net goals at the match's end (the engine's 足球-7)
+  const fb = status.football, stamps = f ? [f.stamps] : fb ? [fb.stamps] : [...P.stamps].map((x) => x ?? 0), fortress = f ? { defended: f.defended, damage: Math.floor(f.damage) } : undefined;
   try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, difficulty, stamps, fortress, at: Date.now() })); } catch { /* the room shows no result */ }
   try { if (bg) sessionStorage.setItem('ice.result.bg', bg); } catch { /* the result shows without it */ }
   const back = document.createElement('a');
   back.href = 'room';
   back.className = 'back';
-  back.textContent = TRAINING_LEVELS.includes(level) ? '返回训练场' : '返回房间';
+  back.textContent = backText(level, result);
   $('notice').append(' ', back);
+}
+
+/**
+ * The way back's text after a match (房间-6, 房间-11, 房间-15); a 阵地足球锦标 stage won is cleared on this browser, the
+ * stages after it open. @param {string} level @param {number} result
+ */
+function backText(level, result) {
+  const cup = cupStage(level);
+  if (cup && result === 1) writeCup(store, clearedWith(readCup(store), cup.stage));
+  return TRAINING_LEVELS.includes(level) ? '返回训练场' : cup ? '返回锦标赛' : '返回房间';
 }
 
 /** The match's side is ready: its input, its resize, its render loop. @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g */
 function start(P, g) {
   if (!g.renderer) return;
   const renderer = g.renderer, field = /** @type {HTMLCanvasElement} */ ($('field'));
-  P.tutorial = TRAINING_LEVELS.includes(/** @type {any} */ (g.content.level).id) ? tutorialOn(P, g, field) : null;
+  const tut = tutorialOf(/** @type {any} */ (g.content.level).id);
+  P.tutorial = tut ? tutorialOn(P, g, field, tut) : null;
   // marks and battle emotes between the two seats (房间-12)
   if ((g.match.decks?.length ?? 1) === 2) void loadEmoteArt(ASSETS).then((emotes) => { P.signals = createSignals({ ui: g.ui?.ui ?? null, renderer, signal: (s) => P.battle.signal(s), seat, width: g.content.level.width, view: () => P.lastView, emotes }); });
   if (g.ui) P.hand = startOriginal(P, g, renderer, field);
@@ -504,10 +540,11 @@ function start(P, g) {
 
 /**
  * A training's tutorials over the field (房间-11): its scripts and their variables, the battle's pause and resume, the
- * speaker's head (its avatar), the battle UI's nodes by name (the first one shown). @param {Page} P
- * @param {Awaited<ReturnType<typeof setUp>>} g @param {HTMLCanvasElement} field
+ * speaker's head (its avatar), the battle UI's nodes by name (the first one shown), whether a card of the hand can be
+ * put down. @param {Page} P
+ * @param {Awaited<ReturnType<typeof setUp>>} g @param {HTMLCanvasElement} field @param {NonNullable<ReturnType<typeof tutorialOf>>} tut
  */
-function tutorialOn(P, g, field) {
+function tutorialOn(P, g, field, tut) {
   const rectOf = (/** @type {string} */ name) => {
     for (const el of document.querySelectorAll(`#ui [data-name="${CSS.escape(name)}"]`)) {
       const r = el.getBoundingClientRect();
@@ -515,8 +552,10 @@ function tutorialOn(P, g, field) {
     }
     return null;
   };
-  return createTutorial($('app'), field, { stories: TRAINING.stories, vars: TRAINING.vars, pause: () => P.battle.pause(), resume: () => P.battle.resume(),
-    held: () => !!P.control?.held, frame: () => P.lastView?.frame ?? 0, head: (char) => g.avatar(char), rectOf });
+  // whether the hand's card at an index can be put down now: a drag about it waits for that (阵地足球's ball, caught)
+  const ui = g.ui, ready = ui ? (/** @type {number} */ i) => !!P.hudNow && cardViews(ui.deck, P.hudNow)[i]?.usable === true : undefined;
+  return createTutorial($('app'), field, { stories: tut.stories, vars: tut.vars, pause: () => P.battle.pause(), resume: () => P.battle.resume(),
+    held: () => !!P.control?.held, frame: () => P.lastView?.frame ?? 0, head: (char) => g.avatar(char), rectOf, ...(ready ? { ready } : {}) });
 }
 
 /**

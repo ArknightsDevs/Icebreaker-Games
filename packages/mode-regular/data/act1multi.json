@@ -266,7 +266,8 @@
   "act1multi_rm05": "multi_v3_01-rm05_preview",
   "act1multi_rm06": "multi_v3_01-rm06_preview",
   "act1multi_rm07": "multi_v3_01-rm07_preview",
-  "act1multi_tr01": "multi_v3_01-tr01_preview"
+  "act1multi_tr01": "multi_v3_01-tr01_preview",
+  "act1multi_tr02": "multi_v3_01-tr02_preview"
  },
  "details": {
   "act1multi_01": "从来都不是平民闯入战场，而是战场找上平民。要从中安全逃离，除了过人的运气，或许还需要些专业援助",
@@ -300,7 +301,8 @@
   "act1multi_rm05": "敏锐的听力是运动员必备的素质之一。就从在引擎与炮火的轰鸣中分辨留声机的声音开始练习吧！\n<color=#D4133C><\"留声机\"></color>我方与敌方可夺取控制权，激活后对敌方造成法术伤害，并可治疗友方单位",
   "act1multi_rm06": "清晰的视力是运动员必备的素质之一。就从在没有灯光的夜色中分辨敌人的身形开始练习吧！\n<color=#D4133C><城市霓虹></color>可以提供初始视野，使用后视野范围扩大",
   "act1multi_rm07": "学界至今依然争执不休：要在短时间内创造最多的生命体，究竟该依靠造物法术还是繁殖本能？",
-  "act1multi_tr01": "熟悉常规项目的比赛规则。"
+  "act1multi_tr01": "熟悉常规项目的比赛规则。",
+  "act1multi_tr02": "熟悉阵地足球的比赛规则。"
  },
  "missions": {
   "act1multi_01": [
@@ -462,6 +464,11 @@
    "坚持存活30秒",
    "击倒3个拾荒者",
    "击倒5个拾荒者"
+  ],
+  "act1multi_tr02": [
+   "争取1个净胜球",
+   "争取2个净胜球",
+   "争取4个净胜球"
   ]
  },
  "toasts": {
@@ -1218,10 +1225,505 @@
      },
      "text": "现在，我们一起击倒五名拾荒者，完成进阶目标吧！"
     }
+   ],
+   "training_multi_v3_01-02_a": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "博士，这里是娱乐项目——阵地足球的赛场！我们的唯一目标就是合力攻破敌方的球门。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 0,
+      "focusY": 45,
+      "focusWidth": 100,
+      "focusHeight": 100,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "这是普通的比赛用球——不用担心！这个造型只是工程部的一个小小的玩笑，它看起来像坚硬的矿石，实际上是用很有弹性的材料制成的哦！"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -65,
+      "focusY": 50,
+      "focusWidth": 130,
+      "focusHeight": 130,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "干员们可以攻击足球，<color=#0098DC>累计造成一定伤害</color>就能将球<color=#0098DC>推动</color>。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3.8
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 200,
+      "focusY": 10,
+      "focusWidth": 260,
+      "focusHeight": 260,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "足球最终的<color=#0098DC>移动方向</color>，完全取决于干员与足球的<color=#0098DC>位置关系</color>。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 0.7
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 570,
+      "focusY": 180,
+      "focusWidth": 200,
+      "focusHeight": 200,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "红色目标点就是<color=#0098DC>敌方的球门</color>！不论用什么方法，只要足球进入红色目标点，都会被<color=#0098DC>记为我方进球</color>哦。"
+    }
+   ],
+   "training_multi_v3_01-02_b": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "下面，来熟悉下防守的操作吧！"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -600,
+      "focusY": 30,
+      "focusWidth": 300,
+      "focusHeight": 500,
+      "anchor": "Center",
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightRect",
+      "black": "$f_tut_black",
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "蓝色目标点是我们的球门，我们需要协力防守球门，防止失球。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 2.2
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -70,
+      "focusY": 50,
+      "focusWidth": 150,
+      "focusHeight": 150,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "这只可爱的小鼷兽是敌方的<color=#0098DC>击球手</color>，它会试图追上足球，并向我方射门！"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3.1
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -480,
+      "focusY": 40,
+      "focusWidth": 200,
+      "focusHeight": 200,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "这时就需要部署干员防守球门。这些带有特殊标记的地块是<color=#0098DC>守门位</color>，部署在上面的干员会承担起<color=#0098DC>守门员</color>的职责。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 1
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "守门员不仅<color=#0098DC>不占用部署人数</color>，可以接住飞来的足球。"
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 600,
+      "focusY": -250,
+      "focusWidth": 250,
+      "focusHeight": 250,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "被守门员接住的足球会<color=#0098DC>进入待部署区</color>。"
+    },
+    {
+     "cmd": "CooperateBattle.LockCamera",
+     "args": {
+      "enable": false
+     }
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true,
+      "cardIndex": 0,
+      "validWidth": 112,
+      "validHeight": 116
+     }
+    },
+    {
+     "cmd": "Battle.LockFunction",
+     "args": {
+      "mask": "PAUSE_BUTTON_INTERACT"
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "waitForSignal": "put_down",
+      "dialogHead": "$avatar_stward",
+      "animStyle": "Drag",
+      "startX": -50,
+      "startY": 60,
+      "startAnchor": "BottomRight",
+      "endAnchor": "Center",
+      "endX": 0,
+      "endY": 100
+     },
+     "text": "在5秒内将待部署区的足球<color=#0098DC>部署</color>在我方半场的任意位置，就可以在此<color=#0098DC>重新开球</color>。"
+    },
+    {
+     "cmd": "Battle.UnlockFunction",
+     "args": {
+      "mask": "PAUSE_BUTTON_INTERACT"
+     }
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3.7
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "现在，轮到我们反攻了！阵地足球项目有一个突出的特点——不仅可以踢球，还可以<color=#0098DC>攻击敌方球员</color>。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3.7
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": -110,
+      "focusY": -60,
+      "focusWidth": 150,
+      "focusHeight": 150,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "敌方球员<color=#0098DC>生命值归零</color>时会暂时停止行动，我们可以趁机发动进攻！"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 7.5
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 450,
+      "focusY": 220,
+      "focusWidth": 200,
+      "focusHeight": 200,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "这些置于球门前的场地设施是<color=#0098DC>阵地屏障</color>，它会阻碍我们进球。"
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": false
+     }
+    },
+    {
+     "cmd": "Delay",
+     "args": {
+      "time": 3.5
+     }
+    },
+    {
+     "cmd": "Battle.Pause",
+     "args": {
+      "pause": true
+     }
+    },
+    {
+     "cmd": "Tutorial",
+     "args": {
+      "focusX": 430,
+      "focusY": 170,
+      "focusWidth": 200,
+      "focusHeight": 200,
+      "animStyle": "Highlight",
+      "focusStyle": "HighlightCircle",
+      "black": 0.5,
+      "protectTime": 0.5,
+      "dialogHead": "$avatar_amiya",
+      "dialogX": "$f_lower_dialog_pos_x",
+      "dialogY": "$f_lower_dialog_pos_y"
+     },
+     "text": "不过，干员的攻击和足球的撞击都可以<color=#0098DC>破坏阵地屏障</color>，使敌方的球门暴露出来。"
+    }
+   ],
+   "training_multi_v3_01-02_c": [
+    {
+     "cmd": "Battle.Pause",
+     "args": {}
+    },
+    {
+     "cmd": "InputBlocker",
+     "args": {
+      "blockInput": true
+     }
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "不愧是博士！剩下的时间，就交给您了。"
+    },
+    {
+     "cmd": "PopupDialog",
+     "args": {
+      "dialogHead": "$avatar_amiya"
+     },
+     "text": "破坏阵地屏障、击倒敌方球员，或是找好角度直接射门——设法攻破敌方的球门吧！"
+    }
    ]
   },
   "vars": {
    "avatar_amiya": "char_002_amiya",
+   "avatar_stward": "char_210_stward",
    "f_lower_dialog_pos_x": -568,
    "f_lower_dialog_pos_y": -217,
    "f_tut_black": 0.6
@@ -1324,6 +1826,55 @@
      "坚守3个波次",
      "坚守5个波次",
      "坚守7个波次"
+    ]
+   }
+  }
+ },
+ "football": {
+  "mode": {
+   "type": "FOOTBALL",
+   "name": "阵地足球",
+   "icon": "football",
+   "color": "#b9eb3b"
+  },
+  "stages": {
+   "act1multi_ex-football": {
+    "level": "act1multi_football",
+    "class": "DIFFICULTY",
+    "code": "IG-FT-2",
+    "name": "大力出奇迹",
+    "picture": "multi_v3_01-football_preview",
+    "detail": "只要出球力道够大，就能击倒敌方球员，击破阵地屏障。接下来就可以轻松进球了！\n\n<color=#D4133C>附加条件:</color>\n出现额外种类的足球",
+    "missions": [
+     "争取1个净胜球",
+     "争取2个净胜球",
+     "争取4个净胜球"
+    ]
+   },
+   "act1multi_football": {
+    "level": "act1multi_football",
+    "class": "ORDINARY",
+    "code": "IG-FT-1",
+    "name": "大力出奇迹",
+    "picture": "multi_v3_01-football_preview",
+    "detail": "只要出球力道够大，就能击倒敌方球员，击破阵地屏障。接下来就可以轻松进球了！",
+    "missions": [
+     "争取1个净胜球",
+     "争取2个净胜球",
+     "争取4个净胜球"
+    ]
+   },
+   "act1multi_hard-football": {
+    "level": "act1multi_football_hard-01",
+    "class": "EXTREMELY",
+    "code": "IG-S-4",
+    "name": "大力出奇迹",
+    "picture": "multi_v3_01-football_preview",
+    "detail": "<color=#D4133C>附加条件:</color>\n战术队精英击球手射门力度提升\n爱球会荣誉击球手带球时占用阻挡数变为3\n球德联老牌击球手射门伤害提升\n我方领先分数越多，对方球员的最大生命值、攻击力与移动速度越高\n对方球员被击倒后苏醒时间变短",
+    "missions": [
+     "争取1个净胜球",
+     "争取2个净胜球",
+     "争取4个净胜球"
     ]
    }
   }

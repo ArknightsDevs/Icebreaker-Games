@@ -2,11 +2,11 @@
 // times, the lineup's size, the temporary recruits.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS, PLAYER_TITLE, PINGS, TRAINING, TRAINING_LEVELS, PICTURES,
-  DEFENCE_MODE, modeOf, stageName } from '../src/index.js';
+import { ACTIVITY, PROJECTS, STEP_MS, LINEUP, recruitEntries, STYLES, DEFAULT_STYLE, styleRunes, MISSIONS, DETAILS, PLAYER_TITLE, PINGS, TRAINING, TRAINING_LEVELS, trainingModeOf, PICTURES,
+  DEFENCE_MODE, FOOTBALL_MODE, modeOf, stageName } from '../src/index.js';
 import { storyOf } from '../src/story.js';
 
-test('[房间-2] [房间-13] the projects: IG-1, IG-10 and IG-14 in 初级赛, IG-S-2 in 特级赛; 堡垒守御 IG-DF-1, IG-DF-4 (the same level, harder) and IG-S-5', () => {
+test('[房间-2] [房间-13] [房间-14] the projects: IG-1, IG-10 and IG-14 in 初级赛, IG-S-2 in 特级赛; 堡垒守御 IG-DF-1, IG-DF-4 (the same level, harder) and IG-S-5; 阵地足球 IG-FT-1, IG-FT-2 and IG-S-4', () => {
   assert.deepEqual(PROJECTS.map((p) => [p.stage, p.mode, p.level, p.difficulty, p.className]), [
     // 高级赛's IG-EX stages play the 初级赛 levels at the harder difficulty
     ['act1multi_01', 'NORMAL', 'act1multi_01', 'NORMAL', '初级赛'], ['act1multi_06', 'NORMAL', 'act1multi_06', 'NORMAL', '初级赛'],
@@ -15,11 +15,18 @@ test('[房间-2] [房间-13] the projects: IG-1, IG-10 and IG-14 in 初级赛, I
     ['act1multi_hard-02', 'NORMAL', 'act1multi_hard-02', 'NORMAL', '特级赛'],
     ['act1multi_fortress-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'NORMAL', '初级赛'], ['act1multi_fortress-ex-rm01', 'DEFENCE', 'act1multi_fortress_rm01', 'FOUR_STAR', '高级赛'],
     ['act1multi_fortress-hard-01', 'DEFENCE', 'act1multi_fortress_hard-01', 'NORMAL', '特级赛'],
+    ['act1multi_football', 'FOOTBALL', 'act1multi_football', 'NORMAL', '初级赛'], ['act1multi_ex-football', 'FOOTBALL', 'act1multi_football', 'FOUR_STAR', '高级赛'],
+    ['act1multi_hard-football', 'FOOTBALL', 'act1multi_football_hard-01', 'NORMAL', '特级赛'],
   ]);
   assert.equal(ACTIVITY.source.activity, 'MULTIPLAY_V3/act1multi');
   assert.deepEqual([DEFENCE_MODE.name, DEFENCE_MODE.icon, DEFENCE_MODE.color, modeOf(PROJECTS.find((p) => p.mode === 'DEFENCE')).name, modeOf(PROJECTS[0]).name], ['堡垒守御', 'defence', '#3cbfd0', '堡垒守御', '常规项目']);
   assert.deepEqual([stageName('act1multi_fortress-ex-rm01'), stageName('act1multi_ex01'), stageName('act1multi_99')], [{ code: 'IG-DF-4', name: '团体战竞技场' }, { code: 'IG-EX-1', name: '逃离火线' }, null]);
   assert.equal(PICTURES['act1multi_fortress-hard-01'], 'multi_v3_01-fortress-hard-01_preview');
+  // 阵地足球: its mode, its stages' codes and pictures
+  assert.deepEqual([FOOTBALL_MODE.name, FOOTBALL_MODE.icon, FOOTBALL_MODE.color, modeOf(PROJECTS.find((p) => p.mode === 'FOOTBALL')).name], ['阵地足球', 'football', '#b9eb3b', '阵地足球']);
+  assert.deepEqual([stageName('act1multi_football'), stageName('act1multi_ex-football'), stageName('act1multi_hard-football')],
+    [{ code: 'IG-FT-1', name: '大力出奇迹' }, { code: 'IG-FT-2', name: '大力出奇迹' }, { code: 'IG-S-4', name: '大力出奇迹' }]);
+  assert.equal(PICTURES['act1multi_football'], 'multi_v3_01-football_preview');
 });
 
 test('[房间-2] [房间-4] [房间-5] the steps\' times and the lineup\'s size from the activity table', () => {
@@ -59,11 +66,14 @@ test('[房间-3] [房间-6] the five play styles with their carried units and th
   assert.equal(styleRunes('buff_9'), null);
 });
 
-test('[房间-11] the training modes in their order, 常规项目\'s IG-TR-1 the one played here; its seven tutorials and their variables', () => {
+test('[房间-11] the training modes in their order, 常规项目\'s IG-TR-1 and 阵地足球\'s IG-TR-2 played here; their tutorials and variables', () => {
   assert.deepEqual(TRAINING.modes.map((m) => [m.mode, m.name, m.levels.join()]), [['NORMAL', '常规项目', 'act1multi_tr01'], ['FOOTBALL', '阵地足球', 'act1multi_tr02'], ['DEFENCE', '堡垒守御', 'act1multi_tr03']]);
-  assert.deepEqual(TRAINING_LEVELS, ['act1multi_tr01']);
-  assert.deepEqual(Object.keys(TRAINING.stories), ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `training_multi_v3_01-01_${x}`));
-  assert.deepEqual(TRAINING.vars, { avatar_amiya: 'char_002_amiya', f_lower_dialog_pos_x: -568, f_lower_dialog_pos_y: -217, f_tut_black: 0.6 });
+  assert.deepEqual(TRAINING_LEVELS, ['act1multi_tr01', 'act1multi_tr02']);
+  assert.deepEqual([trainingModeOf('act1multi_tr01'), trainingModeOf('act1multi_tr02'), trainingModeOf('act1multi_01')], ['NORMAL', 'FOOTBALL', null]);
+  assert.deepEqual(Object.keys(TRAINING.stories), [...['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((x) => `training_multi_v3_01-01_${x}`), ...['a', 'b', 'c'].map((x) => `training_multi_v3_01-02_${x}`)]);
+  assert.deepEqual(TRAINING.vars, { avatar_amiya: 'char_002_amiya', avatar_stward: 'char_210_stward', f_lower_dialog_pos_x: -568, f_lower_dialog_pos_y: -217, f_tut_black: 0.6 });
+  assert.ok(TRAINING.stories['training_multi_v3_01-02_b'].some((c) => c.cmd === 'Tutorial' && c.args.waitForSignal === 'put_down'), 'the drag of the caught ball');
+  assert.ok(MISSIONS['act1multi_tr02']?.length === 3 && DETAILS['act1multi_tr02'] === '熟悉阵地足球的比赛规则。');
   const a = TRAINING.stories['training_multi_v3_01-01_a'];
   assert.deepEqual(a.map((c) => c.cmd), ['Battle.Pause', 'InputBlocker', 'PopupDialog', 'PopupDialog']);
   assert.match(String(a[3].text), /<color=#0098DC>一位协作者<\/color>/, 'the game\'s markup as rich text');

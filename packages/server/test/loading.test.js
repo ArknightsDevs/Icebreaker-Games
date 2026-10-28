@@ -12,7 +12,8 @@ import { IMMUTABLE } from '../src/assets.js';
 import { filesVersion } from '../src/build.js';
 import { unversioned } from '../src/modules.js';
 import { rewriteKitImports } from '../src/kits.js';
-import { effectKeys } from '../src/effects.js';
+import { effectKeys, buildIndex } from '../src/effects.js';
+import { effectIndex, effectSubsetJson } from '@aue/render/fx-subset';
 
 /** @typedef {{ status: number, headers: import('node:http').IncomingHttpHeaders, body: Buffer }} Reply */
 /** @param {number} port @param {string} path @param {Record<string, string>} [headers] @returns {Promise<Reply>} */
@@ -119,6 +120,30 @@ test('[站点-5] the effect pack for some units: their effects and textures only
   const whole = JSON.parse((await get(port, '/assets/skeleton/fx/units.json')).body.toString('utf8'));
   assert.deepEqual(Object.keys(whole.fx), ['a', 'b', 'd'], 'without for: the whole pack');
   assert.equal((await get(port, '/assets/skeleton/fx/units.json?for=..%2Fx')).status, 400);
+});
+
+test('[站点-5] the index is read from the pack\'s bytes: the same answers as the engine\'s index of the parsed pack', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ice-fx-')), file = join(dir, 'units.json');
+  const data = {
+    by: { char_a: { h: 'a', s: ['c'] }, enemy_b: { h: 'b' }, 'x"y': { h: 'e' } }, common: { hit: 'c' }, named: { deploy: 'd' },
+    fx: { a: { ps: [{ tex: 'ta', n: -1.5e-3, on: true, off: null }], ta: 'not a texture: a key' }, b: { ps: [{ tex: 't\\"b' }], e: [] },
+      c: { ps: [], o: {} }, d: 'tc', e: { name: '光 "雷" \\ ta', tex: ['ta', 'ta'] } },
+    tex: { ta: 'data:a', 't\\"b': 'data:"b"', tc: 'data:c' }, clamp: ['ta', 'tc'], extra: { by: 1 },
+  };
+  const sets = [[], ['char_a'], ['enemy_b', 'x"y'], ['char_a', 'enemy_b', 'x"y', 'none']];
+  try {
+    for (const text of [JSON.stringify(data), JSON.stringify(data, null, 2).replaceAll('\n', '\r\n')]) {
+      writeFileSync(file, text);
+      const read = await buildIndex(file), parsed = effectIndex(structuredClone(data));
+      for (const s of sets) assert.deepEqual(JSON.parse(effectSubsetJson(read, s)), JSON.parse(effectSubsetJson(parsed, s)), `${s}`);
+      assert.deepEqual([...read.fx].map(([k, v]) => [k, v.tex.toSorted()]), [...parsed.fx].map(([k, v]) => [k, v.tex.toSorted()]));
+    }
+    writeFileSync(file, JSON.stringify({ fx: { a: {} }, tex: {} }));
+    assert.deepEqual(JSON.parse(effectSubsetJson(await buildIndex(file), ['a'])), { by: {}, common: {}, named: {}, fx: {}, tex: {}, clamp: [] }, 'tables it lacks are empty');
+    writeFileSync(file, '{"fx": {"a": {"ps": [1, 2}}}');
+    await assert.rejects(buildIndex(file), SyntaxError, 'a pack that is not JSON');
+    await assert.rejects(buildIndex(join(dir, 'none.json')), 'a pack that is not there');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('[站点-4] [页面-8] the loading screen style and script are written into the page, as they are', async () => {

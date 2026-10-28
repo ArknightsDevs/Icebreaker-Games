@@ -39,7 +39,11 @@ test('[房间-11] a training\'s match: IG-TR-1\'s own four operators with 基础
   assert.deepEqual(m.runes[0].map((/** @type {any} */ r) => r.key), ['char_attribute_mul', 'insert_token_card']);
   assert.deepEqual([m.level, m.difficulty, m.seed, m.runes[1]], ['act1multi_tr01', 'NORMAL', 5, []]);
   assert.equal(trainingMatch('act1multi_01', 5), null, 'a project is not a training');
-  assert.equal(trainingMatch('act1multi_tr02', 5), null, '阵地足球\'s training is not played here');
+  assert.equal(trainingMatch('act1multi_tr03', 5), null, '堡垒守御\'s training is not played here');
+  // 阵地足球's IG-TR-2: its fixed lineup of six, no 专项
+  const f = /** @type {any} */ (trainingMatch('act1multi_tr02', 5));
+  assert.deepEqual(f.decks.map((/** @type {any[]} */ d) => d.map((e) => e.id)), [['char_208_melan', 'char_122_beagle', 'char_106_franka', 'char_190_clour', 'char_150_snakek', 'char_237_gravel'], []]);
+  assert.deepEqual(f.runes, [[], []]);
   assert.equal(lobbyMessageProblem({ t: 'train', level: 'act1multi_tr01' }), null);
   assert.match(String(lobbyMessageProblem({ t: 'train' })), /fields/);
 });

@@ -7,7 +7,7 @@ import { TOASTS } from '@icebreaker/mode-regular';
 import { createRooms } from './rooms.js';
 import { createMatcher } from './match.js';
 import { addressOf } from './guard.js';
-import { trainingMatch } from './catalog.js';
+import { trainingMatch, cupMatch } from './catalog.js';
 
 /** Largest message a browser may send to the lobby, in bytes (a squad of 30 operators fits). */
 export const MAX_LOBBY_MESSAGE = 16384;
@@ -34,6 +34,7 @@ const SHAPES = {
   profile: (m) => typeof m.tag === 'string' && /^\d{4}$/.test(m.tag) && (m.avatar === '' || operatorId(m.avatar)) && assistPick(m.assist),
   join: (m) => shortText(m.code, 200),
   train: (m) => shortText(m.level, 32),
+  cup: (m) => shortText(m.level, 32) && Array.isArray(m.lineup) && m.lineup.length <= 12 && typeof m.relic === 'string' && m.relic.length <= 40,
   project: (m) => Number.isInteger(m.index),
   prepare: (m) => typeof m.on === 'boolean',
   inverse: (m) => typeof m.on === 'boolean',
@@ -43,7 +44,7 @@ const SHAPES = {
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', ping: 'at', train: 'level', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
+const FIELDS = { hello: 'key,name', ping: 'at', train: 'level', cup: 'level,lineup,relic', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the
@@ -65,14 +66,32 @@ export function lobbyMessageProblem(m) {
  * @param {number} id @param {import('ws').WebSocket} ws @param {string} level
  */
 async function train(L, id, ws, level) {
-  const reply = (/** @type {Record<string, unknown>} */ msg) => { if (ws.readyState === 1) ws.send(JSON.stringify(msg)); };
   const match = trainingMatch(level, Math.floor((L.o.random ?? Math.random)() * 0x7fffffff));
-  if (L.rooms.inRoom(id)) { reply({ t: 'error', msg: '已在房间里，不能训练' }); return; }
-  if (!match || !L.key || !L.o.startTraining) { reply({ t: 'error', msg: '没有这个训练' }); return; }
+  await alone(L, id, ws, match ? { match } : { error: '没有这个训练' }, { training: level });
+}
+
+/**
+ * 阵地足球锦标 (房间-15): a stage's match for a session alone with its lineup and training effect, the partner's seat
+ * absent, as a training's (房间-11); the page goes to it as to a room's match.
+ * @param {Parameters<typeof train>[0]} L @param {number} id @param {import('ws').WebSocket} ws @param {{ level: string, lineup: unknown, relic: string }} m
+ */
+async function cup(L, id, ws, m) {
+  await alone(L, id, ws, cupMatch(m.level, Math.floor((L.o.random ?? Math.random)() * 0x7fffffff), m.lineup, m.relic), { cup: m.level });
+}
+
+/**
+ * A match of a session alone (房间-11, 房间-15): not from a room; a search for a mate ends; the start says what it is.
+ * @param {Parameters<typeof train>[0]} L @param {number} id @param {import('ws').WebSocket} ws
+ * @param {{ match: import('@aue/schema').Match } | { error: string }} made @param {{ training: string } | { cup: string }} tag
+ */
+async function alone(L, id, ws, made, tag) {
+  const reply = (/** @type {Record<string, unknown>} */ msg) => { if (ws.readyState === 1) ws.send(JSON.stringify(msg)); }, what = 'training' in tag ? '训练' : '比赛';
+  if (L.rooms.inRoom(id)) { reply({ t: 'error', msg: `已在房间里，不能${'training' in tag ? '训练' : '参赛'}` }); return; }
+  if ('error' in made || !L.key || !L.o.startTraining) { reply({ t: 'error', msg: 'error' in made ? made.error : `没有这个${what}` }); return; }
   L.matcher.drop(id);
   try {
-    reply({ t: 'start', match: await L.o.startTraining(match, L.key), seat: 0, training: level });
-  } catch (e) { reply({ t: 'error', msg: `训练没能开始：${/** @type {Error} */ (e).message}` }); }
+    reply({ t: 'start', match: await L.o.startTraining(made.match, L.key), seat: 0, ...tag });
+  } catch (e) { reply({ t: 'error', msg: `${what}没能开始：${/** @type {Error} */ (e).message}` }); }
 }
 
 /**
@@ -114,10 +133,10 @@ export function createLobby(o) {
       matcher.drop(id);
       rooms.message(id, m);
     },
-    create: (id, _ws, _a, m) => { matcher.drop(id); rooms.message(id, m); },
+    create: (id, _ws, _a, m) => { matcher.drop(id); rooms.message(id, m); }, unseek: (id) => matcher.cancel(id),
     seek: (id, ws, _a, m) => { if (rooms.inRoom(id)) reply(ws, { t: 'error', msg: '已在房间里，不能匹配' }); else matcher.seek(id, m); },
-    unseek: (id) => matcher.cancel(id),
     train: (id, ws, _a, m) => { void train({ o, rooms, matcher, key: keys.get(id) }, id, ws, m.level); },
+    cup: (id, ws, _a, m) => { void cup({ o, rooms, matcher, key: keys.get(id) }, id, ws, m); },
   };
 
   /** @param {import('ws').WebSocket} ws @param {string} addr */

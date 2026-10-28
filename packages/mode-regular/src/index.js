@@ -5,50 +5,64 @@ import data from '../data/act1multi.json' with { type: 'json' };
 
 export { SQUAD, squadProblem, entryProblem, buildOf } from './squads.js';
 export { MARKS, MARK_TYPES, markAllowed, signalRule } from './signals.js';
-/** @typedef {import('./squads.js').BoxEntry} BoxEntry @typedef {import('./squads.js').Squad} Squad */
+export { CUP_NAME, CUP_ZONES, CUP_STAGES, CUP_LEVELS, CUP_LINEUP, CUP_NPCS, CUP_TUTORIAL, STADIUM_NAMES, cupStage, cupOpen, cupNpcEntries, lineupProblem, cupDeck } from './cup.js';
+/** @typedef {import('./squads.js').BoxEntry} BoxEntry @typedef {import('./squads.js').Squad} Squad @typedef {import('./cup.js').CupPick} CupPick @typedef {import('./cup.js').CupStage} CupStage */
 
 /** The activity's data as extracted, with its source. */
 export const ACTIVITY = data;
 
 /**
- * A project of team play (房间-2): its stage (the activity's id), its mode (常规项目 NORMAL, 堡垒守御 DEFENCE), the level
- * it plays, the difficulty its content is assembled at, its class (初级赛, 特级赛…).
- * @typedef {{ stage: string, mode: 'NORMAL' | 'DEFENCE', level: string, difficulty: 'NORMAL' | 'FOUR_STAR', class: string, className: string }} Project
+ * A project of team play (房间-2): its stage (the activity's id), its mode (常规项目 NORMAL, 堡垒守御 DEFENCE, 阵地足球
+ * FOOTBALL), the level it plays, the difficulty its content is assembled at, its class (初级赛, 特级赛…).
+ * @typedef {{ stage: string, mode: 'NORMAL' | 'DEFENCE' | 'FOOTBALL', level: string, difficulty: 'NORMAL' | 'FOUR_STAR', class: string, className: string }} Project
  */
 
 /** 堡垒守御's stages (房间-2) as the activity has them: each its level, class, code, name, picture, description and missions. */
 const DEFENCE_STAGES = /** @type {Record<string, { level: string, class: string, code: string, name: string, picture: string, detail: string, missions: string[] }>} */ (data.defence.stages);
+
+/** 阵地足球's stages (房间-2) as the activity has them, as 堡垒守御's. */
+const FOOTBALL_STAGES = /** @type {Record<string, { level: string, class: string, code: string, name: string, picture: string, detail: string, missions: string[] }>} */ (data.football.stages);
+
+/** The stages of the modes with their own (房间-2): 堡垒守御's and 阵地足球's. */
+const MODE_STAGES = Object.freeze({ DEFENCE: DEFENCE_STAGES, FOOTBALL: FOOTBALL_STAGES });
 
 /** 常规项目's stages (房间-2) as the stage table has them: each its level, code and name. */
 const NORMAL_STAGES = /** @type {Record<string, { level: string, code: string, name: string }>} */ (data.names);
 
 /**
  * A project of a mode at a stage, in the class the activity puts it: a 高级赛 stage plays its level at the harder
- * difficulty (房间-2, 房间-13). @param {'NORMAL' | 'DEFENCE'} mode @param {string} stage
+ * difficulty (房间-2, 房间-13). @param {'NORMAL' | 'DEFENCE' | 'FOOTBALL'} mode @param {string} stage
  */
 function project(mode, stage) {
-  const cls = mode === 'DEFENCE' ? DEFENCE_STAGES[stage].class : /** @type {Record<string, string>} */ (data.stages)[stage];
-  const level = mode === 'DEFENCE' ? DEFENCE_STAGES[stage].level : NORMAL_STAGES[stage].level;
+  const own = mode === 'NORMAL' ? null : MODE_STAGES[mode][stage];
+  const cls = own ? own.class : /** @type {Record<string, string>} */ (data.stages)[stage];
+  const level = own ? own.level : NORMAL_STAGES[stage].level;
   const difficulty = /** @type {'NORMAL' | 'FOUR_STAR'} */ (cls === 'DIFFICULTY' ? 'FOUR_STAR' : 'NORMAL');
   return Object.freeze({ stage, mode, level, difficulty, class: cls, className: /** @type {Record<string, string>} */ (data.classes)[cls] });
 }
 
 /**
  * The projects played here (房间-2): the 常规项目 stages whose levels the engine plays in full — IG-1, IG-10, IG-14 and
- * the 高级赛 IG-EX-1, IG-EX-10, IG-S-2 —; 堡垒守御's IG-DF-1, IG-DF-4 and IG-S-5, being tested (the engine's 关卡-8).
+ * the 高级赛 IG-EX-1, IG-EX-10, IG-S-2 —; 堡垒守御's IG-DF-1, IG-DF-4 and IG-S-5, and 阵地足球's IG-FT-1, IG-FT-2 and
+ * IG-S-4, being tested (the engine's 关卡-8).
  * @type {readonly Project[]}
  */
 export const PROJECTS = Object.freeze([
   ...['act1multi_01', 'act1multi_06', 'act1multi_rm07', 'act1multi_ex01', 'act1multi_ex06', 'act1multi_hard-02'].map((stage) => project('NORMAL', stage)),
   ...['act1multi_fortress-rm01', 'act1multi_fortress-ex-rm01', 'act1multi_fortress-hard-01'].map((stage) => project('DEFENCE', stage)),
+  ...['act1multi_football', 'act1multi_ex-football', 'act1multi_hard-football'].map((stage) => project('FOOTBALL', stage)),
 ]);
 
 /** 堡垒守御's mode as the projects show it (页面-5): its type, name, icon id and colour. */
 export const DEFENCE_MODE = Object.freeze({ ...data.defence.mode });
 
+/** 阵地足球's mode as the projects show it (页面-5): its type, name, icon id and colour. */
+export const FOOTBALL_MODE = Object.freeze({ ...data.football.mode });
+
 /** A stage's code and name (stage_table, 关卡-4): IG-EX-1 for 高级赛's IG-1; null for a stage the activity has not. @param {string} stage */
 export function stageName(stage) {
-  const s = Object.hasOwn(DEFENCE_STAGES, stage) ? DEFENCE_STAGES[stage] : Object.hasOwn(NORMAL_STAGES, stage) ? NORMAL_STAGES[stage] : null;
+  const s = Object.hasOwn(DEFENCE_STAGES, stage) ? DEFENCE_STAGES[stage] : Object.hasOwn(FOOTBALL_STAGES, stage) ? FOOTBALL_STAGES[stage]
+    : Object.hasOwn(NORMAL_STAGES, stage) ? NORMAL_STAGES[stage] : null;
   return s ? { code: s.code, name: s.name } : null;
 }
 
@@ -65,14 +79,17 @@ export const STEP_HINT_MS = Object.freeze({
   confirm: data.steps.ENTRANCE.hint * 1000, pick: data.steps.CHAR_PICK.hint * 1000, lineup: data.steps.SQUAD_CHECK.hint * 1000,
 });
 
-/** Each 常规项目 and 堡垒守御 stage's preview picture (the activity's `previewIconId`; 页面-6). @type {Readonly<Record<string, string>>} */
-export const PICTURES = Object.freeze({ ...data.pictures, ...Object.fromEntries(Object.entries(DEFENCE_STAGES).map(([k, s]) => [k, s.picture])) });
+/** The stages of 堡垒守御 and 阵地足球, each [stage, its record]. */
+const OWN_STAGES = [...Object.entries(DEFENCE_STAGES), ...Object.entries(FOOTBALL_STAGES)];
+
+/** Each 常规项目, 堡垒守御 and 阵地足球 stage's preview picture (the activity's `previewIconId`; 页面-6). @type {Readonly<Record<string, string>>} */
+export const PICTURES = Object.freeze({ ...data.pictures, ...Object.fromEntries(OWN_STAGES.map(([k, s]) => [k, s.picture])) });
 
 /** Each stage's description as Unity rich text (stage_table's `description`; 页面-6). @type {Readonly<Record<string, string>>} */
-export const DETAILS = Object.freeze({ ...data.details, ...Object.fromEntries(Object.entries(DEFENCE_STAGES).map(([k, s]) => [k, s.detail])) });
+export const DETAILS = Object.freeze({ ...data.details, ...Object.fromEntries(OWN_STAGES.map(([k, s]) => [k, s.detail])) });
 
 /** Each stage's missions in their order (the activity's `missionIdList` descriptions; 页面-6). @type {Readonly<Record<string, readonly string[]>>} */
-export const MISSIONS = Object.freeze({ ...data.missions, ...Object.fromEntries(Object.entries(DEFENCE_STAGES).map(([k, s]) => [k, s.missions])) });
+export const MISSIONS = Object.freeze({ ...data.missions, ...Object.fromEntries(OWN_STAGES.map(([k, s]) => [k, s.missions])) });
 
 /** The activity's toasts of the room flow (页面-6). @type {Readonly<Record<string, string>>} */
 export const TOASTS = Object.freeze({ ...data.toasts });
@@ -97,16 +114,22 @@ export const INVERSE = Object.freeze({ ...data.inverse });
 export const MATCH = Object.freeze({ ...data.match });
 
 /**
- * The training levels (房间-11): the training modes in the activity's order (常规项目, 阵地足球, 堡垒守御; only 常规项目's is
- * played here) with their names, icons, levels and the hint while locked, and the tutorial scripts its levels' waves
- * tell, by name: each command with its arguments and its text as rich text; the story variables (`$name`) they use.
+ * The training levels (房间-11): the training modes in the activity's order (常规项目, 阵地足球, 堡垒守御; 常规项目's and
+ * 阵地足球's are played here) with their names, icons, levels and the hint while locked, and the tutorial scripts their
+ * levels' waves tell, by name: each command with its arguments and its text as rich text; the story variables (`$name`) they use.
  * @type {Readonly<{ modes: readonly { id: string, mode: string, name: string, icon: string, levels: readonly string[], hint: string }[],
  *   stories: Readonly<Record<string, readonly { cmd: string, args: Record<string, string | number | boolean>, text?: string }[]>>, vars: Readonly<Record<string, string | number>> }>}
  */
 export const TRAINING = Object.freeze({ .../** @type {any} */ (data.training) });
 
-/** The training levels the platform plays (房间-11): those of 常规项目's training mode. */
-export const TRAINING_LEVELS = Object.freeze(data.training.modes.filter((m) => m.mode === 'NORMAL').flatMap((m) => m.levels));
+/** The training modes the platform plays (房间-11): 常规项目's and 阵地足球's. */
+const TRAINED = Object.freeze(['NORMAL', 'FOOTBALL']);
+
+/** The training levels the platform plays (房间-11): those of the training modes it plays. */
+export const TRAINING_LEVELS = Object.freeze(data.training.modes.filter((m) => TRAINED.includes(m.mode)).flatMap((m) => m.levels));
+
+/** The mode of a training level (房间-11): its training mode's (NORMAL, FOOTBALL …), or null for none. @param {string} level @returns {string | null} */
+export const trainingModeOf = (level) => data.training.modes.find((m) => m.levels.includes(level))?.mode ?? null;
 
 /**
  * The scene of the emotes a room phase allows (房间-7, INF-0019): the room's at 项目调整, the allocation's from the
@@ -151,11 +174,11 @@ export const STYLES = Object.freeze(data.styles.map((s) => {
 /** The mode of team play's projects (页面-5): its type, name, icon id and colour, as the activity has them. */
 export const MODE = Object.freeze({ ...data.mode });
 
-/** The modes the projects are of (页面-5), by type: 常规项目 and 堡垒守御. */
-export const MODES = Object.freeze({ NORMAL: MODE, DEFENCE: DEFENCE_MODE });
+/** The modes the projects are of (页面-5), by type: 常规项目, 堡垒守御 and 阵地足球. */
+export const MODES = Object.freeze({ NORMAL: MODE, DEFENCE: DEFENCE_MODE, FOOTBALL: FOOTBALL_MODE });
 
 /** A project's mode (页面-5); 常规项目 for one that names none. @param {{ mode?: string } | null | undefined} p */
-export const modeOf = (p) => (p?.mode === 'DEFENCE' ? DEFENCE_MODE : MODE);
+export const modeOf = (p) => (p?.mode === 'DEFENCE' ? DEFENCE_MODE : p?.mode === 'FOOTBALL' ? FOOTBALL_MODE : MODE);
 
 /** The style a player brings when it has chosen none (房间-3): the first, 基础. */
 export const DEFAULT_STYLE = STYLES[0].id;

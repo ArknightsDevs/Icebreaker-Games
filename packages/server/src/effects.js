@@ -1,18 +1,28 @@
 // The attack effects of one match (docs/spec/site.md 站点-5; the engine's 渲染-10): assets/…/fx/units.json?for=<keys>
 // answers the asset pack's effect pack cut down to those units — their own effects, the shared ones and only the
-// textures those name — instead of the whole pack of every unit. The pack is read once into the engine's index (the
-// parsed pack is not kept) and read again when the file changes; the latest answers are kept by their keys.
+// textures those name — instead of the whole pack of every unit. The pack is read once into the engine's index and read
+// again when the file changes; the latest answers are kept by their keys. The index is read from the pack's bytes
+// (effects-scan.js), not from the parsed pack: parsing it whole takes many times its size, which the process keeps.
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { effectIndex, effectSubsetJson } from '@aue/render/fx-subset';
+import { effectSubsetJson } from '@aue/render/fx-subset';
+import { scanEffectPack } from './effects-scan.js';
 import { etagOf } from './respond.js';
 
 /** The effect pack's path in the asset directory. */
 export const EFFECT_PACK = 'skeleton/fx/units.json';
 /** A unit's content key as the query gives it. */
 const KEY = /^[A-Za-z0-9_]{1,64}$/;
-/** At most this many units in a query, and this many answers kept. */
-const MAX_KEYS = 256, MAX_ANSWERS = 64;
+/** At most this many units in a query, and this many answers kept (a match's answer is about 1 MB). */
+const MAX_KEYS = 256, MAX_ANSWERS = 16;
+
+/**
+ * The engine's index of the pack at `file`, read from its bytes.
+ * @param {string} file @returns {Promise<import('@aue/render/fx-subset').EffectIndex>}
+ */
+export async function buildIndex(file) {
+  return scanEffectPack(await readFile(file));
+}
 
 /**
  * The units a query asks for: `for` as comma-separated content keys (sorted, without repeats); null when there is no
@@ -46,10 +56,12 @@ export function createEffectSubsets(dir) {
     if (!st) return null;
     if (loaded?.mtimeMs !== st.mtimeMs) {
       answers.clear();
-      loaded = { mtimeMs: st.mtimeMs, index: readFile(file, 'utf8').then((t) => effectIndex(JSON.parse(t))) };
+      loaded = { mtimeMs: st.mtimeMs, index: buildIndex(file) };
     }
     return loaded.index;
   }
+  // Read at once, before any match: the scan holds the event loop for a moment (about a second on a small node).
+  indexOf().catch(() => {});
 
   return {
     /** @param {string[]} keys @returns {Promise<{ body: Buffer, etag: string } | null>} */

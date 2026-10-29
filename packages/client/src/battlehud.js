@@ -72,9 +72,10 @@ export function requestsAfter(r, f) {
 }
 
 /**
- * What the HUD shows of a frame; in 堡垒守御 the builders' cards left and whether they may be deployed (a rest).
+ * What the HUD shows of a frame; in 堡垒守御 the builders' cards left and whether they may be deployed (a rest); the
+ * level's code for 阵地足球锦标's start banner.
  * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, selected: string | null,
- *   stages?: any[], waves?: number, requests?: Requests, offline?: boolean, training?: boolean }} o
+ *   stages?: any[], waves?: number, requests?: Requests, offline?: boolean, training?: boolean, code?: string }} o
  * @returns {import('@aue/ui').HudState}
  */
 export function hudState(o) {
@@ -109,7 +110,7 @@ export function stageStartOf(s, stages, frame, o = { training: false, waves: 0 }
 
 /**
  * The co-op top bar's and the cost request's state (界面-12, 界面-15–17), 堡垒守御's (界面-39).
- * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, stages?: any[], waves?: number, requests?: Requests }} o
+ * @param {{ view: import('@aue/schema').View, status: Status, control: Control | null, seat: number, options: any, stages?: any[], waves?: number, requests?: Requests, code?: string }} o
  * @param {number} speed @param {boolean} paused
  */
 function coopState(o, speed, paused) {
@@ -118,14 +119,29 @@ function coopState(o, speed, paused) {
   const left = r && r.pauseSince >= 0 ? Math.max(0, 1 - (r.now - r.pauseSince) / (OPEN * 1000)) : 0;
   return { me: side(o.seat), mate: side(mate), speed, paused, asking: c?.asker === o.seat && r ? left : -1, confirm: c?.asker === mate && r ? left : -1,
     task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)), ...fortressOf(o.status, o.waves ?? 0, o.view.frame, o.seat),
-    ...(o.status.football ? { football: footballOf(o.status.football, o.view.frame) } : {}) };
+    ...(o.status.football ? { football: footballOf(o.status.football, o.view.frame, { code: o.code, over: o.status.result >= 0 }) } : {}) };
 }
 
 /**
- * 阵地足球 on the co-op top bar (the engine's 界面-41): our goals, theirs, the seconds left of the match.
- * @param {import('@aue/worker').FootballStatus} f @param {number} frame @returns {import('@aue/ui').FootballTask}
+ * 阵地足球 on the co-op top bar (the engine's 界面-41): our goals, theirs, the seconds left of the match; in a 阵地足球锦标
+ * match its own part (界面-42).
+ * @param {import('@aue/worker').FootballStatus} f @param {number} frame @param {{ code?: string, over?: boolean }} [o]
+ * @returns {import('@aue/ui').FootballTask}
  */
-export const footballOf = (f, frame) => ({ home: f.home, away: f.away, left: Math.max(0, (f.until - frame) / FPS) });
+export const footballOf = (f, frame, o = {}) => ({ home: f.home, away: f.away, left: Math.max(0, (f.until - frame) / FPS), ...(f.sides ? { cup: cupOf(f, frame, o) } : {}) });
+
+/**
+ * 阵地足球锦标's part (the engine's 界面-42): the sides' names, the seconds left of the players' wait after the last
+ * kickoff, in the shootout the round, whether it is under way, our count-down's seconds (−1 for none) and the results,
+ * the level's code, whether the match is over.
+ * @param {import('@aue/worker').FootballStatus} f @param {number} frame @param {{ code?: string, over?: boolean }} o
+ * @returns {import('@aue/ui').CupTask}
+ */
+function cupOf(f, frame, o) {
+  const secs = (/** @type {number} */ at) => (at - frame) / FPS, pk = f.pk;
+  return { ours: f.sides?.ours ?? '', theirs: f.sides?.theirs ?? '', wait: f.ready !== undefined ? secs(f.ready) : 0,
+    pk: pk ? { round: pk.round, on: pk.on, left: pk.until >= 0 ? secs(pk.until) : -1, shots: [...pk.shots] } : null, code: o.code ?? '', over: !!o.over };
+}
 
 /**
  * 阵地足球's field marks (the engine's 渲染-26): the 守门位's tiles, the ice and slime, and each ball's kick so far — at the

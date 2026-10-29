@@ -1,6 +1,7 @@
 // 阵地足球锦标 (docs/spec/room.md 房间-15) in the browser: the header's 阵地足球锦标 opens the panel; PF-1 is locked until
 // PF-TR-1 is cleared; with it cleared, PF-1 with the six special operators starts alone, and the battle page shows the
-// stadium; PF-TR-1 brings no lineup and its tutorial speaks. Run with `pnpm run e2e`; E2E_SHOTS=<dir> keeps screenshots.
+// stadium and, with the battle UI pack, the event's top bar with both sides; PF-TR-1 brings no lineup and its tutorial
+// speaks. Run with `pnpm run e2e`; E2E_SHOTS=<dir> keeps screenshots.
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -54,6 +55,8 @@ describe('阵地足球锦标', () => {
     await page.waitForURL(/\/play\?match=[0-9a-f]+&seat=0/, { timeout: 15000 });
     await until('the battle page', () => page.evaluate(() => (/** @type {any} */ (globalThis).__battle?.ready() ? true : undefined)), 90000);
     await until('the stadium shown', async () => ((await page.locator('#cupinfo').innerText().catch(() => '')).includes('常规球场') ? true : undefined), 20000);
+    // the event's own top bar (the engine's 界面-42), drawn from the battle UI pack
+    if (HAS_UI) await until('the sides on the top bar', async () => ((await page.locator('.aue-n[data-name="text_team_name"]').allInnerTexts()).join('|') === '罗德岛队|业余组' ? true : undefined), 20000);
     assert.equal(await page.locator('#testing').isVisible(), false, 'every ability of PF-1 is read');
     if (SHOTS) { await page.waitForTimeout(3000); await page.screenshot({ path: `${SHOTS}/cup-pf1.png` }); }
     assert.deepEqual(errors, []);

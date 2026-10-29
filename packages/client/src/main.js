@@ -382,7 +382,7 @@ function onFrame(P, f) {
   if (game?.ui) {
     P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
     const level = /** @type {any} */ (game.content.level);
-    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, waves: level.waves.length, requests: P.requests,
+    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, waves: level.waves.length, requests: P.requests, code: level.code,
       offline: P.net === '重连中', training: tutorialOf(level.id) !== null });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
     P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),
@@ -398,13 +398,11 @@ function onFrame(P, f) {
 }
 
 /**
- * A 锦标 match's stadium and penalty round over the field (房间-15): the stadium's name (锦标-2) and, in the penalty
- * shootout, the round of the three each side kicks and whose kick it is (锦标-4). @param {import('@aue/worker').Status['football']} f
+ * A 锦标 match's stadium over the field (房间-15): its name (锦标-2). The score, the shootout and its rounds are on the
+ * event's own top bar (the engine's 界面-42). @param {import('@aue/worker').Status['football']} f
  */
 function cupInfo(f) {
-  const el = $('cupinfo'), name = f?.stadium ? /** @type {Record<string, string>} */ (STADIUM_NAMES)[f.stadium] ?? '' : '';
-  const pk = f?.pk ? `点球大战 第 ${Math.floor(f.pk.round / 2) + 1}/3 轮 · ${f.pk.side === 'ours' ? '我方' : '对方'}罚球` : '';
-  const text = [name, pk].filter(Boolean).join(' · ');
+  const el = $('cupinfo'), text = f?.stadium ? /** @type {Record<string, string>} */ (STADIUM_NAMES)[f.stadium] ?? '' : '';
   el.hidden = !text;
   if (el.textContent !== text) el.textContent = text;
 }

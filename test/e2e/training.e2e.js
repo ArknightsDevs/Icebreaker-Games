@@ -114,11 +114,16 @@ async function tutorialRun(page) {
   return seen;
 }
 
-/** The hand's first card dragged onto a tile of ground; turned up when it asks for a direction. @param {Page} page @param {number} col @param {number} row */
+/**
+ * The hand's first card dragged onto a tile of ground; turned up when it asks for a direction. Nothing when the card has
+ * gone meanwhile: a story's line can hide the hand right after it was counted, and that line waits for a tap.
+ * @param {Page} page @param {number} col @param {number} row
+ */
 async function dragCard(page, col, row) {
   const pageOf = (/** @type {number} */ x, /** @type {number} */ y) => page.evaluate(([a, b]) => /** @type {number[]} */ (/** @type {any} */ (globalThis).__battle.pageOf(a, b, 0)), [x, y]);
   const card = page.locator('.aue-n[data-name="image_underframe"]:visible').first();
-  const box = /** @type {{ x: number, y: number, width: number, height: number }} */ (await card.boundingBox());
+  const box = await card.boundingBox({ timeout: 2000 }).catch(() => null);
+  if (!box) return;
   const at = await pageOf(col, row);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

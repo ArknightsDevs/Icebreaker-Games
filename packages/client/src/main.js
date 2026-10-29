@@ -382,7 +382,7 @@ function onFrame(P, f) {
   if (game?.ui) {
     P.requests = requestsAfter(P.requests, { events, control: P.control, seat, frame: view.frame, now: performance.now() });
     const level = /** @type {any} */ (game.content.level);
-    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, waves: level.waves.length, requests: P.requests, code: level.code,
+    P.hudNow = hudState({ view, status, control: shownControl(P), seat, options: level.options, selected: P.hand?.selected() ?? null, stages: level.stages, waves: level.waves.length, requests: P.requests,
       offline: P.net === '重连中', training: tutorialOf(level.id) !== null });
     const r = /** @type {NonNullable<typeof game.renderer>} */ (game.renderer), k = game.ui.ui.canvas.k;
     P.hudNow.units = unitBars(view, { leaders: game.leaders, foeDevices: game.foeDevices, keyOf: (id) => P.unitKeys.get(id)?.split('#')[0], shows: (id) => r.shows(id),

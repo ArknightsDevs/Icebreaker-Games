@@ -199,12 +199,13 @@ test('[房间-14] 阵地足球 on the HUD (the engine\'s 界面-41, 渲染-26): 
   assert.deepEqual(pitchOf(view, f), { spots: [53], cover: { 30: -0.3 }, kicks: [{ x: 4.2, y: 3, ax: 1, ay: 0, share: 0.5 }] });
 });
 
-test('[房间-15] a 锦标 match on the HUD (the engine\'s 界面-42): the sides, the wait\'s seconds, the shootout\'s round with our count-down\'s seconds and the results, the code', () => {
+test('[房间-15] a 锦标 match on the HUD (the engine\'s 界面-42): the sides and their icons, the wait\'s seconds, the shootout\'s round with our count-down\'s seconds and the results, whether it is over', () => {
   const f = /** @type {any} */ ({ team: '', home: 1, away: 1, until: 900, stamps: 0, balls: [], held: [[]], cover: {}, spots: [], stadium: 'normal',
-    sides: { ours: '罗德岛队', theirs: '业余组' }, ready: 960 });
-  assert.deepEqual(footballOf(f, 900, { code: 'PF-6', over: false }).cup, { ours: '罗德岛队', theirs: '业余组', wait: 2, pk: null, code: 'PF-6', over: false });
+    sides: { ours: '罗德岛队', theirs: '业余组' }, icons: { ours: 'act1football_teamicon_1', theirs: 'act1football_teamicon_3' }, ready: 960 });
+  assert.deepEqual(footballOf(f, 900).cup, { ours: '罗德岛队', theirs: '业余组', icons: { ours: 'act1football_teamicon_1', theirs: 'act1football_teamicon_3' }, wait: 2, pk: null, over: false });
   const pk = { round: 2, side: 'ours', on: true, until: 1200, shots: [1, 0] };
-  assert.deepEqual(footballOf({ ...f, pk }, 1050, { code: 'PF-6', over: true }).cup?.pk, { round: 2, on: true, left: 5, shots: [1, 0] });
+  assert.deepEqual(footballOf({ ...f, pk }, 1050, true).cup?.pk, { round: 2, on: true, left: 5, shots: [1, 0] });
+  assert.equal(footballOf({ ...f, pk }, 1050, true).cup?.over, true);
   assert.equal(footballOf({ ...f, pk: { ...pk, until: -1 } }, 1050).cup?.pk?.left, -1, 'no count-down');
   assert.equal(footballOf({ ...f, sides: undefined }, 900).cup, undefined, 'not a 锦标 match');
 });

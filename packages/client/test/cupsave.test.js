@@ -13,12 +13,16 @@ test('[房间-15] the progress: empty at first, kept and read back; what is not 
   const s = memory();
   assert.deepEqual(readCup(s), emptyCup());
   assert.deepEqual(readCup(null), emptyCup());
-  const c = clearedWith(clearedWith({ ...emptyCup(), picks: [{ id: 'char_002_amiya', skill: 1, module: -1 }], relic: 'act1football_relic_01' }, 'act1football_tr01'), 'act1football_tr01');
+  const c = clearedWith(clearedWith({ ...emptyCup(), picks: [{ id: 'char_002_amiya', skill: 1, module: -1 }], assist: { id: 'char_017_huang', skill: 2, module: 0 }, relic: 'act1football_relic_01' }, 'act1football_tr01'), 'act1football_tr01');
   assert.deepEqual(c.cleared, ['act1football_tr01'], 'cleared once');
   assert.equal(writeCup(s, c), true);
   assert.deepEqual(readCup(s), c);
   s.setItem(CUP_KEY, JSON.stringify({ cleared: ['act1football_01', 'nope', 3], picks: [{ id: 'char_002_amiya', skill: 9, module: 0 }, { id: 'char_003_kalts', skill: 0, module: -1 }, { id: 'char_003_kalts', skill: 1, module: -1 }], relic: 5 }));
-  assert.deepEqual(readCup(s), { v: 1, cleared: ['act1football_01'], picks: [{ id: 'char_003_kalts', skill: 0, module: -1 }], relic: '' });
+  assert.deepEqual(readCup(s), { v: 1, cleared: ['act1football_01'], picks: [{ id: 'char_003_kalts', skill: 0, module: -1 }], assist: null, relic: '' });
+  s.setItem(CUP_KEY, JSON.stringify({ picks: [{ id: 'char_003_kalts', skill: 0, module: -1 }], assist: { id: 'char_003_kalts', skill: 0, module: -1 } }));
+  assert.equal(readCup(s).assist, null, 'a support unit also in the lineup: dropped');
+  s.setItem(CUP_KEY, JSON.stringify({ assist: { id: 'char_017_huang', skill: 7, module: -1 } }));
+  assert.equal(readCup(s).assist, null, 'a malformed one: dropped');
   s.setItem(CUP_KEY, '{');
   assert.deepEqual(readCup(s), emptyCup());
 });

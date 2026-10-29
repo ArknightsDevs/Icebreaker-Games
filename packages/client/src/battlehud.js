@@ -36,11 +36,14 @@ export async function loadUiPack(assets) {
  * @returns {import('@aue/ui').DeckCard[]}
  */
 export function deckCards(match, content, seat, avatar, roster = ROSTER) {
-  const builds = new Map((match.decks?.[seat] ?? []).map((d) => [d.id, d.build])), keys = /** @type {string[]} */ (content.decks?.[seat] ?? []);
+  const deck = match.decks?.[seat] ?? [], builds = new Map(deck.map((d) => [d.id, d.build])), keys = /** @type {string[]} */ (content.decks?.[seat] ?? []);
+  // a match's deck names an operator by its id, the content by id#seat; the seat's support unit (the engine's 同步-9) shows
+  // the assist mark on its card (界面-10)
+  const assists = new Set(deck.filter((d) => d.assist).map((d) => d.id));
   const ops = keys.map((k) => {
     const op = content.operators[k], char = op.char ?? k, r = roster[char];
-    return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: builds.get(k)?.elite ?? 0, respawn: op.respawnTime ?? 60,
-      ...(op.builder ? { pool: true } : {}) };
+    return { id: k, avatar: avatar(char), profession: op.profession ?? r?.profession ?? '', rarity: r?.rarity ?? 1, phase: (builds.get(k) ?? builds.get(char))?.elite ?? 0,
+      respawn: op.respawnTime ?? 60, ...(op.builder ? { pool: true } : {}), ...(assists.has(k) || assists.has(char) ? { assist: true } : {}) };
   });
   const summons = Object.entries(content.operators).filter(([, o]) => ((o.summon?.supply ?? 0) > 0 || (o.summon?.grant?.n ?? 0) > 0) && keys.includes(o.summoner))
     .map(([k, o]) => ({ id: k, avatar: avatar(o.char ?? k), profession: o.profession ?? '', rarity: 1, phase: 0, respawn: o.respawnTime ?? 0, summon: true }));

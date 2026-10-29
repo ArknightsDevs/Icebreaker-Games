@@ -34,7 +34,7 @@ const SHAPES = {
   profile: (m) => typeof m.tag === 'string' && /^\d{4}$/.test(m.tag) && (m.avatar === '' || operatorId(m.avatar)) && assistPick(m.assist),
   join: (m) => shortText(m.code, 200),
   train: (m) => shortText(m.level, 32),
-  cup: (m) => shortText(m.level, 32) && Array.isArray(m.lineup) && m.lineup.length <= 12 && typeof m.relic === 'string' && m.relic.length <= 40,
+  cup: (m) => shortText(m.level, 32) && Array.isArray(m.lineup) && m.lineup.length <= 12 && typeof m.relic === 'string' && m.relic.length <= 40 && (m.assist === null || isRecord(m.assist)),
   project: (m) => Number.isInteger(m.index),
   prepare: (m) => typeof m.on === 'boolean',
   inverse: (m) => typeof m.on === 'boolean',
@@ -44,7 +44,7 @@ const SHAPES = {
   lineup: (m) => Array.isArray(m.lineup) && m.lineup.length <= 12 && m.lineup.every((x) => isRecord(x) && Object.keys(x).sort().join() === 'id,module,skill'),
 };
 /** The fields each message has besides `t`. @type {Record<string, string>} */
-const FIELDS = { hello: 'key,name', ping: 'at', train: 'level', cup: 'level,lineup,relic', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
+const FIELDS = { hello: 'key,name', ping: 'at', train: 'level', cup: 'assist,level,lineup,relic', profile: 'assist,avatar,tag', join: 'code', project: 'index', prepare: 'on', ready: 'on', confirm: 'squad,style', pick: 'id', lineup: 'lineup', emote: 'id,theme', inverse: 'on', seek: 'classes,inverse,pos,squad,style' };
 
 /**
  * Why a lobby message is malformed, or null (room.md): a known type with exactly its fields, each of its kind; the
@@ -73,10 +73,10 @@ async function train(L, id, ws, level) {
 /**
  * 阵地足球锦标 (房间-15): a stage's match for a session alone with its lineup and training effect, the partner's seat
  * absent, as a training's (房间-11); the page goes to it as to a room's match.
- * @param {Parameters<typeof train>[0]} L @param {number} id @param {import('ws').WebSocket} ws @param {{ level: string, lineup: unknown, relic: string }} m
+ * @param {Parameters<typeof train>[0]} L @param {number} id @param {import('ws').WebSocket} ws @param {{ level: string, lineup: unknown, relic: string, assist: unknown }} m
  */
 async function cup(L, id, ws, m) {
-  await alone(L, id, ws, cupMatch(m.level, Math.floor((L.o.random ?? Math.random)() * 0x7fffffff), m.lineup, m.relic), { cup: m.level });
+  await alone(L, id, ws, cupMatch(m.level, Math.floor((L.o.random ?? Math.random)() * 0x7fffffff), m.lineup, m.relic, m.assist), { cup: m.level });
 }
 
 /**

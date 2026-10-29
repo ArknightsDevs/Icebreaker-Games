@@ -2,7 +2,7 @@
 // 关卡-4), class, the tasks of its two stages (关卡-5), its description and the activity's missions for it (shown at 项目确认); the
 // temporary recruits as box entries.
 import { LEVELS, TESTING, levelAt, loadTraining } from '@aue/content';
-import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName, trainingModeOf, cupStage, lineupProblem, cupDeck } from '@icebreaker/mode-regular';
+import { ACTIVITY, DETAILS, MISSIONS, PROJECTS, TRAINING_LEVELS, DEFAULT_STYLE, recruitEntries, styleRunes, stageName, trainingModeOf, cupStage, lineupProblem, assistProblem, cupDeck } from '@icebreaker/mode-regular';
 
 /**
  * A project as the lobby shows it: its code and name, its stages' tasks (常规项目) or its waves (堡垒守御), the
@@ -44,20 +44,33 @@ export function trainingMatch(level, seed) {
 
 /**
  * The match of a 阵地足球锦标 stage (房间-15): the player's lineup for seat 0 — none on the training stage, whose operators
- * are the level's own — with the runes of the training effect chosen (engine 锦标-7; '' for none), nobody for seat 1;
- * or why there is none: not a stage of the event, a lineup that breaks its rules, a training effect the level has not.
- * @param {string} level @param {number} seed @param {unknown} lineup @param {string} relic
+ * are the level's own — and its support unit last (null for none), with the runes of the training effect chosen (engine
+ * 锦标-7; '' for none), nobody for seat 1; or why there is none: not a stage of the event, a lineup or a support unit
+ * that breaks its rules, a training effect the level has not.
+ * @param {string} level @param {number} seed @param {unknown} lineup @param {string} relic @param {unknown} [assist]
  * @returns {{ match: import('@aue/schema').Match } | { error: string }}
  */
-export function cupMatch(level, seed, lineup, relic) {
+export function cupMatch(level, seed, lineup, relic, assist = null) {
   const s = cupStage(level), lv = s && s.level === level ? LEVELS[level]?.level : null;
   if (!s || !lv) return { error: '没有这一关' };
-  const why = lineupProblem(lineup, s);
-  if (why) return { error: `上场干员不对：${why}` };
+  const why = pickedProblem(lineup, assist, s);
+  if (why) return { error: why };
+  const list = /** @type {import('@icebreaker/mode-regular').CupPick[]} */ (lineup);
   const r = relic ? (lv.football?.cup?.relics ?? []).find((/** @type {any} */ x) => x.id === relic) : null;
   if (relic && !r) return { error: '没有这个训练效果' };
-  const deck = cupDeck(/** @type {import('@icebreaker/mode-regular').CupPick[]} */ (lineup));
+  const deck = cupDeck(list, /** @type {import('@icebreaker/mode-regular').CupPick | null} */ (assist));
   return { match: { level, difficulty: 'NORMAL', seed, decks: [deck, []], runes: [r ? r.runes : [], []] } };
+}
+
+/**
+ * Why a 锦标 lineup or its support unit cannot be brought to a stage (房间-15), as the player reads it, or null.
+ * @param {unknown} lineup @param {unknown} assist @param {import('@icebreaker/mode-regular').CupStage} s
+ */
+function pickedProblem(lineup, assist, s) {
+  const why = lineupProblem(lineup, s);
+  if (why) return `上场干员不对：${why}`;
+  const whyAssist = assistProblem(assist, /** @type {import('@icebreaker/mode-regular').CupPick[]} */ (lineup), s);
+  return whyAssist ? `助战不对：${whyAssist}` : null;
 }
 
 /** The temporary recruits as box entries, each skill they have at the recruit's level. */

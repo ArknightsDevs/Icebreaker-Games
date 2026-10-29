@@ -124,7 +124,7 @@ const cup = createCupView($('cupbody'), {
   roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, getCup: () => cupSave, toast,
   setCup: (c) => { cupSave = c; if (!writeCup(store, c)) toast('这个浏览器不让保存，关闭页面后锦标进度会丢失'); cup.render(); },
   relics: (level) => /** @type {any} */ (LEVELS[level])?.level.football?.cup?.relics ?? [],
-  start: (level, lineup, relic) => send({ t: 'cup', level, lineup, relic }),
+  start: (level, lineup, relic, assist) => send({ t: 'cup', level, lineup, relic, assist }),
 });
 
 /** The end of a search (房间-9): found — the room comes next —, not found, cancelled. @param {any} m */

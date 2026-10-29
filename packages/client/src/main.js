@@ -398,13 +398,11 @@ function onFrame(P, f) {
 }
 
 /**
- * A 锦标 match's stadium and penalty round over the field (房间-15): the stadium's name (锦标-2) and, in the penalty
- * shootout, the round of the three each side kicks and whose kick it is (锦标-4). @param {import('@aue/worker').Status['football']} f
+ * A 锦标 match's stadium over the field (房间-15): its name (锦标-2). The score, the shootout and its rounds are on the
+ * event's own top bar (the engine's 界面-42). @param {import('@aue/worker').Status['football']} f
  */
 function cupInfo(f) {
-  const el = $('cupinfo'), name = f?.stadium ? /** @type {Record<string, string>} */ (STADIUM_NAMES)[f.stadium] ?? '' : '';
-  const pk = f?.pk ? `点球大战 第 ${Math.floor(f.pk.round / 2) + 1}/3 轮 · ${f.pk.side === 'ours' ? '我方' : '对方'}罚球` : '';
-  const text = [name, pk].filter(Boolean).join(' · ');
+  const el = $('cupinfo'), text = f?.stadium ? /** @type {Record<string, string>} */ (STADIUM_NAMES)[f.stadium] ?? '' : '';
   el.hidden = !text;
   if (el.textContent !== text) el.textContent = text;
 }

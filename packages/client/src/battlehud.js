@@ -118,14 +118,28 @@ function coopState(o, speed, paused) {
   const left = r && r.pauseSince >= 0 ? Math.max(0, 1 - (r.now - r.pauseSince) / (OPEN * 1000)) : 0;
   return { me: side(o.seat), mate: side(mate), speed, paused, asking: c?.asker === o.seat && r ? left : -1, confirm: c?.asker === mate && r ? left : -1,
     task: taskOf(o.status, o.stages ?? [], o.view.frame), cost: costAsk(costInput(o)), ...fortressOf(o.status, o.waves ?? 0, o.view.frame, o.seat),
-    ...(o.status.football ? { football: footballOf(o.status.football, o.view.frame) } : {}) };
+    ...(o.status.football ? { football: footballOf(o.status.football, o.view.frame, o.status.result >= 0) } : {}) };
 }
 
 /**
- * 阵地足球 on the co-op top bar (the engine's 界面-41): our goals, theirs, the seconds left of the match.
- * @param {import('@aue/worker').FootballStatus} f @param {number} frame @returns {import('@aue/ui').FootballTask}
+ * 阵地足球 on the co-op top bar (the engine's 界面-41): our goals, theirs, the seconds left of the match; in a 阵地足球锦标
+ * match its own part (界面-42).
+ * @param {import('@aue/worker').FootballStatus} f @param {number} frame @param {boolean} [over] whether the match is over
+ * @returns {import('@aue/ui').FootballTask}
  */
-export const footballOf = (f, frame) => ({ home: f.home, away: f.away, left: Math.max(0, (f.until - frame) / FPS) });
+export const footballOf = (f, frame, over = false) => ({ home: f.home, away: f.away, left: Math.max(0, (f.until - frame) / FPS), ...(f.sides ? { cup: cupOf(f, frame, over) } : {}) });
+
+/**
+ * 阵地足球锦标's part (the engine's 界面-42): the sides' names and team icons, the seconds left of the players' wait
+ * after the last kickoff, in the shootout the round, whether it is under way, our count-down's seconds (−1 for none) and
+ * the results, whether the match is over.
+ * @param {import('@aue/worker').FootballStatus} f @param {number} frame @param {boolean} over @returns {import('@aue/ui').CupTask}
+ */
+function cupOf(f, frame, over) {
+  const secs = (/** @type {number} */ at) => (at - frame) / FPS, pk = f.pk;
+  return { ours: f.sides?.ours ?? '', theirs: f.sides?.theirs ?? '', ...(f.icons ? { icons: { ...f.icons } } : {}), wait: f.ready !== undefined ? secs(f.ready) : 0,
+    pk: pk ? { round: pk.round, on: pk.on, left: pk.until >= 0 ? secs(pk.until) : -1, shots: [...pk.shots] } : null, over };
+}
 
 /**
  * 阵地足球's field marks (the engine's 渲染-26): the 守门位's tiles, the ice and slime, and each ball's kick so far — at the

@@ -28,9 +28,10 @@ test('[房间-15] a stage\'s match: the lineup for seat 0 with the training effe
   assert.equal(err(cupMatch('act1multi_01', 9, LINEUP, '')), '没有这一关');
   assert.equal(err(cupMatch('act1football_01', 9, LINEUP, 'act1football_relic_09')), '没有这个训练效果');
   assert.match(err(cupMatch('act1football_01', 9, [], '')), /^上场干员不对/);
-  assert.equal(lobbyMessageProblem({ t: 'cup', level: 'act1football_01', lineup: [], relic: '' }), null);
+  assert.equal(lobbyMessageProblem({ t: 'cup', level: 'act1football_01', lineup: [], relic: '', assist: null }), null);
   assert.match(String(lobbyMessageProblem({ t: 'cup', level: 'act1football_01', lineup: [] })), /fields/);
-  assert.match(String(lobbyMessageProblem({ t: 'cup', level: 'act1football_01', lineup: Array(13).fill(0), relic: '' })), /malformed/);
+  assert.match(String(lobbyMessageProblem({ t: 'cup', level: 'act1football_01', lineup: Array(13).fill(0), relic: '', assist: null })), /malformed/);
+  assert.match(String(lobbyMessageProblem({ t: 'cup', level: 'act1football_01', lineup: [], relic: '', assist: 3 })), /malformed/);
 });
 
 /** A lobby and its battles on a free port, alone matches started as the server starts them. */
@@ -59,15 +60,29 @@ function open(url) {
   return { ws, next, send: (/** @type {any} */ m) => ws.send(JSON.stringify(m)), ready: new Promise((r) => ws.on('open', r)) };
 }
 
+test('[房间-15] a support unit: last in seat 0\'s deck, marked (engine 同步-9), a 13th after twelve; one in the lineup or on PF-TR-1 refused', async () => {
+  const twelve = Array.from({ length: 12 }, (_, i) => pick(['char_613_acmedc', 'char_611_acnipe', 'char_002_amiya', 'char_003_kalts', 'char_172_svrash', 'char_010_chen',
+    'char_017_huang', 'char_102_texas', 'char_103_angel', 'char_112_siege', 'char_113_cqbw', 'char_115_headbr'][i]));
+  const m = cupMatch('act1football_01', 9, twelve, '', pick('char_1028_texas2', 2));
+  assert.ok('match' in m);
+  const deck = m.match.decks[0];
+  assert.deepEqual([deck.length, deck.at(-1)?.id, deck.at(-1)?.assist, deck.filter((d) => d.assist).length], [13, 'char_1028_texas2', true, 1]);
+  const c = await matchContent(m.match);
+  assert.ok(c.decks?.[0].includes('char_1028_texas2#0'), 'the engine takes a deck of thirteen with its support unit');
+  const err = (/** @type {ReturnType<typeof cupMatch>} */ x) => ('error' in x ? x.error : 'ok');
+  assert.match(err(cupMatch('act1football_01', 9, twelve, '', pick('char_002_amiya'))), /^助战不对/);
+  assert.match(err(cupMatch('act1football_tr01', 9, [], '', pick('char_002_amiya'))), /^助战不对/);
+});
+
 test('[房间-15] the lobby starts a stage alone (engine 同步-14): the start names it, seat 0 plays the lineup; not from a room', async () => {
   const s = await start();
   try {
     const a = open(`ws://127.0.0.1:${s.port}/lobby`);
     await a.ready;
     a.send({ t: 'hello', key: 'key-c', name: 'C' });
-    a.send({ t: 'cup', level: 'act1football_01', lineup: [], relic: '' });
+    a.send({ t: 'cup', level: 'act1football_01', lineup: [], relic: '', assist: null });
     assert.match((await a.next('error')).msg, /^上场干员不对/);
-    a.send({ t: 'cup', level: 'act1football_01', lineup: LINEUP, relic: '' });
+    a.send({ t: 'cup', level: 'act1football_01', lineup: LINEUP, relic: '', assist: null });
     const go = await a.next('start');
     assert.deepEqual([go.seat, go.cup, go.training], [0, 'act1football_01', undefined]);
     const b = open(`ws://127.0.0.1:${s.port}/battle?match=${go.match}&seat=0`);
@@ -81,7 +96,7 @@ test('[房间-15] the lobby starts a stage alone (engine 同步-14): the start n
     assert.ok(f.to >= 10, 'frames are sealed without seat 1');
     a.send({ t: 'create' });
     await a.next('room');
-    a.send({ t: 'cup', level: 'act1football_01', lineup: LINEUP, relic: '' });
+    a.send({ t: 'cup', level: 'act1football_01', lineup: LINEUP, relic: '', assist: null });
     assert.equal((await a.next('error')).msg, '已在房间里，不能参赛');
   } finally { s.close(); }
 });

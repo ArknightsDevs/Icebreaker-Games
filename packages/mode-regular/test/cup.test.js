@@ -2,7 +2,7 @@
 // special operators, the lineup's rules and the deck it makes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CUP_NAME, CUP_ZONES, CUP_STAGES, CUP_LEVELS, CUP_LINEUP, CUP_NPCS, CUP_TUTORIAL, cupStage, cupOpen, cupNpcEntries, lineupProblem, cupDeck } from '../src/index.js';
+import { CUP_NAME, CUP_ZONES, CUP_STAGES, CUP_LEVELS, CUP_LINEUP, CUP_NPCS, CUP_TUTORIAL, cupStage, cupOpen, cupNpcEntries, lineupProblem, assistProblem, cupDeck } from '../src/index.js';
 
 /** A well-formed box entry. @param {string} id */
 const entry = (id) => ({ id, elite: 2, level: 90, potential: 1, trust: 100, skills: [10, 10, 10], modules: [0, 2] });
@@ -55,4 +55,20 @@ test('[房间-15] a lineup: none on PF-TR-1; else 1–12 well-formed operators, 
     { id: 'char_002_amiya', build: { elite: 2, level: 90, potential: 1, trust: 100, skill: 1, skillLevel: 10, module: 1, moduleLevel: 2 } },
     { id: 'char_003_kalts', build: { elite: 2, level: 90, potential: 1, trust: 100, skill: -1, skillLevel: 1 } },
   ]);
+});
+
+test('[房间-15] the support unit: none always may; none on PF-TR-1; else one well-formed operator not in the lineup, last in the deck and marked', () => {
+  const tr = /** @type {any} */ (cupStage('act1football_tr01')), pf1 = /** @type {any} */ (cupStage('act1football_01'));
+  const pick = (/** @type {string} */ id, skill = 0, module = -1) => ({ e: entry(id), skill, module });
+  const list = [pick('char_002_amiya')], a = pick('char_017_huang', 2);
+  assert.equal(assistProblem(null, list, pf1), null);
+  assert.equal(assistProblem(null, [], tr), null);
+  assert.match(String(assistProblem(a, [], tr)), /takes no support unit/);
+  assert.equal(assistProblem(a, list, pf1), null);
+  assert.match(String(assistProblem({ ...a, x: 1 }, list, pf1)), /not \{ e, skill, module \}/);
+  assert.match(String(assistProblem(pick('char_017_huang', 3), list, pf1)), /slot/);
+  assert.match(String(assistProblem(pick('char_002_amiya'), list, pf1)), /in the lineup and the support unit/);
+  const deck = cupDeck(list, a);
+  assert.deepEqual(deck.map((d) => [d.id, d.assist ?? false]), [['char_002_amiya', false], ['char_017_huang', true]]);
+  assert.deepEqual(cupDeck(list).map((d) => d.id), ['char_002_amiya'], 'none: the lineup alone');
 });

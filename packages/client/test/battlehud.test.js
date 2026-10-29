@@ -16,6 +16,13 @@ test('the deck as cards: avatar, profession, rarity from the roster, elite phase
   assert.deepEqual(deckCards(match, { operators: {} }, 1, () => null), []);
 });
 
+test('[房间-15] a real match\'s deck: its builds by operator id (the content keys add #seat); the support unit\'s card marked (the engine\'s 界面-10)', () => {
+  const match = /** @type {any} */ ({ decks: [[{ id: 'char_002_amiya', build: { elite: 2 } }, { id: 'char_017_huang', build: { elite: 1 }, assist: true }]] });
+  const content = { decks: [['char_002_amiya#0', 'char_017_huang#0']], operators: { 'char_002_amiya#0': { char: 'char_002_amiya' }, 'char_017_huang#0': { char: 'char_017_huang' } } };
+  const cards = deckCards(match, content, 0, () => null);
+  assert.deepEqual(cards.map((c) => [c.id, c.phase, c.assist ?? false]), [['char_002_amiya#0', 2, false], ['char_017_huang#0', 1, true]]);
+});
+
 test('the deck with its operators\' summon cards, put in by cost and id (the engine\'s 界面-23)', () => {
   const match = /** @type {any} */ ({ decks: [[{ id: 'a#0', build: { elite: 2 } }, { id: 'b#0', build: { elite: 1 } }]] });
   const summon = (/** @type {string} */ owner, /** @type {number} */ cost, /** @type {number} */ supply) => ({ char: 'token_x', profession: 'TOKEN', cost, respawnTime: 10, summoner: owner, summon: { supply } });

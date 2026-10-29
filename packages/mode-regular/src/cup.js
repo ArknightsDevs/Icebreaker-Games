@@ -1,8 +1,9 @@
 // 阵地足球锦标 (docs/spec/room.md 房间-15): the single-player 阵地足球 event, from its activity data
 // (data/act1football.json, made by tools/extract-cup.js) — its zones and stages in order, which stage opens after which,
 // the special operators lent in every match, the stories of its training stage — and the lineup a player brings: up to
-// 12 operators, each with the skill and module it takes into the match. From the network a lineup is untrusted:
-// lineupProblem checks it. The match's rules — stadiums, teams, penalties, the training effects — are the engine's (锦标-1…7).
+// 12 operators, each with the skill and module it takes into the match, and at most one support unit besides, any
+// operator fully trained. From the network a lineup and its support unit are untrusted: lineupProblem and
+// assistProblem check them. The match's rules — stadiums, teams, penalties, the training effects — are the engine's (锦标-1…7).
 import data from '../data/act1football.json' with { type: 'json' };
 import { entryProblem, buildOf } from './squads.js';
 
@@ -82,5 +83,26 @@ export function lineupProblem(list, s) {
   return null;
 }
 
-/** A lineup as a match's deck (engine 同步-9): each operator with the training it takes in. @param {CupPick[]} list @returns {{ id: string, build: Build }[]} */
-export const cupDeck = (list) => list.map((p) => ({ id: p.e.id, build: buildOf(p.e, p.skill, p.module) }));
+/**
+ * Why a support unit cannot come along, or null (房间-15: 「12名参赛选手+至多1名助战单位」): none (null) always may; none
+ * to the training stage; else one operator as a lineup's are — a well-formed box entry with a skill and a module slot —
+ * not already in the lineup. The page brings it fully trained; its training is checked as a box entry's is.
+ * @param {unknown} a @param {readonly CupPick[]} list the lineup, already checked @param {CupStage} s @returns {string | null}
+ */
+export function assistProblem(a, list, s) {
+  if (a === null) return null;
+  if (s.predefined) return `${s.code} takes no support unit`;
+  if (!isRecord(a) || Object.keys(a).sort((x, y) => (x < y ? -1 : x > y ? 1 : 0)).join() !== 'e,module,skill') return 'the support unit is not { e, skill, module }';
+  const why = entryProblem(a.e);
+  if (why) return why;
+  if (!slot(a.skill) || !slot(a.module)) return `${/** @type {BoxEntry} */ (a.e).id}: the skill or module slot is not −1–2`;
+  const id = /** @type {BoxEntry} */ (a.e).id;
+  return list.some((p) => p.e.id === id) ? `${id} is in the lineup and the support unit` : null;
+}
+
+/**
+ * A lineup as a match's deck (engine 同步-9): each operator with the training it takes in, the support unit last marked
+ * as such. @param {CupPick[]} list @param {CupPick | null} [assist] @returns {{ id: string, build: Build, assist?: true }[]}
+ */
+export const cupDeck = (list, assist = null) => [...list, ...(assist ? [assist] : [])]
+  .map((p) => ({ id: p.e.id, build: buildOf(p.e, p.skill, p.module), ...(p === assist ? { assist: /** @type {const} */ (true) } : {}) }));

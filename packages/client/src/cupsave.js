@@ -1,15 +1,16 @@
 // 阵地足球锦标's progress on this browser (docs/spec/room.md 房间-15): the stages cleared, the lineup last brought — each
-// operator's id with the skill and module slot it takes — and the training effect chosen ('' for none), kept apart from
+// operator's id with the skill and module slot it takes —, the support unit (null for none) and the training effect
+// chosen ('' for none), kept apart from
 // the save (save.js) under a key of its own. Read leniently: what is not well formed is dropped, never the rest.
 import { CUP_STAGES, CUP_LINEUP } from '@icebreaker/mode-regular';
 
 export const CUP_KEY = 'ice.cup';
 
 /** @typedef {{ id: string, skill: number, module: number }} CupChoice */
-/** @typedef {{ v: 1, cleared: string[], picks: CupChoice[], relic: string }} CupSave */
+/** @typedef {{ v: 1, cleared: string[], picks: CupChoice[], assist: CupChoice | null, relic: string }} CupSave */
 
 /** @returns {CupSave} */
-export const emptyCup = () => ({ v: 1, cleared: [], picks: [], relic: '' });
+export const emptyCup = () => ({ v: 1, cleared: [], picks: [], assist: null, relic: '' });
 
 const STAGES = new Set(CUP_STAGES.map((s) => s.stage));
 
@@ -30,7 +31,8 @@ export function readCup(store) {
   if (typeof x !== 'object' || x === null) return emptyCup();
   const cleared = Array.isArray(x.cleared) ? [...new Set(x.cleared.filter((/** @type {unknown} */ s) => typeof s === 'string' && STAGES.has(s)))] : [];
   const seen = new Set(), picks = (Array.isArray(x.picks) ? x.picks : []).filter((/** @type {any} */ p) => choiceOk(p) && !seen.has(p.id) && seen.add(p.id)).slice(0, CUP_LINEUP);
-  return { v: 1, cleared, picks: picks.map((/** @type {CupChoice} */ p) => ({ id: p.id, skill: p.skill, module: p.module })), relic: typeof x.relic === 'string' ? x.relic : '' };
+  const assist = choiceOk(x.assist) && !seen.has(x.assist.id) ? { id: x.assist.id, skill: x.assist.skill, module: x.assist.module } : null;
+  return { v: 1, cleared, picks: picks.map((/** @type {CupChoice} */ p) => ({ id: p.id, skill: p.skill, module: p.module })), assist, relic: typeof x.relic === 'string' ? x.relic : '' };
 }
 
 /** Writes the progress; false when the storage refused it. @param {Storage | null} store @param {CupSave} c */

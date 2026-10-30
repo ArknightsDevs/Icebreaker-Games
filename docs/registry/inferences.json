@@ -236,5 +236,12 @@
     "statement": "锦标奖杯只显示等级与进度：首页的奖杯按钮点开只提示等级和累计积分，不打开奖励列表，奖励不发",
     "basis": "平台没有道具与奖励系统（引擎 ADR 0063 不显示没有对应系统的入口）；等级和每级所需积分取自活动表 milestoneList",
     "status": "待查证"
+  },
+  {
+    "id": "INF-0035",
+    "clause": "页面-11",
+    "statement": "锦标界面的音效：切换赛区时播 ui.ON_ACT1FOOTBALL_SWITCHZONE，选中（不是取消）一种训练效果时播 ui.ON_ACT1FOOTBALL_SWITCHBUFF，结算出现时胜利播 WINSETTLEMENT、失败播 LOSESETTLEMENT；锦标界面与结算显示时换成锦标的菜单音乐",
+    "basis": "audio_data.json 有这些音效库与锦标的菜单音乐 sys.ON_ACTIVITY_LOADED.act1football，名字与界面的动作对应，但由游戏代码在什么时机播放没有资料；进入音效由首页入场片段自己的音效事件播放，不是推断",
+    "status": "待查证"
   }
 ]

@@ -206,7 +206,7 @@ function drawDecor(M) {
     M.p.show(`${at}/unselect`, !on && z.open);
     M.p.show(`${at}/locked`, !z.open);
     M.p.show(`${at}/new`, false);
-    M.p.tap(`${at}/unselect/hotspot`, () => { if (M.zone !== z.i) showZone(M, z.i); });
+    M.p.tap(`${at}/unselect/hotspot`, () => { if (M.zone !== z.i) { M.X.sound('ui.ON_ACT1FOOTBALL_SWITCHZONE'); showZone(M, z.i); } });
   }
   drawTrapButton(M);
 }
@@ -238,7 +238,7 @@ export function openTrapDialog(ui, X, closed) {
   relics.slice(0, 2).forEach((r, i) => t.tap(`@panel_buff_0${i + 1}/panel_card/panel_unlocked/hot_spot`, () => {
     const c = X.get(), on = c.relic !== r.id;
     X.set({ ...c, relic: on ? r.id : '' });
-    if (on) void t.play(`@panel_buff_0${i + 1}`, 'act1football_buff_selected_anim');
+    if (on) { X.sound('ui.ON_ACT1FOOTBALL_SWITCHBUFF'); void t.play(`@panel_buff_0${i + 1}`, 'act1football_buff_selected_anim'); }
     draw();
   }));
   t.tap('@btn_close/hot_spot', close);

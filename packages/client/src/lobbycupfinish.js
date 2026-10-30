@@ -154,6 +154,7 @@ export function createCupFinish(ui, X, r, done) {
   drawReward(p, r);
   void cupOps(X).then((ops) => { if (!p.scr.dead) drawTeam(p, X, ops); }, () => undefined);
   void p.play('@', won ? 'act1football_settlement_victory' : 'act1football_settlement_defeat');
+  X.sound(won ? 'ui.ON_ACT1FOOTBALL_WINSETTLEMENT' : 'ui.ON_ACT1FOOTBALL_LOSESETTLEMENT');
   p.tap('@click_area', done);
   p.tap('@back_rect', done);
   return { part: p, update: () => {}, close: () => closePart(p), state: () => ({ won, score: [...r.score], gained: r.gained }) };

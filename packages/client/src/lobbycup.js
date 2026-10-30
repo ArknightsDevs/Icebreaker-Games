@@ -31,6 +31,7 @@ import { createCupSquad } from './lobbycupsquad.js';
  * @property {any} cupArt the cup pack's art (team icons, key visuals, the training effects' icons)
  * @property {(ids: string[]) => Promise<void>} toBox
  * @property {() => string} player the player's name (the result's strip)
+ * @property {(bank: string) => void} sound plays a sound bank of the audio index (the pages' sounds)
  */
 
 const ENTRY = '@panel_entry';

@@ -51,6 +51,7 @@
 - 浏览器要等玩家第一次点按或按键后才让页面出声，所以在那之前听不到声音。
 - 每帧的表现事件按 音频-2 播放音效；战斗从第 0 帧开始时播放关卡的音乐（音频-3），战斗结束时淡出。
 - 服务器的控制消息（引擎 同步-7、同步-8）里，协作者申请暂停时播 `battle.ON_COOPERATE_PAUSE_CONFIRM`；协作者打开二倍速、而自己还没打开时播 `battle.ON_COOPERATE_SPEED_REQUEST`。
+- 原样式界面要播的音效（引擎 界面-32；阵地足球与锦标横幅的音效，引擎 界面-41、界面-42）由对局页的音频播放；界面在音频准备好之前打开时，那之前的不播。
 - 素材里有语音索引（`voice/index.json`）时干员说话（引擎 音频-4…6）：
   - 拿到这一局的内容后，先加载自己座位的干员按当前配音的全部台词。
   - 每帧的表现事件按 音频-5 说话：部署、部署后第一次攻击敌人、技能开启。
@@ -77,8 +78,9 @@
 - 浏览器要等玩家第一次点按或按键后才让页面出声，所以音乐从那时开始。
 - 页面右上角的「音乐」按钮在 100%、50%、关 之间切换。它就是画面设置里的「音乐」（页面-1），两个页面共用这一项。
 - 比赛开始、页面转到对局页时，音乐按库的交叉淡化秒数淡出，然后才转页面。
+- 阵地足球锦标的原版界面（页面-11）和它的结算显示时，换成锦标的菜单音乐 `sys.ON_ACTIVITY_LOADED.act1football`；回到其他页面时换回 `sys.ON_MULTIV3_LOADED`。两首按新曲的交叉淡化秒数交叉淡化；素材里没有锦标的音乐时继续播原来的。
 
-- 来源：数据：activity_table.json `MULTIPLAY_V3/act1multi` 的 `squadEffectList[]`（iconId、themeColor）、`mapModeDataDict.NORMAL`（name「常规项目」、color d2284b）；audio_data.json `bgmBanks` 的 `sys.ON_MULTIV3_LOADED`（m_sys_act1multi_intro、m_sys_act1multi_loop、volume 1、crossfade 1）；[PRTS「音乐鉴赏/游戏内音乐一览」oldid=440958](https://prts.wiki/index.php?title=%E9%9F%B3%E4%B9%90%E9%89%B4%E8%B5%8F/%E6%B8%B8%E6%88%8F%E5%86%85%E9%9F%B3%E4%B9%90%E4%B8%80%E8%A7%88&oldid=440958)：sys_act1multi 为「促融共竞#1 OST - 罗德行进曲」「「促融共竞」主界面BGM」；图标取自素材的图集；模式图标的对应、各种图标用在哪里为推断 INF-0005；音乐在房间页播放、离开时淡出再转页面为推断 INF-0006
+- 来源：数据：activity_table.json `MULTIPLAY_V3/act1multi` 的 `squadEffectList[]`（iconId、themeColor）、`mapModeDataDict.NORMAL`（name「常规项目」、color d2284b）；audio_data.json `bgmBanks` 的 `sys.ON_MULTIV3_LOADED`（m_sys_act1multi_intro、m_sys_act1multi_loop、volume 1、crossfade 1）；[PRTS「音乐鉴赏/游戏内音乐一览」oldid=440958](https://prts.wiki/index.php?title=%E9%9F%B3%E4%B9%90%E9%89%B4%E8%B5%8F/%E6%B8%B8%E6%88%8F%E5%86%85%E9%9F%B3%E4%B9%90%E4%B8%80%E8%A7%88&oldid=440958)：sys_act1multi 为「促融共竞#1 OST - 罗德行进曲」「「促融共竞」主界面BGM」、`sys.ON_ACTIVITY_LOADED.act1football`（m_sys_act1football_intro、m_sys_act1football_loop）；图标取自素材的图集；模式图标的对应、各种图标用在哪里为推断 INF-0005；音乐在房间页播放、离开时淡出再转页面、锦标界面换成锦标的音乐为推断 INF-0006
 
 ### 页面-6 原版的组队参赛界面
 
@@ -175,6 +177,7 @@
 - **编队页**：活动的编队界面：十二个干员位分两行（先上下后左右），右边是助战位（「助战干员」）和「开始行动」，右上是「快捷编队」，左边是训练效果栏。干员位里是游戏通用的干员卡（稀有度、职业、半身像、等级、精英化、潜能，以及带进比赛的技能和模组的图标），特派干员的卡上有「替补中」；空位显示加号。点干员位或「快捷编队」打开干员选择页（页面-9），选至多 12 名，特派干员按它们自己的练度出现；在详情里点技能选这名干员带进比赛的技能（选中的技能高亮），没有点过的带最后一个技能；模组带等级最高的那个（同级取前一个），没有模组时不带。「确认」后 box 里没有的干员以满练度加入 box（和 页面-9 一样）。点助战位打开选择页选 1 名（全部干员里不在上场干员中的，按满练度显示），同样可以选技能；助战位右上的按钮清掉助战。「开始行动」带上场干员、助战和选中的训练效果开始比赛；没有上场干员时提示「先选上场干员」。
 - **结算**：锦标关卡的比赛结束后，回到房间页先显示活动自己的结算：胜利是蓝色的 VICTORY，失败是灰色的 DEFEAT（各自的片段）；双方队徽、队名和比分，胜利时我方有冠军标记；本队净胜球（领先时带 +），这关的最好比分被刷新时显示 NEW!；获得的锦标积分券、奖杯等级和进度环（升级时有升级光效）、累计积分；十三张卡片是带进比赛的阵容（上场干员按顺序，助战排最后），各显示半身像、精英化、等级、潜能、技能（等级或专精图标）、模组和职业，助战和特派干员各有自己的底色和标记，其余为空卡；上方写玩家名、比赛结束的时间、赛区名、关卡名和代号。点任意处回到这关所在的赛区地图。
 - **返回**：每页的顶部菜单返回上一页（选择页 → 编队页 → 地图 → 活动首页 → 大厅），首页按钮回到大厅；键盘的 Esc 同返回，详情和对话框先收起。比赛结束后回到锦标时打开这关所在的赛区地图。
+- **声音**：首页的入场片段播活动的进入音效（片段里的音效事件 `ui.ON_ACT1FOOTBALL_ENTER`）；切换赛区时播 `ui.ON_ACT1FOOTBALL_SWITCHZONE`，选中一种训练效果时播 `ui.ON_ACT1FOOTBALL_SWITCHBUFF`，结算出现时胜利播 `ui.ON_ACT1FOOTBALL_WINSETTLEMENT`、失败播 `ui.ON_ACT1FOOTBALL_LOSESETTLEMENT`（素材里有时）。音乐见 页面-5。
 
-- 来源：界面、节点、片段和图片取自活动自己的界面包（较早热更新中的 `activity/[uc]act1football.ab`：首页 `act1football_activity_stage`、地图 `zonemap/*`、编队 `squad/*`、训练效果 `templatetrap/act1football_trap_state_view`、结算 `battlefinish/act1football_battle_finish_view`），开始行动的图片取自游戏通用的出击按钮图（`spritepack/ui_start_battle_button_h1_0` 的 `common_start`），训练效果的图标取自 `arts/ui/templatetrap/[uc]template_trap_1football`；活动表 `zoneAdditionDataMap`、`stageAdditionDataMap`（队名、队徽、积分）、`kvSwitchData`、`milestoneList`（奖杯每级所需积分）；[PRTS「阵地足球锦标」oldid=434049](https://prts.wiki/index.php?oldid=434049)「在非教学关卡中获胜可获得锦标积分券，首次完成时还可获得更多的积分券」与关卡表的「通关」「首次通关」积分；地图的打开方式、详情的开合、按钮状态与记分牌为推断 INF-0031，编队页的默认技能与模组、卡片大小、开始行动的图片为推断 INF-0032，结算的字段与 NEW! 的判定为推断 INF-0033，锦标奖杯只显示等级不发奖励为推断 INF-0034
+- 来源：界面、节点、片段和图片取自活动自己的界面包（较早热更新中的 `activity/[uc]act1football.ab`：首页 `act1football_activity_stage`、地图 `zonemap/*`、编队 `squad/*`、训练效果 `templatetrap/act1football_trap_state_view`、结算 `battlefinish/act1football_battle_finish_view`），开始行动的图片取自游戏通用的出击按钮图（`spritepack/ui_start_battle_button_h1_0` 的 `common_start`），训练效果的图标取自 `arts/ui/templatetrap/[uc]template_trap_1football`；活动表 `zoneAdditionDataMap`、`stageAdditionDataMap`（队名、队徽、积分）、`kvSwitchData`、`milestoneList`（奖杯每级所需积分）；[PRTS「阵地足球锦标」oldid=434049](https://prts.wiki/index.php?oldid=434049)「在非教学关卡中获胜可获得锦标积分券，首次完成时还可获得更多的积分券」与关卡表的「通关」「首次通关」积分；地图的打开方式、详情的开合、按钮状态与记分牌为推断 INF-0031，编队页的默认技能与模组、卡片大小、开始行动的图片为推断 INF-0032，结算的字段与 NEW! 的判定为推断 INF-0033，锦标奖杯只显示等级不发奖励为推断 INF-0034；音效取自 audio_data.json 的 `ui.ON_ACT1FOOTBALL_*`（enter、switchzone、switchbuff、winsettlement、losesettlement），切换赛区、选中训练效果、结算时播放为推断 INF-0035
 

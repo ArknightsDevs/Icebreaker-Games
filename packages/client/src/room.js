@@ -228,7 +228,7 @@ async function lobbyMode() {
     S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, setList, invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
     setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
     backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }), openCup: () => cupOpen(true),
-    cup: { get: () => cupSave, set: setCup, start: cupStart, relics: relicsOf, toBox },
+    cup: { get: () => cupSave, set: setCup, start: cupStart, relics: relicsOf, toBox }, music: (bank) => music.use(bank),
   }).catch((e) => { console.error(e); return null; });
   // the lobby's entry screen, or the page's own room without the lobby pack, takes over from the loading screen (页面-8)
   bootDone();
@@ -345,4 +345,5 @@ draw();
 connect();
 void lobbyMode();
 // for end-to-end tests and the console
-Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null, lobby: () => lobby?.state() ?? null, cup: () => ({ save: cupSave, ...cup.state() }) } });
+Object.assign(globalThis, { __room: { state: () => S, save: () => save, art: () => atlas !== null, lobby: () => lobby?.state() ?? null, cup: () => ({ save: cupSave, ...cup.state() }),
+  music: () => music.playing() } });

@@ -15,6 +15,10 @@ import { createPrepare } from './lobbyprepare.js';
 import { createFinish } from './lobbyfinish.js';
 import { createMatch } from './lobbymatch.js';
 import { createTraining, trainingProject, cupProject } from './lobbytrain.js';
+import { createCup } from './lobbycup.js';
+import { createCupFinish } from './lobbycupfinish.js';
+import { cupStage, CUP_ZONES } from '@icebreaker/mode-regular';
+import { mergeCup, cupSprites } from './cuppack.js';
 import { createLobbySound } from './lobbysound.js';
 import { AFTER_TICK } from './lobby3d.js';
 import { startLobbyFx } from './lobbyfx.js';
@@ -24,11 +28,17 @@ import { assetsUrl } from './site.js';
 
 /** @typedef {import('./roomview.js').RoomState} RoomState @typedef {import('./roomview.js').RoomActions} RoomActions */
 /**
+ * 阵地足球锦标 as the room page keeps it (房间-15): the progress and its keeping, a stage's match, the training effects of
+ * a level, operators new to the box put into it at their full training.
+ * @typedef {Pick<import('./lobbycup.js').CupCtx, 'get' | 'set' | 'start' | 'relics' | 'toBox'>} CupHost
+ */
+/**
  * What the room page gives the lobby: its state and actions, the save's box entries, setting the style, setting a list
- * of the 常规队 (the operator select page, 页面-9), its back button shown or not, the invitation text, the sound volume.
+ * of the 常规队 (the operator select page, 页面-9), its back button shown or not, the invitation text, the sound volume,
+ * 阵地足球锦标's panel (without the cup UI pack) and its progress.
  * @typedef {{ S: RoomState, A: RoomActions, entry: (id: string) => import('@icebreaker/mode-regular').BoxEntry | null, setStyle: (id: string) => void,
  *   setList: (list: 'high' | 'low', ids: string[]) => Promise<void>, backButton: (on: boolean) => void, invite: () => string,
- *   sfx: number, card: () => any, openCup?: () => void }} LobbyHost
+ *   sfx: number, card: () => any, openCup?: () => void, cup?: CupHost }} LobbyHost
  */
 
 const ASSETS = assetsUrl(), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
@@ -101,11 +111,13 @@ export async function startLobby(el, H) {
   const pack = await fetchJson(new URL('lobby.json', UI));
   if (!pack?.screens) return null;
   bootStep('正在载入大厅界面', 0.45);
-  const [battle, manifest, skills, atlas, portraits, equips, illusts, season, emoticons] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
+  const [battle, manifest, skills, atlas, portraits, equips, illusts, season, emoticons, cup] = await Promise.all([fetchJson(new URL('battle.json', UI)), fetchJson(new URL('manifest.json', ASSETS)),
     fetchJson(new URL('skills/index.json', UI)), loadRoomAtlas(ROOM_ART), fetchJson(new URL('portraits/index.json', ASSETS)),
     fetchJson(new URL('uniequip/index.json', ASSETS)), fetchJson(new URL('charillust/index.json', ASSETS)), fetchJson(new URL('season/index.json', ASSETS)),
-    fetchJson(new URL('emoticons/index.json', UI))]);
+    fetchJson(new URL('emoticons/index.json', UI)), fetchJson(new URL('cup.json', UI))]);
   addArt(pack, season);
+  // 阵地足球锦标's own pages (页面-11), when the assets have its pack
+  mergeCup(pack, cup);
   const sound = createLobbySound(new URL('audio/', ASSETS).href, H.sfx);
   const ui = createUi(/** @type {any} */ ({ pack, host: el, base: UI, sound: (/** @type {string} */ b) => sound.play(b) }));
   await ui.load(bootCounter('正在载入大厅界面', 0.55, 0.97, Object.keys(pack.sprites).length));
@@ -219,12 +231,47 @@ function stepCtx(H, G, L, K) {
 }
 
 /**
+ * What 阵地足球锦标's pages work with (页面-11): the room page's progress and match, the lobby's toast, leaving to the
+ * entry page, the roster, the box, training data, the cards' pictures and both packs' art.
+ * @param {LobbyHost} H @param {any} G @param {import('./lobbymap.js').Local} L @param {{ X: import('./lobbystage.js').StepCtx, draw: () => void }} K
+ * @returns {import('./lobbycup.js').CupCtx}
+ */
+function cupCtx(H, G, L, K) {
+  const C = /** @type {CupHost} */ (H.cup);
+  return { get: C.get, set: C.set, start: C.start, relics: C.relics, toBox: C.toBox, toast: K.X.toast, leave: () => { L.cup = false; K.draw(); },
+    roster: ROSTER, entry: H.entry, training: loadTraining, cards: G.cards, art: G.pack.art, cupArt: G.pack.cup?.art ?? null, player: () => H.card()?.name ?? '' };
+}
+
+/**
+ * The result page (页面-6): a 阵地足球锦标 stage's on the event's own view when the assets have its pack (页面-11), else
+ * the activity's. @param {any} ui @param {LobbyHost} H @param {any} G @param {import('./lobbymap.js').Local} L
+ * @param {{ X: import('./lobbystage.js').StepCtx, draw: () => void, cupZone: (z: number) => number, cupAfter: () => void }} K
+ */
+function finishPage(ui, H, G, L, K) {
+  const { X, draw, cupAfter } = K, A = H.A, r = /** @type {import('./lobbymap.js').MatchResult} */ (L.finish), end = r.cup && G.pack.cup && H.cup ? r.cupEnd ?? null : null;
+  if (end) return createCupFinish(ui, cupCtx(H, G, L, K), { ...end, result: r.result, level: r.level, ...(r.at ? { at: r.at } : {}) }, () => { cupAfter(); L.finish = null; draw(); });
+  return createFinish(ui, /** @type {any} */ (r), { X, project: (level, difficulty) => X.projects().find((p) => p.level === level && p.difficulty === (difficulty ?? 'NORMAL'))
+    ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : CUP_LEVELS.includes(level) ? cupProject(level) : null),
+    players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
+    together: () => togetherOf(H), playTogether: () => A.send({ t: 'together' }),
+    // after a training its room page again (房间-11), after a 阵地足球锦标 match its pages or its panel (房间-15)
+    done: () => { L.train = !!L.finish?.training; if (L.finish?.cup) cupAfter(); L.finish = null; draw(); },
+    quit: () => { L.train = !!L.finish?.training; L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } });
+}
+
+/**
  * Each page's maker. @param {any} ui @param {LobbyHost} H @param {any} G @param {import('./lobbymap.js').Local} L
- * @param {{ X: import('./lobbystage.js').StepCtx, draw: () => void }} K @returns {Record<string, () => any>}
+ * @param {{ X: import('./lobbystage.js').StepCtx, draw: () => void, cupZone: (z: number) => number }} K @returns {Record<string, () => any>}
  */
 function pageMakers(ui, H, G, L, K) {
   const { X, draw } = K;
   const A = H.A;
+  // after a 阵地足球锦标 match its pages at the stage's zone map (页面-11), or its panel without them (房间-15)
+  const cupAfter = () => {
+    if (!G.pack.cup || !H.cup) { H.openCup?.(); return; }
+    L.cup = true;
+    K.cupZone(CUP_ZONES.findIndex((z) => z.id === cupStage(L.finish?.level ?? '')?.zone));
+  };
   return {
     entry: () => createEntry(ui, { create: () => A.send({ t: 'create' }), join: (code) => A.send({ t: 'join', code }), squad: () => { L.squad = true; draw(); },
       match: () => { L.match = true; draw(); }, train: () => { L.train = true; draw(); },
@@ -243,13 +290,9 @@ function pageMakers(ui, H, G, L, K) {
       train: A.train, X, modeIcon: (type) => spriteUrl(G.atlas, ROOM_ART, /** @type {Record<string, string>} */ (MODE_ICONS)[type] ?? ''),
       back: () => { L.train = false; draw(); },
     }),
-    finish: () => createFinish(ui, /** @type {any} */ (L.finish), { X, project: (level, difficulty) => X.projects().find((p) => p.level === level && p.difficulty === (difficulty ?? 'NORMAL'))
-      ?? (TRAINING_LEVELS.includes(level) ? trainingProject(level) : CUP_LEVELS.includes(level) ? cupProject(level) : null),
-      players: () => playersOf(H), likes: () => likesOf(H), like: () => A.send({ t: 'like' }),
-      together: () => togetherOf(H), playTogether: () => A.send({ t: 'together' }),
-      // after a training its room page again (房间-11), after a 阵地足球锦标 match its panel (房间-15)
-      done: () => { L.train = !!L.finish?.training; if (L.finish?.cup) H.openCup?.(); L.finish = null; draw(); },
-      quit: () => { L.train = !!L.finish?.training; L.finish = null; if (H.S.view) A.send({ t: 'leave' }); draw(); } }),
+    // 阵地足球锦标's pages (页面-11), at a stage's zone map after its match
+    cup: () => { const c = createCup(ui, cupCtx(H, G, L, K)), zone = K.cupZone(-1); if (zone >= 0) c.openZone(zone); return c; },
+    finish: () => finishPage(ui, H, G, L, { ...K, cupAfter }),
   };
 }
 
@@ -298,7 +341,9 @@ function lobbyOn(ui, H, G) {
   const icon = (style, variant) => { const s = STYLES.find((x) => x.id === style); return s ? styleIcon(G.atlas, ROOM_ART, s.icon, /** @type {any} */ (variant)) : null; };
   const toast = (/** @type {string} */ t) => toastOn(ui, t), skills = skillIdsOf(() => draw());
   const X = stepCtx(H, G, L, { draw: () => draw(), back: () => back(), toast, ask: (t, y, fn) => askOn(ui, t, y, fn), icon, skills });
-  const makers = pageMakers(ui, H, G, L, { X, draw: () => draw() });
+  // the zone map 阵地足球锦标's pages open at after a stage's match (页面-11), −1 for none: set, and taken back once
+  let cupZone = -1;
+  const makers = pageMakers(ui, H, G, L, { X, draw: () => draw(), cupZone: (z) => { const was = cupZone; cupZone = z; return was; } });
 
   function draw() {
     const key = pageOf(S, L);
@@ -309,8 +354,8 @@ function lobbyOn(ui, H, G) {
       H.backButton(false);
     }
     if (S.view?.phase !== 'lineup') L.sub = 'sel';
-    // a room — a matched one too — ends the quick match page and the training room page (房间-9, 房间-11)
-    if (S.view) { L.match = false; L.train = false; }
+    // a room — a matched one too — ends the quick match page, the training room page and the cup's (房间-9, 房间-11, 房间-15)
+    if (S.view) { L.match = false; L.train = false; L.cup = false; }
     members = memberToast(S.view, members, toast);
     page.c?.update?.(S, L);
   }
@@ -321,6 +366,7 @@ function lobbyOn(ui, H, G) {
     if (page.key === 'squad') { if (!page.c.back()) { L.squad = false; draw(); } return; }
     if (page.key === 'entry') { void page.c.back(); return; }
     if (page.key === 'train') { L.train = false; draw(); return; }
+    if (page.key === 'cup') { if (!page.c.back()) { L.cup = false; draw(); } return; }
     if (L.list) { L.list = false; draw(); return; }
     if (S.view?.phase !== 'lineup' || L.sub === 'sel') { X.leave(); return; }
     if (S.view.ready[S.view.you]) H.A.send({ t: 'ready', on: false });
@@ -331,8 +377,11 @@ function lobbyOn(ui, H, G) {
   runUi(ui, () => { if (page.key === 'prepare' || page.key === 'match') page.c?.tick(S); });
   return {
     ui, draw, toast, back,
-    /** A match's result to show first. @param {import('./lobbymap.js').MatchResult} r */
-    result: (r) => { L.finish = r; draw(); },
+    /** A match's result to show first (a 阵地足球锦标 stage's once the cup pack's sprites are in, 页面-11). @param {import('./lobbymap.js').MatchResult} r */
+    result: (r) => {
+      const show = () => { L.finish = r; draw(); };
+      if (r.cup && G.pack.cup && H.cup) void cupSprites(ui, { base: UI }).then(show); else show();
+    },
     /** An emote came (房间-7): its bubble shows on the next drawing. */
     emote: () => draw(),
     /** The search for a mate started (房间-9): its banner. */
@@ -343,10 +392,20 @@ function lobbyOn(ui, H, G) {
     failed: () => { if (page.key === 'entry') page.c.failed(); },
     /** Before the match: the countdown and its logo, then black (at most 8 seconds). */
     start: () => Promise.race([page.key === 'prepare' ? page.c.start() : Promise.resolve(), new Promise((done) => { setTimeout(done, 8000); })]),
+    /**
+     * Opens 阵地足球锦标's pages (页面-11) once their sprites are in; false when the assets have no cup pack (the room
+     * page's panel then, 房间-15).
+     */
+    openCup: () => {
+      if (!G.pack.cup || !H.cup) return false;
+      void cupSprites(ui, { base: UI }).then(() => { L.finish = null; L.cup = true; draw(); });
+      return true;
+    },
     /** The player's sound volume, 0–1. @param {number} v */
     volume: (v) => G.sound.volume(v),
     resume: () => G.sound.resume(),
     /** What the lobby shows, for tests. */
-    state: () => ({ page: page.key, local: { ...L }, sounds: G.sound.heard(), chat: page.key === 'prepare' ? page.c?.chat?.state?.() ?? null : null }),
+    state: () => ({ page: page.key, local: { ...L }, sounds: G.sound.heard(), chat: page.key === 'prepare' ? page.c?.chat?.state?.() ?? null : null,
+      cup: page.key === 'cup' ? page.c?.state() ?? null : null }),
   };
 }

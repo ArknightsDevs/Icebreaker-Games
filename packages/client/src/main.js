@@ -26,7 +26,7 @@ import { createTutorial } from './tutorial.js';
 import { createSignals, loadEmoteArt } from './battlesignals.js';
 import { startTurn } from './turn.js';
 import { TRAINING, TRAINING_LEVELS, CUP_TUTORIAL, STADIUM_NAMES, cupStage } from '@icebreaker/mode-regular';
-import { readCup, writeCup, clearedWith } from './cupsave.js';
+import { readCup, writeCup, wonWith } from './cupsave.js';
 
 // a phone plays in landscape (页面-7), before anything measures the page
 startTurn(/** @type {HTMLButtonElement | null} */ (document.getElementById('full')));
@@ -478,23 +478,28 @@ function ended(result, P, status) {
   const level = /** @type {any} */ (P.game?.content.level)?.id ?? '', bg = lastFrame(P), f = status.fortress, difficulty = P.game?.match.difficulty ?? 'NORMAL';
   // 阵地足球's stamps are of the net goals at the match's end (the engine's 足球-7)
   const fb = status.football, stamps = f ? [f.stamps] : fb ? [fb.stamps] : [...P.stamps].map((x) => x ?? 0), fortress = f ? { defended: f.defended, damage: Math.floor(f.damage) } : undefined;
-  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, difficulty, stamps, fortress, at: Date.now() })); } catch { /* the room shows no result */ }
+  const cup = cupResult(level, result, fb);
+  try { sessionStorage.setItem('ice.result', JSON.stringify({ match: MATCH, result, level, difficulty, stamps, fortress, cup, at: Date.now() })); } catch { /* the room shows no result */ }
   try { if (bg) sessionStorage.setItem('ice.result.bg', bg); } catch { /* the result shows without it */ }
   const back = document.createElement('a');
   back.href = 'room';
   back.className = 'back';
-  back.textContent = backText(level, result);
+  back.textContent = TRAINING_LEVELS.includes(level) ? '返回训练场' : cupStage(level) ? '返回锦标赛' : '返回房间';
   $('notice').append(' ', back);
 }
 
 /**
- * The way back's text after a match (房间-6, 房间-11, 房间-15); a 阵地足球锦标 stage won is cleared on this browser, the
- * stages after it open. @param {string} level @param {number} result
+ * A 阵地足球锦标 stage's match ended (房间-15): won, it is cleared on this browser (the stages after it open), its
+ * 锦标积分券 added, its best score kept. Its score, the points it gave, the points now and whether the score is the
+ * stage's new best, for the result (页面-11); undefined for another level.
+ * @param {string} level @param {number} result @param {import('@aue/worker').Status['football']} fb
  */
-function backText(level, result) {
-  const cup = cupStage(level);
-  if (cup && result === 1) writeCup(store, clearedWith(readCup(store), cup.stage));
-  return TRAINING_LEVELS.includes(level) ? '返回训练场' : cup ? '返回锦标赛' : '返回房间';
+function cupResult(level, result, fb) {
+  const s = cupStage(level), score = /** @type {[number, number]} */ ([fb?.home ?? 0, fb?.away ?? 0]);
+  if (!s) return undefined;
+  const was = readCup(store), won = result === 1 ? wonWith(was, s, score) : { save: was, gained: 0 };
+  if (result === 1) writeCup(store, won.save);
+  return { score, gained: won.gained, points: won.save.points, best: won.save.best[s.stage] === score };
 }
 
 /** The match's side is ready: its input, its resize, its render loop. @param {Page} P @param {Awaited<ReturnType<typeof setUp>>} g */

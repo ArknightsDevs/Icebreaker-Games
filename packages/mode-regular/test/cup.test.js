@@ -2,7 +2,8 @@
 // special operators, the lineup's rules and the deck it makes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CUP_NAME, CUP_ZONES, CUP_STAGES, CUP_LEVELS, CUP_LINEUP, CUP_NPCS, CUP_TUTORIAL, cupStage, cupOpen, cupNpcEntries, lineupProblem, assistProblem, cupDeck } from '../src/index.js';
+import { CUP_NAME, CUP_ZONES, CUP_STAGES, CUP_LEVELS, CUP_LINEUP, CUP_NPCS, CUP_TUTORIAL, CUP_TROPHY, cupStage, cupOpen, cupNpcEntries, cupPoints, trophyLevel, cupKv, lineupProblem, assistProblem,
+  cupDeck } from '../src/index.js';
 
 /** A well-formed box entry. @param {string} id */
 const entry = (id) => ({ id, elite: 2, level: 90, potential: 1, trust: 100, skills: [10, 10, 10], modules: [0, 2] });
@@ -71,4 +72,14 @@ test('[房间-15] the support unit: none always may; none on PF-TR-1; else one w
   const deck = cupDeck(list, a);
   assert.deepEqual(deck.map((d) => [d.id, d.assist ?? false]), [['char_002_amiya', false], ['char_017_huang', true]]);
   assert.deepEqual(cupDeck(list).map((d) => d.id), ['char_002_amiya'], 'none: the lineup alone');
+});
+
+test('[房间-15] 锦标积分券: a win gives the stage its points, a first win its first-win points besides; 55 trophy levels of 50 each; the key visual after PF-EX-4', () => {
+  const s = (/** @type {string} */ id) => /** @type {any} */ (cupStage(id));
+  assert.deepEqual([cupPoints(s('act1football_01'), true), cupPoints(s('act1football_01'), false), cupPoints(s('act1football_ex04'), true), cupPoints(s('act1football_tr01'), true)], [100, 25, 240, 0]);
+  assert.deepEqual(CUP_STAGES.map((x) => x.points.complete), [0, 25, 25, 30, 30, 40, 40, 50, 40, 40, 50, 60, 100, 120], 'stageAdditionDataMap completePoint');
+  assert.deepEqual([CUP_TROPHY.length, CUP_TROPHY[0], CUP_TROPHY.at(-1)], [55, 50, 2750]);
+  assert.ok(CUP_TROPHY.every((p, i) => p === 50 * (i + 1)));
+  assert.deepEqual([trophyLevel(0), trophyLevel(49), trophyLevel(50), trophyLevel(860), trophyLevel(1e6)], [0, 0, 1, 17, 55]);
+  assert.deepEqual([cupKv([]), cupKv(['act1football_ex04'])], ['act1football_img_01', 'act1football_img_02']);
 });

@@ -1,6 +1,8 @@
 // Extracts what 阵地足球锦标 takes from the game's activity table (docs/spec/room.md 房间-15): its zones (晋级赛, 淘汰赛,
 // 特训赛), its stages in order — each its level, code, name, zone, description, whether its operators are all the
-// level's own (isPredefined), the stages it opens after, the two teams, the training effect it unlocks —, the special operators lent in every match, and the stories its levels tell.
+// level's own (isPredefined), the stages it opens after, the two teams, the training effect it unlocks, the points a win
+// and a first win give —, the special operators lent in every match, the stories its levels tell, the points each 锦标奖杯
+// level takes and the entry page's key visuals.
 // Usage: node tools/extract-cup.js --gamedata <ArknightsGameData checkout>
 // Writes packages/mode-regular/data/act1football.json (the same input gives byte-identical output).
 import { execFileSync } from 'node:child_process';
@@ -56,6 +58,7 @@ export function extract(root) {
       after: s.unlockCondition.map((/** @type {any} */ c) => c.stageId).filter((/** @type {string} */ x) => own.has(x)),
       ours: { name: add.selfTeamName, icon: add.selfTeamIcon }, theirs: { name: add.enemyTeamName, icon: add.enemyTeamIcon },
       buff: add.unlockBuffId ? { id: add.unlockBuffId, name: add.unlockBuffName, icon: add.unlockBuffIcon, desc: add.unlockBuffDesc } : null,
+      points: { complete: add.completePoint, first: add.firstCompletePoint },
     };
   });
   const zones = [...new Set(stages.map((s) => s.zone))].sort((x, y) => zoneTable[x].zoneIndex - zoneTable[y].zoneIndex)
@@ -78,6 +81,11 @@ export function extract(root) {
     })),
     stories,
     vars: Object.fromEntries(used.map((k) => [k, known[k]])),
+    // 锦标奖杯: the points each of its levels takes in all (milestoneList's tokenNum, by orderId)
+    trophy: [...a.milestoneList].sort((/** @type {any} */ x, /** @type {any} */ y) => x.orderId - y.orderId).map((/** @type {any} */ m) => m.tokenNum),
+    // the entry page's key visual: the default one, and the one after a stage is completed (kvSwitchData)
+    kv: Object.entries(table.kvSwitchData[ACTIVITY]?.kvSwitchInfo ?? {}).sort((x, y) => (x[0] < y[0] ? -1 : 1))
+      .map(([name, k]) => ({ name, stage: /** @type {any} */ (k).isDefault ? null : /** @type {any} */ (k).stageId })),
   };
 }
 

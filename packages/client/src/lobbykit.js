@@ -3,7 +3,7 @@
 // prefabs opened inside its container nodes, its list nodes filled from their templates, its switches and buttons set
 // to a state, a text box over its input field, its clips played. The engine's UI does each of these (界面-24…34); this
 // keeps the page's references and closes what was opened inside a screen with it.
-import { refNode, setText, copyRect, FULL_RT } from '@aue/ui';
+import { refNode, nodeAt, setText, copyRect, FULL_RT } from '@aue/ui';
 
 /** @typedef {import('@aue/ui').UiNode} UiNode @typedef {import('@aue/ui').Screen} Screen */
 
@@ -103,6 +103,35 @@ export class Part {
       };
       step();
     });
+  }
+}
+
+/** The first node under a node whose path from it ends with a tail, walking its subtree. @param {UiNode} root @param {string} tail @returns {UiNode | null} */
+function underTail(root, tail) {
+  /** @param {UiNode} s @param {string} path @returns {UiNode | null} */
+  const go = (s, path) => {
+    for (const k of s.kids) {
+      const at = path ? `${path}/${k.n.name}` : k.n.name;
+      if (at === tail || at.endsWith(`/${tail}`)) return k;
+      const r = go(k, at);
+      if (r) return r;
+    }
+    return null;
+  };
+  return go(root, '');
+}
+
+/**
+ * A part over a node inside a prefab that is no prefab of its own (an item a layout holds, a map's stage item): its
+ * references ('@path') and tails resolve under the node itself, walking its subtree — the screen's tails would also
+ * find the nodes of its siblings, which share its path.
+ */
+export class NodePart extends Part {
+  /** @override @param {string | null | undefined} r */
+  node(r) {
+    if (!r) return null;
+    if (r === '@') return this.root;
+    return r.startsWith('@') ? nodeAt(this.root, r.slice(1)) : underTail(this.root, r);
   }
 }
 

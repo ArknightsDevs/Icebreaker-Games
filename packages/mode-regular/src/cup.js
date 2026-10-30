@@ -11,9 +11,11 @@ import { entryProblem, buildOf } from './squads.js';
 /**
  * A stage of the event: its id, the level it plays (the engine's), its code, name, zone, description as rich text,
  * whether its operators are all the level's own (the training stage: no lineup is brought), the stages of the event it
- * opens after, the two teams' names and icons, the training effect clearing it unlocks.
+ * opens after, the two teams' names and icons, the training effect clearing it unlocks, the 锦标积分券 a win gives and a
+ * first win gives besides.
  * @typedef {{ stage: string, level: string, code: string, name: string, zone: string, detail: string, predefined: boolean, after: string[],
- *   ours: { name: string, icon: string }, theirs: { name: string, icon: string }, buff: { id: string, name: string, icon: string, desc: string } | null }} CupStage
+ *   ours: { name: string, icon: string }, theirs: { name: string, icon: string }, buff: { id: string, name: string, icon: string, desc: string } | null,
+ *   points: { complete: number, first: number } }} CupStage
  */
 /** An operator of a lineup: its box entry, the skill slot (−1: none) and module (−1: none) it takes into the match. @typedef {{ e: BoxEntry, skill: number, module: number }} CupPick */
 
@@ -36,6 +38,24 @@ export const cupStage = (id) => CUP_STAGES.find((s) => s.stage === id || s.level
 export function cupOpen(s, cleared) {
   const done = new Set(cleared);
   return s.after.every((x) => done.has(x));
+}
+
+/** The points each 锦标奖杯 level takes in all, level 1 first (房间-15). @type {readonly number[]} */
+export const CUP_TROPHY = Object.freeze([...data.trophy]);
+
+/**
+ * 锦标积分券 a won stage gives (房间-15: 「在非教学关卡中获胜可获得锦标积分券，首次完成时还可获得更多的积分券」): its
+ * win's points, and on its first win its first win's besides. @param {CupStage} s @param {boolean} first
+ */
+export const cupPoints = (s, first) => s.points.complete + (first ? s.points.first : 0);
+
+/** The 锦标奖杯 level points reach: how many levels' points they hold (0 to the last level). @param {number} points */
+export const trophyLevel = (points) => CUP_TROPHY.filter((p) => p <= points).length;
+
+/** The entry page's key visual (房间-15): the last one whose stage is cleared, else the default. @param {Iterable<string>} cleared */
+export function cupKv(cleared) {
+  const done = new Set(cleared);
+  return data.kv.reduce((at, k) => (k.stage === null || done.has(k.stage) ? k.name : at), data.kv[0]?.name ?? '');
 }
 
 /** The stadiums' names (锦标-2), by the engine's stadium names: as PF-S-1's description lists them. */

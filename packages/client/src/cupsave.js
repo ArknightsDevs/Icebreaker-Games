@@ -1,21 +1,27 @@
 // 阵地足球锦标's progress on this browser (docs/spec/room.md 房间-15): the stages cleared, the lineup last brought — each
 // operator's id with the skill and module slot it takes —, the support unit (null for none) and the training effect
-// chosen ('' for none), kept apart from
-// the save (save.js) under a key of its own. Read leniently: what is not well formed is dropped, never the rest.
-import { CUP_STAGES, CUP_LINEUP } from '@icebreaker/mode-regular';
+// chosen ('' for none), the 锦标积分券 won and each cleared stage's best score (ours, theirs), kept apart from the save
+// (save.js) under a key of its own. Read leniently: what is not well formed is dropped, never the rest.
+import { CUP_STAGES, CUP_LINEUP, cupPoints } from '@icebreaker/mode-regular';
 
 export const CUP_KEY = 'ice.cup';
 
 /** @typedef {{ id: string, skill: number, module: number }} CupChoice */
-/** @typedef {{ v: 1, cleared: string[], picks: CupChoice[], assist: CupChoice | null, relic: string }} CupSave */
+/**
+ * @typedef {{ v: 1, cleared: string[], picks: CupChoice[], assist: CupChoice | null, relic: string, points: number,
+ *   best: Record<string, [number, number]> }} CupSave
+ */
 
 /** @returns {CupSave} */
-export const emptyCup = () => ({ v: 1, cleared: [], picks: [], assist: null, relic: '' });
+export const emptyCup = () => ({ v: 1, cleared: [], picks: [], assist: null, relic: '', points: 0, best: {} });
 
 const STAGES = new Set(CUP_STAGES.map((s) => s.stage));
 
 /** @param {unknown} x */
 const slot = (x) => Number.isInteger(x) && /** @type {number} */ (x) >= -1 && /** @type {number} */ (x) <= 2;
+
+/** @param {unknown} x */
+const count = (x) => Number.isInteger(x) && /** @type {number} */ (x) >= 0 && /** @type {number} */ (x) <= 1e6;
 
 /** @param {any} p @returns {p is CupChoice} */
 const choiceOk = (p) => typeof p === 'object' && p !== null && typeof p.id === 'string' && /^char_\d{3,4}_[a-z0-9]{1,16}$/.test(p.id) && slot(p.skill) && slot(p.module);
@@ -25,6 +31,13 @@ function parsed(store) {
   try { return JSON.parse(store?.getItem(CUP_KEY) ?? 'null'); } catch { return null; }
 }
 
+/** The best scores kept, those of stages of the event as two counts. @param {unknown} x @returns {Record<string, [number, number]>} */
+function bestOf(x) {
+  if (typeof x !== 'object' || x === null) return {};
+  return Object.fromEntries(Object.entries(x).filter(([k, v]) => STAGES.has(k) && Array.isArray(v) && v.length === 2 && v.every(count))
+    .map(([k, v]) => [k, /** @type {[number, number]} */ ([v[0], v[1]])]));
+}
+
 /** The progress kept in a storage, an empty one when there is none or it is unreadable. @param {Storage | null} store @returns {CupSave} */
 export function readCup(store) {
   const x = parsed(store);
@@ -32,7 +45,8 @@ export function readCup(store) {
   const cleared = Array.isArray(x.cleared) ? [...new Set(x.cleared.filter((/** @type {unknown} */ s) => typeof s === 'string' && STAGES.has(s)))] : [];
   const seen = new Set(), picks = (Array.isArray(x.picks) ? x.picks : []).filter((/** @type {any} */ p) => choiceOk(p) && !seen.has(p.id) && seen.add(p.id)).slice(0, CUP_LINEUP);
   const assist = choiceOk(x.assist) && !seen.has(x.assist.id) ? { id: x.assist.id, skill: x.assist.skill, module: x.assist.module } : null;
-  return { v: 1, cleared, picks: picks.map((/** @type {CupChoice} */ p) => ({ id: p.id, skill: p.skill, module: p.module })), assist, relic: typeof x.relic === 'string' ? x.relic : '' };
+  return { v: 1, cleared, picks: picks.map((/** @type {CupChoice} */ p) => ({ id: p.id, skill: p.skill, module: p.module })), assist, relic: typeof x.relic === 'string' ? x.relic : '',
+    points: count(x.points) ? x.points : 0, best: bestOf(x.best) };
 }
 
 /** Writes the progress; false when the storage refused it. @param {Storage | null} store @param {CupSave} c */
@@ -42,3 +56,16 @@ export function writeCup(store, c) {
 
 /** The progress with a stage cleared. @param {CupSave} c @param {string} stage @returns {CupSave} */
 export const clearedWith = (c, stage) => (c.cleared.includes(stage) ? c : { ...c, cleared: [...c.cleared, stage] });
+
+/** Whether a score beats another: a larger lead, then more goals. @param {[number, number]} a @param {[number, number] | undefined} b */
+const better = (a, b) => !b || a[0] - a[1] > b[0] - b[1] || (a[0] - a[1] === b[0] - b[1] && a[0] > b[0]);
+
+/**
+ * The progress after a stage is won (房间-15): cleared, its 锦标积分券 added (its first win's besides on the first), its
+ * best score kept. @param {CupSave} c @param {import('@icebreaker/mode-regular').CupStage} s @param {[number, number]} score ours, theirs
+ * @returns {{ save: CupSave, gained: number }}
+ */
+export function wonWith(c, s, score) {
+  const gained = cupPoints(s, !c.cleared.includes(s.stage)), best = better(score, c.best[s.stage]) ? { ...c.best, [s.stage]: score } : c.best;
+  return { save: { ...clearedWith(c, s.stage), points: c.points + gained, best }, gained };
+}

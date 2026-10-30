@@ -19,6 +19,7 @@ import { createCup } from './lobbycup.js';
 import { createCupFinish } from './lobbycupfinish.js';
 import { cupStage, CUP_ZONES } from '@icebreaker/mode-regular';
 import { mergeCup, cupSprites } from './cuppack.js';
+import { ROOM_MUSIC, CUP_MUSIC } from './roommusic.js';
 import { createLobbySound } from './lobbysound.js';
 import { AFTER_TICK } from './lobby3d.js';
 import { startLobbyFx } from './lobbyfx.js';
@@ -35,10 +36,10 @@ import { assetsUrl } from './site.js';
 /**
  * What the room page gives the lobby: its state and actions, the save's box entries, setting the style, setting a list
  * of the 常规队 (the operator select page, 页面-9), its back button shown or not, the invitation text, the sound volume,
- * 阵地足球锦标's panel (without the cup UI pack) and its progress.
+ * 阵地足球锦标's panel (without the cup UI pack) and its progress, the music bank the page plays.
  * @typedef {{ S: RoomState, A: RoomActions, entry: (id: string) => import('@icebreaker/mode-regular').BoxEntry | null, setStyle: (id: string) => void,
  *   setList: (list: 'high' | 'low', ids: string[]) => Promise<void>, backButton: (on: boolean) => void, invite: () => string,
- *   sfx: number, card: () => any, openCup?: () => void, cup?: CupHost }} LobbyHost
+ *   sfx: number, card: () => any, openCup?: () => void, cup?: CupHost, music?: (bank: string) => void }} LobbyHost
  */
 
 const ASSETS = assetsUrl(), UI = new URL('ui/', ASSETS).href, ROOM_ART = new URL('ui/room/', ASSETS).href;
@@ -239,7 +240,8 @@ function stepCtx(H, G, L, K) {
 function cupCtx(H, G, L, K) {
   const C = /** @type {CupHost} */ (H.cup);
   return { get: C.get, set: C.set, start: C.start, relics: C.relics, toBox: C.toBox, toast: K.X.toast, leave: () => { L.cup = false; K.draw(); },
-    roster: ROSTER, entry: H.entry, training: loadTraining, cards: G.cards, art: G.pack.art, cupArt: G.pack.cup?.art ?? null, player: () => H.card()?.name ?? '' };
+    roster: ROSTER, entry: H.entry, training: loadTraining, cards: G.cards, art: G.pack.art, cupArt: G.pack.cup?.art ?? null, player: () => H.card()?.name ?? '',
+    sound: (bank) => { void G.sound.play(bank); } };
 }
 
 /**
@@ -352,6 +354,8 @@ function lobbyOn(ui, H, G) {
       page = { key, c: makers[key]() };
       // the pages' own top menus (the game's common one) do the going back: the page's button stays hidden
       H.backButton(false);
+      // 阵地足球锦标's pages and its result play its own menu music (页面-11), the others the activity's (页面-5)
+      H.music?.(key === 'cup' || (key === 'finish' && L.finish?.cup && G.pack.cup) ? CUP_MUSIC : ROOM_MUSIC);
     }
     if (S.view?.phase !== 'lineup') L.sub = 'sel';
     // a room — a matched one too — ends the quick match page, the training room page and the cup's (房间-9, 房间-11, 房间-15)

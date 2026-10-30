@@ -182,6 +182,13 @@ function stageOf(match, content, joined) {
   return joined < 0 && (match.decks?.length ?? 1) === 2 && lv.code ? { code: lv.code, name: lv.name ?? '' } : null;
 }
 
+/**
+ * The battle UI's sounds (the engine's 界面-32, 界面-41, 界面-42: the banners' sounds): the page's audio once it is
+ * here, nothing before.
+ * @type {(bank: string) => void}
+ */
+let uiSound = () => {};
+
 /** The original UI to open with the assets and no pages' bars, else none. @param {Awaited<ReturnType<typeof assets>>} art @param {{ code: string, name: string } | null} stage */
 const earlyUi = (art, stage) => (art && !BARS ? openEarlyUi(stage) : Promise.resolve(null));
 
@@ -195,7 +202,7 @@ async function openEarlyUi(stage) {
   bootStep('正在载入战斗界面', 0.32);
   const loaded = await loadUiPack(ASSETS);
   if (!loaded) return null;
-  const ui = createUi({ pack: loaded.pack, host: $('ui'), base: new URL('ui/', ASSETS).href });
+  const ui = createUi({ pack: loaded.pack, host: $('ui'), base: new URL('ui/', ASSETS).href, sound: (bank) => uiSound(bank) });
   const start = stage ? createStart(ui, stage) : null;
   const field = $('field');
   ui.resize(field.clientWidth, field.clientHeight);
@@ -329,6 +336,7 @@ async function main() {
  */
 async function startAudio(P) {
   P.audio = await createBattleAudio({ base: new URL('audio/', ASSETS).href, voiceBase: new URL('voice/', ASSETS).href }).catch(() => null);
+  if (P.audio) { const audio = P.audio; uiSound = (bank) => { void audio.play(bank); }; }
   P.audio?.volumes(settings);
   P.audio?.dub(settings.dub || null);
   P.panel?.dubs(P.audio?.voices?.dubs ?? []);

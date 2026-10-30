@@ -7,7 +7,7 @@
 // E2E_SHOTS=<dir> keeps screenshots.
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { collectErrors, launch, startLobby, until } from './helpers.js';
 
@@ -16,6 +16,8 @@ const ASSETS = process.env['AUE_ASSETS_DIR'] ?? '', SHOTS = process.env['E2E_SHO
 const HAS_UI = ASSETS !== '' && existsSync(join(ASSETS, 'skeleton', 'ui', 'battle.json'));
 // the event's own pages need the lobby UI pack and the cup's (页面-11)
 const HAS_CUP_UI = ASSETS !== '' && existsSync(join(ASSETS, 'skeleton', 'ui', 'lobby.json')) && existsSync(join(ASSETS, 'skeleton', 'ui', 'cup.json'));
+// the cup's menu music and sounds, when the audio index has them (页面-5, 页面-11)
+const AUDIO = join(ASSETS, 'skeleton', 'audio', 'index.json'), HAS_CUP_AUDIO = ASSETS !== '' && existsSync(AUDIO) && readFileSync(AUDIO, 'utf8').includes('"sys.ON_ACTIVITY_LOADED.act1football"');
 
 /** @typedef {import('playwright').Page} Page */
 /** The tutorial's line now shown, or ''. @param {Page} page */
@@ -121,6 +123,10 @@ describe('阵地足球锦标的原版界面', { skip: HAS_CUP_UI ? false : 'no l
     await until('the lobby screens', async () => ((await page.evaluate(() => /** @type {any} */ (globalThis).__room.lobby()))?.page === 'entry' ? true : undefined), 60000);
     await page.locator('#cupbtn').click();
     await until('the entry page', async () => ((await cupOf(page))?.page === 'entry' ? true : undefined), 30000);
+    if (HAS_CUP_AUDIO) {
+      await until('the cup’s menu music', async () => ((await page.evaluate(() => /** @type {any} */ (globalThis).__room.music())) === 'sys.ON_ACTIVITY_LOADED.act1football' ? true : undefined), 30000);
+      assert.ok((await page.evaluate(() => /** @type {any} */ (globalThis).__room.lobby().sounds.asked)).includes('ui.ON_ACT1FOOTBALL_ENTER'), 'its entry sound');
+    }
     // 淘汰赛 is locked with what opens it; 晋级赛 opens its map
     assert.equal(await page.locator('#lobby .aue-n[data-name="panel_zone_2"] .aue-n[data-name="panel_locked"]:visible').count(), 1);
     await hot(page, 'panel_zone_1', 'hot_spot').click();

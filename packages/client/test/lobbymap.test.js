@@ -15,7 +15,7 @@ test('[页面-6] the latency text: the colour of the highest threshold at or und
 
 test('[页面-6] [房间-9] the page: a result first, the entry page (or its squad or quick match page) without a room, the prepare page in one', () => {
   const L = newLocal();
-  assert.deepEqual(L, { sub: 'sel', list: false, squad: false, finish: null, room: false, match: false, train: false });
+  assert.deepEqual(L, { sub: 'sel', list: false, squad: false, finish: null, room: false, match: false, train: false, cup: false });
   assert.equal(pageOf({ view: null }, L), 'entry');
   assert.equal(pageOf({ view: null }, { ...L, squad: true }), 'squad');
   assert.equal(pageOf({ view: null }, { ...L, match: true }), 'match');

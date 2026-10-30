@@ -28,6 +28,8 @@ import { rowsOf, filtered, sorted, firstOf, tapped, branchesOf, maxLevelOf, game
  * @property {(ids: string[]) => void} confirm keeps the list
  * @property {(text: string) => void} toast
  * @property {() => void} back @property {() => void} home
+ * @property {{ of: (id: string) => number, set: (id: string, k: number) => void }} [skill] the skill slot each operator
+ *   takes (阵地足球锦标's lineup, 页面-11): in the detail its skill selected, a tap on an open one chooses it
  */
 
 /** The page's prefab. */
@@ -170,7 +172,7 @@ function drawCell(S, cell, r) {
 /**
  * The game's common card of an operator: its rarity's background, light, hubs and stars, its profession, half-length
  * portrait, level (the ring full at its top level), elite phase, potential from the second on, name.
- * @param {Part} c @param {Row} r @param {SelectOptions} O
+ * @param {Part} c @param {Row} r @param {Pick<SelectOptions, 'art' | 'cards'>} O
  */
 export function fillCommonCard(c, r, O) {
   const card = O.art?.card, k = Math.min(6, Math.max(1, r.rarity)) - 1;
@@ -489,6 +491,7 @@ function drawSkills(S, r, t, e) {
   const { p, O } = S, a = p.view('@panel_attr_scroll/panel_attrs'), skills = t.skills.filter((x) => x !== null);
   fillList(p, a.skillGroup ?? '@panel_attr_scroll/panel_attrs/layout_skill_desc/layout_skill_grid', skills.length, (item, i) => {
     const sk = /** @type {NonNullable<Training['skills'][number]>} */ (skills[i]), v = item.view(), open = sk.phase <= r.elite;
+    pickSkill(S, item, v, r.id, open ? t.skills.indexOf(sk) : -1);
     const lv = Math.max(1, Math.min(sk.levels.length, e?.skills[i] ?? (r.elite >= 2 ? 10 : r.elite === 1 ? 7 : 4))), level = sk.levels[lv - 1];
     item.show(v.activePart, true); item.show(v.unActivePart, false); item.show(v.disablePart, false);
     item.show(v.panelLock, !open);
@@ -502,12 +505,22 @@ function drawSkills(S, r, t, e) {
     item.text(v.textSkillLevel, String(lv));
     item.show(v.skillLevelIcon, lv > 7);
     if (lv > 7) item.sprite(v.skillLevelIcon, v.skillLevelImages?.[lv - 7] ?? null);
-    item.show(v.selectedAlpha, false);
     item.show(v.panelRange, false);
     const bb = Object.fromEntries(level.blackboard.map((/** @type {{ key: string, value: number }} */ x) => [x.key, x.value]));
     item.text(v.skillDesc, gameRich(textPair(level.description ?? '', bb).descRaw));
     skillTags(item, v, level);
   });
+}
+
+/**
+ * A skill item as the skill an operator takes (the options' `skill`): selected when it is the one, a tap on it (when
+ * open: k its slot, −1 locked) choosing it; without the option never selected.
+ * @param {Sel} S @param {Part} item @param {Record<string, any>} v @param {string} id @param {number} k
+ */
+function pickSkill(S, item, v, id, k) {
+  const sk = S.O.skill;
+  item.show(v.selectedAlpha, !!sk && k >= 0 && sk.of(id) === k);
+  if (sk && k >= 0) item.tap('@panel_content/btn_press', () => { sk.set(id, k); drawDetail(S); });
 }
 
 /**

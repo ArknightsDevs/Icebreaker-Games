@@ -119,13 +119,27 @@ const A = {
   train: (level) => send({ t: 'train', level }),
 };
 
-/** 阵地足球锦标 (房间-15): its panel, the progress kept as it changes, a stage's match of this player alone. */
+/** 阵地足球锦标's progress kept as it changes (房间-15). @param {import('./cupsave.js').CupSave} c */
+function setCup(c) {
+  cupSave = c;
+  if (!writeCup(store, c)) toast('这个浏览器不让保存，关闭页面后锦标进度会丢失');
+  cup.render();
+}
+/** A level's training effects (engine 锦标-7). @param {string} level */
+const relicsOf = (level) => /** @type {any} */ (LEVELS[level])?.level.football?.cup?.relics ?? [];
+/** A 阵地足球锦标 stage's match of this player alone (房间-15). @type {import('./lobbycup.js').CupCtx['start']} */
+const cupStart = (level, lineup, relic, assist) => send({ t: 'cup', level, lineup, relic, assist });
+/** 阵地足球锦标 (房间-15): its panel (without the cup UI pack, 页面-11). */
 const cup = createCupView($('cupbody'), {
-  roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, getCup: () => cupSave, toast,
-  setCup: (c) => { cupSave = c; if (!writeCup(store, c)) toast('这个浏览器不让保存，关闭页面后锦标进度会丢失'); cup.render(); },
-  relics: (level) => /** @type {any} */ (LEVELS[level])?.level.football?.cup?.relics ?? [],
-  start: (level, lineup, relic, assist) => send({ t: 'cup', level, lineup, relic, assist }),
+  roster: ROSTER, training: (id) => loadTraining(id), getSave: () => save, getCup: () => cupSave, toast, setCup, relics: relicsOf, start: cupStart,
 });
+
+/** Operators new to the box put into it at their full training (阵地足球锦标's lineup, 页面-11). @param {string[]} ids */
+async function toBox(ids) {
+  let next = save;
+  for (const id of ids) if (!next.box.some((e) => e.id === id)) next = putEntry(next, fullEntry(id, await loadTraining(id)));
+  if (next !== save) setSave(next);
+}
 
 /** The end of a search (房间-9): found — the room comes next —, not found, cancelled. @param {any} m */
 function onSought(m) {
@@ -214,6 +228,7 @@ async function lobbyMode() {
     S, A, entry: (id) => save.box.find((e) => e.id === id) ?? null, setList, invite: () => inviteText(S.view?.code ?? '', S.view?.members[0]?.name ?? '', S.view?.members[0]?.tag ?? ''),
     setStyle: (id) => { save = { ...save, style: id }; if (!writeSave(store, save)) toast('这个浏览器不让保存，关闭页面后 box 会丢失'); sendCard(); box.render(); draw(); },
     backButton: (on) => { $('back').hidden = !on; }, sfx: readSettings(store).sfx, card: () => ({ name: playerName(), ...profileOf(save) }), openCup: () => cupOpen(true),
+    cup: { get: () => cupSave, set: setCup, start: cupStart, relics: relicsOf, toBox },
   }).catch((e) => { console.error(e); return null; });
   // the lobby's entry screen, or the page's own room without the lobby pack, takes over from the loading screen (页面-8)
   bootDone();
@@ -225,7 +240,7 @@ async function lobbyMode() {
   boxOpen(false);
   const r = takeResult();
   if (r) lobby.result(r);
-  else if (STARTED_AT_LOAD?.cup) cupOpen(true);
+  else if (STARTED_AT_LOAD?.cup && !lobby.openCup()) cupOpen(true);
   draw();
 }
 
@@ -321,7 +336,8 @@ addEventListener('keydown', (e) => { music.start(); lobby?.resume(); if (e.key =
 $('back').addEventListener('click', () => lobby?.back());
 $('boxbtn').addEventListener('click', () => boxOpen(!document.body.classList.contains('box-open')));
 $('boxclose').addEventListener('click', () => { boxOpen(false); draw(); });
-$('cupbtn').addEventListener('click', () => cupOpen(!document.body.classList.contains('cup-open')));
+// with the cup UI pack the event's own pages (页面-11), else the page's panel (房间-15)
+$('cupbtn').addEventListener('click', () => { if (!lobby?.openCup()) cupOpen(!document.body.classList.contains('cup-open')); });
 $('cupclose').addEventListener('click', () => { cupOpen(false); draw(); });
 void loadRoomAtlas(ART).then((a) => { atlas = a; box.render(); draw(); });
 box.render();

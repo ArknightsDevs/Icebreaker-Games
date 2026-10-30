@@ -26,28 +26,31 @@ export const LINEUP_VIEWS = Object.freeze({
 
 /**
  * What the lobby page keeps of its own: the lineup's sub-step, whether the stage list or the squad page is open, the
- * result to show after a match, whether the entry page shows its room panel, whether the quick match page or the
- * training room page is open.
- * @typedef {{ sub: 'sel' | 'skill' | 'check', list: boolean, squad: boolean, finish: MatchResult | null, room: boolean, match: boolean, train: boolean }} Local
+ * result to show after a match, whether the entry page shows its room panel, whether the quick match page, the
+ * training room page or 阵地足球锦标's pages (页面-11) are open.
+ * @typedef {{ sub: 'sel' | 'skill' | 'check', list: boolean, squad: boolean, finish: MatchResult | null, room: boolean, match: boolean, train: boolean,
+ *   cup: boolean }} Local
  */
 /**
  * A match's result as the battle page leaves it: won, the level, each stage's stamps, when it ended (ms), the field's
- * last frame blurred (a data URL), whether it was in 互选模式 (房间-8), whether it was a training (房间-11).
+ * last frame blurred (a data URL), whether it was in 互选模式 (房间-8), whether it was a training (房间-11) or a 阵地足球锦标
+ * stage's (房间-15) and that stage's score, points and new best (页面-11).
  * @typedef {{ match: string, result: number, level: string, difficulty?: string, stamps: number[], fortress?: { defended: number, damage: number }, at?: number, bg?: string,
- *   inverse?: boolean, training?: boolean, cup?: boolean }} MatchResult
+ *   inverse?: boolean, training?: boolean, cup?: boolean, cupEnd?: { score: [number, number], gained: number, points: number, best: boolean } }} MatchResult
  */
 
 /** A new lobby page's own state. @returns {Local} */
-export const newLocal = () => ({ sub: 'sel', list: false, squad: false, finish: null, room: false, match: false, train: false });
+export const newLocal = () => ({ sub: 'sel', list: false, squad: false, finish: null, room: false, match: false, train: false, cup: false });
 
 /**
  * The page a room state shows (页面-6): a match's result first; without a room the entry page (or the squad page, the
- * quick match page or the training room page the player opened from it, 房间-9, 房间-11); in a room the prepare page.
- * @param {{ view: any }} S @param {Local} L @returns {'finish' | 'entry' | 'squad' | 'prepare' | 'match' | 'train'}
+ * quick match page, the training room page the player opened from it, 房间-9, 房间-11, or 阵地足球锦标's pages, 页面-11);
+ * in a room the prepare page.
+ * @param {{ view: any }} S @param {Local} L @returns {'finish' | 'entry' | 'squad' | 'prepare' | 'match' | 'train' | 'cup'}
  */
 export function pageOf(S, L) {
   if (L.finish) return 'finish';
-  if (!S.view) return L.squad ? 'squad' : L.match ? 'match' : L.train ? 'train' : 'entry';
+  if (!S.view) return L.squad ? 'squad' : L.match ? 'match' : L.train ? 'train' : L.cup ? 'cup' : 'entry';
   return 'prepare';
 }
 
@@ -127,6 +130,13 @@ export const lineupOptions = (o, recruits) => [
   ...o.extra.map((id) => ({ id, tag: recruits.has(id) ? /** @type {const} */ ('recruit') : /** @type {const} */ ('extra') })),
 ];
 
+/** A 阵地足球锦标 stage's end as the battle page leaves it (页面-11), when well formed. @param {any} c */
+function cupEndOf(c) {
+  const n = (/** @type {unknown} */ x) => Number.isFinite(x) && /** @type {number} */ (x) >= 0;
+  if (!c || !Array.isArray(c.score) || c.score.length !== 2 || !c.score.every(n) || !n(c.gained) || !n(c.points)) return {};
+  return { cupEnd: { score: /** @type {[number, number]} */ ([Number(c.score[0]), Number(c.score[1])]), gained: Number(c.gained), points: Number(c.points), best: c.best === true } };
+}
+
 /** The battle page's result left for the room page (页面-6), or null when there is none or it is broken. @param {string | null} raw @returns {MatchResult | null} */
 export function resultOf(raw) {
   try {
@@ -134,7 +144,7 @@ export function resultOf(raw) {
     if (!(r && typeof r.match === 'string' && typeof r.result === 'number' && Array.isArray(r.stamps))) return null;
     const f = r.fortress && Number.isFinite(r.fortress.defended) ? { fortress: { defended: Number(r.fortress.defended), damage: Number(r.fortress.damage) || 0 } } : {};
     return { match: r.match, result: r.result, level: String(r.level ?? ''), ...(typeof r.difficulty === 'string' ? { difficulty: r.difficulty } : {}), stamps: r.stamps.map(Number), ...f,
-      ...(Number.isFinite(r.at) ? { at: r.at } : {}) };
+      ...(Number.isFinite(r.at) ? { at: r.at } : {}), ...cupEndOf(r.cup) };
   } catch {
     return null;
   }

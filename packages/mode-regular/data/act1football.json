@@ -41,7 +41,11 @@
     "name": "敌方",
     "icon": "act1football_teamicon_2"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 0,
+    "first": 0
+   }
   },
   {
    "stage": "act1football_01",
@@ -62,7 +66,11 @@
     "name": "业余组",
     "icon": "act1football_teamicon_3"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 25,
+    "first": 75
+   }
   },
   {
    "stage": "act1football_02",
@@ -83,7 +91,11 @@
     "name": "业余组",
     "icon": "act1football_teamicon_3"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 25,
+    "first": 75
+   }
   },
   {
    "stage": "act1football_03",
@@ -104,7 +116,11 @@
     "name": "业余组",
     "icon": "act1football_teamicon_3"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 30,
+    "first": 90
+   }
   },
   {
    "stage": "act1football_04",
@@ -125,7 +141,11 @@
     "name": "业余组",
     "icon": "act1football_teamicon_3"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 30,
+    "first": 90
+   }
   },
   {
    "stage": "act1football_05",
@@ -146,7 +166,11 @@
     "name": "阵地队",
     "icon": "act1football_teamicon_4"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 40,
+    "first": 120
+   }
   },
   {
    "stage": "act1football_06",
@@ -167,7 +191,11 @@
     "name": "战术队",
     "icon": "act1football_teamicon_5"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 40,
+    "first": 120
+   }
   },
   {
    "stage": "act1football_07",
@@ -188,7 +216,11 @@
     "name": "直球队",
     "icon": "act1football_teamicon_6"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 50,
+    "first": 150
+   }
   },
   {
    "stage": "act1football_ex01",
@@ -209,7 +241,11 @@
     "name": "门神会",
     "icon": "act1football_teamicon_7"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 40,
+    "first": 120
+   }
   },
   {
    "stage": "act1football_ex02",
@@ -230,7 +266,11 @@
     "name": "爱球会",
     "icon": "act1football_teamicon_8"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 40,
+    "first": 120
+   }
   },
   {
    "stage": "act1football_ex03",
@@ -251,7 +291,11 @@
     "name": "球德联",
     "icon": "act1football_teamicon_9"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 50,
+    "first": 150
+   }
   },
   {
    "stage": "act1football_ex04",
@@ -272,7 +316,11 @@
     "name": "魔球帮",
     "icon": "act1football_teamicon_10"
    },
-   "buff": null
+   "buff": null,
+   "points": {
+    "complete": 60,
+    "first": 180
+   }
   },
   {
    "stage": "act1football_s01",
@@ -298,6 +346,10 @@
     "name": "体能充沛",
     "icon": "act1football_buff_1_icon_1",
     "desc": "所有干员的再部署时间-30%"
+   },
+   "points": {
+    "complete": 100,
+    "first": 150
    }
   },
   {
@@ -324,6 +376,10 @@
     "name": "技艺精湛",
     "icon": "act1football_buff_2_icon_1",
     "desc": "所有干员的初始技力+10"
+   },
+   "points": {
+    "complete": 120,
+    "first": 180
    }
   }
  ],
@@ -1282,5 +1338,72 @@
   "f_lower_dialog_pos_x": -568,
   "f_lower_dialog_pos_y": -217,
   "f_tut_black": 0.6
- }
+ },
+ "trophy": [
+  50,
+  100,
+  150,
+  200,
+  250,
+  300,
+  350,
+  400,
+  450,
+  500,
+  550,
+  600,
+  650,
+  700,
+  750,
+  800,
+  850,
+  900,
+  950,
+  1000,
+  1050,
+  1100,
+  1150,
+  1200,
+  1250,
+  1300,
+  1350,
+  1400,
+  1450,
+  1500,
+  1550,
+  1600,
+  1650,
+  1700,
+  1750,
+  1800,
+  1850,
+  1900,
+  1950,
+  2000,
+  2050,
+  2100,
+  2150,
+  2200,
+  2250,
+  2300,
+  2350,
+  2400,
+  2450,
+  2500,
+  2550,
+  2600,
+  2650,
+  2700,
+  2750
+ ],
+ "kv": [
+  {
+   "name": "act1football_img_01",
+   "stage": null
+  },
+  {
+   "name": "act1football_img_02",
+   "stage": "act1football_ex04"
+  }
+ ]
 }
